@@ -22,6 +22,12 @@ from src.trendyol_api import (
     save_credentials, load_credentials, sync_orders,
     TrendyolClient, TrendyolAPIError,
 )
+from src.email_service import (
+    save_smtp_settings, load_smtp_settings,
+    send_test_email, send_campaign_report,
+    save_campaign_log, load_campaign_history,
+    build_template, SEGMENT_TEMPLATES, SMTPConfig,
+)
 from src.analytics import (
     get_summary_metrics,
     get_cohort_retention,
@@ -30,6 +36,10 @@ from src.analytics import (
     get_customer_segments,
     get_ltv_distribution,
     get_top_customers,
+    # Mini Dashboard — Sipariş Analitiği
+    get_order_status_kpis,
+    get_top_products,
+    get_daily_revenue,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -538,6 +548,7 @@ def show_sidebar() -> None:
             ("📁", "Veri Yükle", "upload"),
             ("📈", "Analitik", "analytics"),
             ("👥", "Müşteri Segmentleri", "segments"),
+            ("📧", "Kampanyalar", "campaigns"),
             ("⚙️", "Ayarlar", "settings"),
         ]
         for icon, label, key in pages:
@@ -647,6 +658,221 @@ def show_dashboard() -> None:
                     xaxis_title="", yaxis_title="",
                 )
                 st.plotly_chart(fig2, use_container_width=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Mini Dashboard — Trendyol Veri Analitiği Grafikleri
+    # ══════════════════════════════════════════════════════════════════════════
+
+    # Özel CSS — st.metric kartlarını mevcut tasarımla uyumlu hale getirir
+    st.markdown("""
+    <style>
+    /* ── Mini Dashboard bölüm ayracı ── */
+    .mini-dash-divider {
+        border: none;
+        border-top: 1px solid rgba(242,122,26,.18);
+        margin: 1.6rem 0 1rem 0;
+    }
+    /* ── st.metric kart alanı ── */
+    [data-testid="stMetric"] {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: .9rem 1.1rem !important;
+        border-left: 4px solid #F27A1A;
+        box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+    [data-testid="stMetricLabel"] p {
+        font-size: .76rem !important;
+        font-weight: 700 !important;
+        color: #6B7280 !important;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.75rem !important;
+        font-weight: 800 !important;
+        color: #1A1A2E !important;
+    }
+    [data-testid="stMetricDelta"] {
+        font-size: .78rem !important;
+    }
+    </style>
+    <hr class="mini-dash-divider">
+    """, unsafe_allow_html=True)
+
+    _section("📊 Sipariş Analitiği")
+
+    # ── 1. KPI Kartları ──────────────────────────────────────────────────────
+    kpis = get_order_status_kpis(user["id"])
+
+    k1, k2, k3 = st.columns(3)
+    with k1:
+        st.metric(
+            label="💰 Toplam Ciro",
+            value=_fmt_tl(kpis["total_revenue"]),
+            delta=f"{m['total_orders']:,} toplam sipariş",
+            delta_color="off",
+        )
+    with k2:
+        st.metric(
+            label="⏳ Aktif Siparişler",
+            value=f"{kpis['pending']:,}",
+            delta="Bekleyen (Pending)",
+            delta_color="normal" if kpis["pending"] > 0 else "off",
+        )
+    with k3:
+        completed_pct = (
+            round(kpis["completed"] / m["total_orders"] * 100, 1)
+            if m["total_orders"] > 0 else 0.0
+        )
+        st.metric(
+            label="✅ Tamamlanan Siparişler",
+            value=f"{kpis['completed']:,}",
+            delta=f"%{completed_pct} tamamlanma oranı",
+            delta_color="normal" if kpis["completed"] > 0 else "off",
+        )
+
+    st.markdown("&nbsp;")
+
+    # ── 2 & 3. Grafik Satırı ─────────────────────────────────────────────────
+    chart_col1, chart_col2 = st.columns(2, gap="medium")
+
+    # ── En Çok Satan Ürünler (Bar Chart) ─────────────────────────────────────
+    with chart_col1:
+        _section("🏆 En Çok Satan Ürünler")
+        top_prods = get_top_products(user["id"], n=8)
+
+        if top_prods.empty:
+            st.markdown(
+                '<div class="info-box" style="font-size:.84rem;">'
+                '📦 Ürün verisi bulunamadı. Siparişlerde <b>ürün adı</b> sütunu dolu değil veya henüz veri yüklenmedi.'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            # Uzun isimleri kısalt (grafik genişliğine sığsın diye)
+            top_prods["product_label"] = top_prods["product_name"].apply(
+                lambda x: x[:28] + "…" if len(str(x)) > 28 else x
+            )
+            fig_prod = go.Figure(
+                go.Bar(
+                    x=top_prods["total_qty"],
+                    y=top_prods["product_label"],
+                    orientation="h",
+                    marker=dict(
+                        color=top_prods["total_qty"],
+                        colorscale=[[0, "#fdba74"], [0.5, "#F27A1A"], [1, "#c2410c"]],
+                        showscale=False,
+                    ),
+                    text=top_prods["total_qty"].apply(lambda v: f"{int(v):,} adet"),
+                    textposition="outside",
+                    textfont=dict(size=11, color="#374151"),
+                    hovertemplate=(
+                        "<b>%{y}</b><br>"
+                        "Miktar: %{x:,.0f} adet<br>"
+                        "Gelir: ₺%{customdata:,.2f}<extra></extra>"
+                    ),
+                    customdata=top_prods["total_revenue"],
+                )
+            )
+            fig_prod.update_layout(
+                height=max(260, len(top_prods) * 36 + 40),
+                margin=dict(l=0, r=60, t=8, b=0),
+                xaxis=dict(
+                    title="Toplam Satış Adedi",
+                    showgrid=True,
+                    gridcolor="#F3F4F6",
+                    zeroline=False,
+                ),
+                yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
+                template="plotly_white",
+                plot_bgcolor="#FAFAFA",
+                paper_bgcolor="white",
+            )
+            st.plotly_chart(fig_prod, use_container_width=True)
+
+    # ── Günlük Ciro Trendi (Line Chart) ──────────────────────────────────────
+    with chart_col2:
+        _section("📅 Günlük Ciro Trendi")
+        daily_rev = get_daily_revenue(user["id"], days=30)
+
+        if daily_rev.empty:
+            st.markdown(
+                '<div class="info-box" style="font-size:.84rem;">'
+                '📅 Günlük ciro verisi oluşturulamadı.'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            # Veri aralığı etiketi
+            date_range_label = (
+                f"{daily_rev['date_str'].iloc[0]} → {daily_rev['date_str'].iloc[-1]}"
+                if len(daily_rev) > 1 else daily_rev["date_str"].iloc[0]
+            )
+            st.markdown(
+                f'<div style="font-size:.76rem; color:#9CA3AF; margin:-6px 0 6px 0;">'
+                f'📆 {date_range_label}</div>',
+                unsafe_allow_html=True,
+            )
+
+            fig_daily = go.Figure()
+
+            # Alan dolgusu
+            fig_daily.add_trace(go.Scatter(
+                x=daily_rev["date_str"],
+                y=daily_rev["revenue"],
+                mode="lines+markers",
+                name="Günlük Ciro",
+                line=dict(color="#F27A1A", width=2.5, shape="spline"),
+                marker=dict(size=5, color="#F27A1A", line=dict(width=1.5, color="white")),
+                fill="tozeroy",
+                fillcolor="rgba(242,122,26,.10)",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Ciro: ₺%{y:,.2f}<br>"
+                    "Sipariş: %{customdata}<extra></extra>"
+                ),
+                customdata=daily_rev["orders"],
+            ))
+
+            # 7 günlük hareketli ortalama (en az 3 nokta varsa)
+            if len(daily_rev) >= 3:
+                roll = daily_rev["revenue"].rolling(window=min(7, len(daily_rev)), min_periods=1).mean()
+                fig_daily.add_trace(go.Scatter(
+                    x=daily_rev["date_str"],
+                    y=roll,
+                    mode="lines",
+                    name="7G Ort.",
+                    line=dict(color="#3B82F6", width=1.5, dash="dot"),
+                    hoverinfo="skip",
+                ))
+
+            fig_daily.update_layout(
+                height=max(260, len(daily_rev) * 8 + 140),
+                margin=dict(l=0, r=0, t=8, b=0),
+                xaxis=dict(
+                    title="",
+                    showgrid=False,
+                    tickangle=-35,
+                    tickfont=dict(size=10),
+                ),
+                yaxis=dict(
+                    title="Ciro (₺)",
+                    showgrid=True,
+                    gridcolor="#F3F4F6",
+                    zeroline=False,
+                    tickprefix="₺",
+                    tickformat=",.0f",
+                ),
+                template="plotly_white",
+                plot_bgcolor="#FAFAFA",
+                paper_bgcolor="white",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, font=dict(size=11)),
+                hovermode="x unified",
+            )
+            st.plotly_chart(fig_daily, use_container_width=True)
+
+    # ── Bölüm ayracı ─────────────────────────────────────────────────────────
+    st.markdown('<hr class="mini-dash-divider">', unsafe_allow_html=True)
 
     # ── Aylık sipariş tablosu ──
     _section("Aylık Özet Tablosu")

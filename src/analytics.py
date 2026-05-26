@@ -274,3 +274,104 @@ def get_top_customers(user_id: int, n: int = 10) -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame()
     return df.head(n).reset_index(drop=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Mini Dashboard — Sipariş Analitiği (KPI + Ürün + Günlük Ciro)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=60)
+def get_order_status_kpis(user_id: int) -> dict:
+    """
+    Toplam ciro, bekleyen (Pending) ve tamamlanan (Completed) sipariş sayıları.
+
+    Anahtarlar:
+        total_revenue, pending, completed
+    """
+    df = _fetch_orders(user_id)
+    if df.empty:
+        return {"total_revenue": 0.0, "pending": 0, "completed": 0}
+
+    total_revenue = float(df["total_amount"].sum())
+
+    status_col = df.get("status", pd.Series(dtype=str))
+    status_lower = status_col.fillna("").str.strip().str.lower()
+    pending   = int((status_lower == "pending").sum())
+    completed = int((status_lower == "completed").sum())
+
+    return {
+        "total_revenue": round(total_revenue, 2),
+        "pending":       pending,
+        "completed":     completed,
+    }
+
+
+@st.cache_data(ttl=60)
+def get_top_products(user_id: int, n: int = 10) -> pd.DataFrame:
+    """
+    En çok satan ürünler — ürün adı başına toplam miktar ve gelir.
+
+    Ürün miktarını önce `quantity` sütunundan okur.
+    Sütun yoksa veya 0 ise product_name içindeki "x<N>" kalıbından çıkarır.
+    Dönüş sütunları: product_name, total_qty, total_revenue
+    """
+    df = _fetch_orders(user_id)
+    if df.empty or "product_name" not in df.columns:
+        return pd.DataFrame()
+
+    df = df.dropna(subset=["product_name"])
+    df = df[df["product_name"].str.strip() != ""].copy()
+    if df.empty:
+        return pd.DataFrame()
+
+    # Miktar belirleme: quantity sütunu → "x2" kalıbı → varsayılan 1
+    if "quantity" in df.columns:
+        df["_qty"] = pd.to_numeric(df["quantity"], errors="coerce").fillna(0)
+    else:
+        df["_qty"] = 0
+
+    # quantity 0 veya NaN olan satırlar için product_name'den "x<N>" ayıkla
+    mask_zero = df["_qty"] <= 0
+    if mask_zero.any():
+        import re as _re
+        extracted = df.loc[mask_zero, "product_name"].apply(
+            lambda name: int(m.group(1)) if (m := _re.search(r"[xX×]\s*(\d+)\s*$", str(name))) else 1
+        )
+        df.loc[mask_zero, "_qty"] = extracted
+
+    products = (
+        df.groupby("product_name", sort=False)
+        .agg(total_qty=("_qty", "sum"), total_revenue=("total_amount", "sum"))
+        .reset_index()
+        .sort_values("total_qty", ascending=False)
+        .head(n)
+        .reset_index(drop=True)
+    )
+    return products
+
+
+@st.cache_data(ttl=60)
+def get_daily_revenue(user_id: int, days: int = 30) -> pd.DataFrame:
+    """
+    Günlük ciro trendi.
+
+    Son `days` günü filtreler; bu aralıkta veri yoksa tüm geçmiş kullanılır.
+    Dönüş sütunları: date_str, revenue, orders
+    """
+    df = _fetch_orders(user_id)
+    if df.empty:
+        return pd.DataFrame()
+
+    cutoff = pd.Timestamp.now() - pd.Timedelta(days=days)
+    recent = df[df["order_date"] >= cutoff]
+    source = recent if not recent.empty else df
+
+    daily = (
+        source.groupby(source["order_date"].dt.date)
+        .agg(revenue=("total_amount", "sum"), orders=("id", "count"))
+        .reset_index()
+        .rename(columns={"order_date": "date"})
+        .sort_values("date")
+    )
+    daily["date_str"] = daily["date"].astype(str)
+    return daily

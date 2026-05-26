@@ -203,8 +203,42 @@ def _init_postgres(db_url: str) -> None:
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(user_id, customer_identifier)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_date     ON orders(user_id, order_date)")
 
+    _migrate_postgres(cur)
+
     conn.commit()
     conn.close()
+
+
+def _migrate_postgres(cur) -> None:
+    """PostgreSQL şemasını günceller: yeni sütunlar ve tablolar ekler (idempotent)."""
+    smtp_cols = [
+        ("smtp_host",       "TEXT"),
+        ("smtp_port",       "INTEGER DEFAULT 587"),
+        ("smtp_user",       "TEXT"),
+        ("smtp_pass",       "TEXT"),
+        ("smtp_from_email", "TEXT"),
+        ("smtp_from_name",  "TEXT DEFAULT 'ReOrder'"),
+    ]
+    for col, dtype in smtp_cols:
+        cur.execute(
+            f"ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS {col} {dtype}"
+        )
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS campaigns (
+            id             SERIAL PRIMARY KEY,
+            user_id        INTEGER NOT NULL,
+            segment        TEXT NOT NULL,
+            subject        TEXT,
+            sent_to        TEXT,
+            customer_count INTEGER DEFAULT 0,
+            sent_at        TIMESTAMPTZ DEFAULT NOW(),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id)"
+    )
 
 
 def _init_sqlite() -> None:
@@ -256,8 +290,43 @@ def _init_sqlite() -> None:
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(user_id, customer_identifier)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_date     ON orders(user_id, order_date)")
 
+    _migrate_sqlite(cur)
+
     conn.commit()
     conn.close()
+
+
+def _migrate_sqlite(cur) -> None:
+    """SQLite şemasını günceller: yeni sütunlar ve tablolar ekler (idempotent)."""
+    smtp_cols = [
+        ("smtp_host",       "TEXT"),
+        ("smtp_port",       "INTEGER DEFAULT 587"),
+        ("smtp_user",       "TEXT"),
+        ("smtp_pass",       "TEXT"),
+        ("smtp_from_email", "TEXT"),
+        ("smtp_from_name",  "TEXT DEFAULT 'ReOrder'"),
+    ]
+    for col, dtype in smtp_cols:
+        try:
+            cur.execute(f"ALTER TABLE user_settings ADD COLUMN {col} {dtype}")
+        except Exception:
+            pass  # Sütun zaten varsa atla
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS campaigns (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id        INTEGER NOT NULL,
+            segment        TEXT NOT NULL,
+            subject        TEXT,
+            sent_to        TEXT,
+            customer_count INTEGER DEFAULT 0,
+            sent_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id)"
+    )
 
 
 # ─── Yardımcı fonksiyonlar ───────────────────────────────────────────────────
