@@ -48,12 +48,18 @@ from src.analytics import (
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Başlatma — cache_resource ile yalnızca bir kez çalışır (rerun'larda atlanır)
+# _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
+# Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
+_SCHEMA_VER = "v3"  # session_tokens tablosu eklendi
+
+
 @st.cache_resource
-def _init_db_once():
+def _init_db_once(_ver: str = _SCHEMA_VER):
     _init_db()
 
-_init_db_once()
+
+_init_db_once(_SCHEMA_VER)
 
 st.set_page_config(
     page_title="ReOrder — Trendyol Retention",
@@ -807,8 +813,11 @@ def show_auth() -> None:
                 res = login_user(email, password)
                 if res["success"]:
                     st.session_state.user = res["user"]
-                    tok = create_session_token(res["user"]["id"])
-                    st.query_params["_rt"] = tok
+                    try:
+                        tok = create_session_token(res["user"]["id"])
+                        st.query_params["_rt"] = tok
+                    except Exception:
+                        pass  # Token tablosu yoksa bile giriş tamamlanır
                     st.rerun()
                 else:
                     st.error(res["error"])
@@ -827,8 +836,11 @@ def show_auth() -> None:
                     res = register_user(email2, pw1, store)
                     if res["success"]:
                         st.session_state.user = res["user"]
-                        tok = create_session_token(res["user"]["id"])
-                        st.query_params["_rt"] = tok
+                        try:
+                            tok = create_session_token(res["user"]["id"])
+                            st.query_params["_rt"] = tok
+                        except Exception:
+                            pass  # Token tablosu yoksa bile kayıt tamamlanır
                         st.rerun()
                     else:
                         st.error(res["error"])
