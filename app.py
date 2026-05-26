@@ -16,7 +16,10 @@ import numpy as np
 from datetime import datetime
 
 from src.database import init_db as _init_db
-from src.auth import login_user, register_user, update_store_name, change_password
+from src.auth import (
+    login_user, register_user, update_store_name, change_password,
+    create_session_token, verify_session_token, delete_session_token,
+)
 from src.parser import parse_trendyol_file, import_to_db, generate_sample_orders
 from src.report import generate_report
 from src.trendyol_api import (
@@ -56,7 +59,7 @@ st.set_page_config(
     page_title="ReOrder — Trendyol Retention",
     page_icon="🔄",
     layout="wide",
-    initial_sidebar_state="auto",   # desktop: açık | mobile: otomatik kapalı
+    initial_sidebar_state="expanded",
 )
 
 # Streamlit UI elementlerini gizle
@@ -153,44 +156,20 @@ st.markdown(
         font-size: .78rem; padding: .3rem .5rem;
     }
 
-    /* ── Sidebar nav düğmeleri (div & section her ikisi) ── */
-    div[data-testid="stSidebar"] .stButton > button,
-    section[data-testid="stSidebar"] .stButton > button {
+    /* ── Sidebar nav düğmeleri ── */
+    [data-testid="stSidebar"] .stButton > button {
         background:    rgba(255,255,255,.08) !important;
         border:        1px solid rgba(255,255,255,.12) !important;
         color:         #E2E8F0 !important;
         width:         100%;
         text-align:    left;
-        margin-bottom: .2rem;
-        border-radius: 8px    !important;
-        min-height:    44px   !important;   /* iOS / Android dokunma standardı */
+        margin-bottom: .25rem;
+        border-radius: 8px  !important;
+        min-height:    44px !important;
     }
-    div[data-testid="stSidebar"] .stButton > button:hover,
-    section[data-testid="stSidebar"] .stButton > button:hover {
-        background: rgba(242,122,26,.28) !important;
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(242,122,26,.3) !important;
         color:      #ffffff !important;
-    }
-
-    /* ── Sidebar genel buton rengi koruması (turuncu override engeli) ── */
-    [data-testid="stSidebar"] button:not([data-testid="stBaseButton-headerNoPadding"]) {
-        background: rgba(255,255,255,.08) !important;
-        color:      #E2E8F0 !important;
-    }
-
-    /* ── Sidebar kapalıyken görünen hamburger (collapse control) ── */
-    [data-testid="stSidebarCollapsedControl"] {
-        top: 0.6rem !important;
-    }
-    [data-testid="stSidebarCollapsedControl"] button {
-        background:    rgba(242,122,26,.9)  !important;
-        border-radius: 8px                  !important;
-        border:        none                 !important;
-        box-shadow:    0 2px 10px rgba(0,0,0,.3) !important;
-        min-height:    40px !important;
-        min-width:     40px !important;
-    }
-    [data-testid="stSidebarCollapsedControl"] svg {
-        fill: white !important;
     }
 
     /* ══════════════════════════════════════════════════════════════════
@@ -202,10 +181,46 @@ st.markdown(
     /* ── Tablet (768px ve altı) ── */
     @media screen and (max-width: 768px) {
 
+        /* ── Sidebar: overlay drawer, ana içerik her zaman tam genişlik ── */
+        section[data-testid="stSidebar"] {
+            position:   fixed     !important;
+            z-index:    1000      !important;
+            top:        0         !important;
+            left:       0         !important;
+            height:     100dvh    !important;
+            box-shadow: 4px 0 24px rgba(0,0,0,.5) !important;
+        }
+        section[data-testid="stMain"] {
+            margin-left: 0   !important;
+            width:       100vw !important;
+        }
+
+        /*
+         * Sidebar'ın toggle butonu (<</>>) her zaman ekranın sol üstünde sabit.
+         * Sidebar kapalıyken de açık olduğunda da buton erişilebilir kalır.
+         */
+        section[data-testid="stSidebar"] > div:first-child > button:first-child {
+            position:      fixed    !important;
+            left:          8px      !important;
+            top:           12px     !important;
+            z-index:       9999     !important;
+            background:    rgba(242,122,26,.92) !important;
+            border:        none     !important;
+            border-radius: 8px      !important;
+            min-width:     42px     !important;
+            min-height:    42px     !important;
+            box-shadow:    0 2px 10px rgba(0,0,0,.35) !important;
+        }
+        section[data-testid="stSidebar"] > div:first-child > button:first-child svg {
+            fill:   white !important;
+            stroke: white !important;
+        }
+
+        /* Genel padding (hamburger için üst boşluk dahil) */
         .block-container {
             padding-left:  0.75rem !important;
             padding-right: 0.75rem !important;
-            padding-top:   0.9rem  !important;
+            padding-top:   3.8rem  !important;
         }
 
         /* Başlık şeridi */
@@ -334,6 +349,17 @@ def _init_state() -> None:
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
+    # ── Oturum kalıcılığı: URL parametresinden otomatik giriş ───────────────
+    if st.session_state.user is None:
+        tok = st.query_params.get("_rt")
+        if tok:
+            try:
+                user = verify_session_token(tok)
+                if user:
+                    st.session_state.user = user
+            except Exception:
+                pass
 
 
 _init_state()
@@ -733,6 +759,8 @@ def show_auth() -> None:
                 res = login_user(email, password)
                 if res["success"]:
                     st.session_state.user = res["user"]
+                    tok = create_session_token(res["user"]["id"])
+                    st.query_params["_rt"] = tok
                     st.rerun()
                 else:
                     st.error(res["error"])
@@ -751,6 +779,8 @@ def show_auth() -> None:
                     res = register_user(email2, pw1, store)
                     if res["success"]:
                         st.session_state.user = res["user"]
+                        tok = create_session_token(res["user"]["id"])
+                        st.query_params["_rt"] = tok
                         st.rerun()
                     else:
                         st.error(res["error"])
@@ -800,6 +830,14 @@ def show_sidebar() -> None:
 
         st.markdown("---")
         if st.button("🚪  Çıkış Yap", use_container_width=True, key="logout_btn"):
+            # Oturum token'ını sil ve URL parametresini temizle
+            tok = st.query_params.get("_rt")
+            if tok:
+                try:
+                    delete_session_token(tok)
+                except Exception:
+                    pass
+            st.query_params.clear()
             st.session_state.user = None
             st.session_state.page = "dashboard"
             st.rerun()

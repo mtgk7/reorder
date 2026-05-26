@@ -199,9 +199,20 @@ def _init_postgres(db_url: str) -> None:
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS session_tokens (
+            id         SERIAL PRIMARY KEY,
+            user_id    INTEGER NOT NULL,
+            token      TEXT NOT NULL UNIQUE,
+            expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days'),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_user     ON orders(user_id)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(user_id, customer_identifier)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_date     ON orders(user_id, order_date)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_session_tokens  ON session_tokens(token)")
 
     _migrate_postgres(cur)
 
@@ -286,9 +297,20 @@ def _init_sqlite() -> None:
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS session_tokens (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL,
+            token      TEXT NOT NULL UNIQUE,
+            expires_at DATETIME DEFAULT (datetime('now', '+30 days')),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_user     ON orders(user_id)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(user_id, customer_identifier)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_date     ON orders(user_id, order_date)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_session_tokens  ON session_tokens(token)")
 
     _migrate_sqlite(cur)
 
