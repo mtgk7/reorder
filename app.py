@@ -329,8 +329,30 @@ def show_auth() -> None:
                       0 0 8px  rgba(242,133,0,.12) !important;
         background:   rgba(10, 37, 51, 0.70) !important;
     }
+    /* Şifre alanı göz-ikonu butonu — input ile aynı koyu arka plan */
+    [data-testid="stTextInput"] div[data-testid="stTextInputRootElement"] {
+        background:    rgba(10, 37, 51, 0.55) !important;
+        border:        1px solid rgba(19, 78, 94, 0.8) !important;
+        border-radius: 9px !important;
+    }
+    [data-testid="stTextInput"] div[data-testid="stTextInputRootElement"] input {
+        border: none !important;
+        background: transparent !important;
+    }
+    [data-testid="stTextInput"] div[data-testid="stTextInputRootElement"]:focus-within {
+        border-color: rgba(242,133,0,.75) !important;
+        box-shadow:   0 0 0 3px rgba(242,133,0,.18),
+                      0 0 8px rgba(242,133,0,.12) !important;
+        background:   rgba(10, 37, 51, 0.70) !important;
+    }
     [data-testid="stTextInput"] button {
-        color: rgba(255,255,255,.45) !important;
+        background:  transparent !important;
+        border:      none !important;
+        color:       rgba(200,230,245,.55) !important;
+    }
+    [data-testid="stTextInput"] button:hover {
+        color: rgba(242,133,0,.85) !important;
+        background: transparent !important;
     }
 
     /* ══════════════════════════════════════════════════
@@ -420,8 +442,8 @@ def show_auth() -> None:
                           font-weight:400;">
                     Trendyol Retention & Müşteri Analiz Platformu
                 </p>
-                <p style="font-size:.7rem; font-style:italic; margin:.4rem 0 0;
-                          letter-spacing:.03em;
+                <p style="font-size:.82rem; font-style:italic; font-weight:700; margin:.5rem 0 0;
+                          letter-spacing:.04em;
                           background: linear-gradient(90deg,#F28500,#ffb347);
                           -webkit-background-clip:text; -webkit-text-fill-color:transparent;
                           background-clip:text;">
