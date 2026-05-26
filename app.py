@@ -44,6 +44,20 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Streamlit UI elementlerini gizle
+st.markdown(
+    """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stAppDeployButton {display: none !important;}
+    [class*="viewerBadge"] {display: none !important;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Tema & CSS
 st.markdown(
     """
