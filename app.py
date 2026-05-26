@@ -212,15 +212,185 @@ def _go(page: str) -> None:
 # Giriş / Kayıt
 # ─────────────────────────────────────────────────────────────────────────────
 def show_auth() -> None:
+
+    # ── Premium Login Page CSS (yalnızca bu sayfada enjekte edilir) ──────────
+    st.markdown("""
+    <style>
+    /* ── Arka plan degradesi ── */
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    section[data-testid="stMain"] > div:first-child {
+        background: linear-gradient(140deg,
+            #0A0F1E 0%,
+            #0D1B2A 25%,
+            #0E2240 50%,
+            #0A2A3A 75%,
+            #061520 100%) !important;
+        min-height: 100vh !important;
+    }
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 5rem !important;
+        background: transparent !important;
+    }
+
+    /* ── Sidebar'ı giriş sayfasında gizle ── */
+    [data-testid="stSidebar"] { display: none !important; }
+
+    /* ── Dekoratif arka plan parıltısı ── */
+    [data-testid="stAppViewContainer"]::before {
+        content: "";
+        position: fixed;
+        top: -20%;
+        left: -10%;
+        width: 55%;
+        height: 55%;
+        background: radial-gradient(ellipse, rgba(242,122,26,.12) 0%, transparent 65%);
+        pointer-events: none;
+        z-index: 0;
+    }
+    [data-testid="stAppViewContainer"]::after {
+        content: "";
+        position: fixed;
+        bottom: -15%;
+        right: -10%;
+        width: 50%;
+        height: 50%;
+        background: radial-gradient(ellipse, rgba(14,100,200,.1) 0%, transparent 65%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* ── Glassmorphic kart (orta kolon) ── */
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) > [data-testid="stVerticalBlock"] {
+        background: rgba(255,255,255,.055) !important;
+        backdrop-filter: blur(28px) saturate(130%) !important;
+        -webkit-backdrop-filter: blur(28px) saturate(130%) !important;
+        border-radius: 20px !important;
+        border: 1px solid rgba(255,255,255,.1) !important;
+        box-shadow:
+            0 24px 64px rgba(0,0,0,.55),
+            0 0 0 1px rgba(255,255,255,.04) inset,
+            0 1px 0 rgba(255,255,255,.08) inset !important;
+        padding: 2.2rem 2rem !important;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ── Login sayfa metin renkleri ── */
+    [data-testid="stHorizontalBlock"] [data-testid="stMarkdownContainer"] p,
+    [data-testid="stHorizontalBlock"] [data-testid="stMarkdownContainer"] h1 {
+        color: #E2E8F0 !important;
+    }
+
+    /* ── Input alanları ── */
+    [data-testid="stTextInput"] label p { color: #CBD5E1 !important; font-size: .85rem !important; }
+    [data-testid="stTextInput"] input {
+        background: rgba(255,255,255,.07) !important;
+        border: 1px solid rgba(255,255,255,.14) !important;
+        border-radius: 9px !important;
+        color: #F1F5F9 !important;
+        font-size: .92rem !important;
+        transition: border-color .2s, box-shadow .2s !important;
+    }
+    [data-testid="stTextInput"] input::placeholder { color: rgba(255,255,255,.3) !important; }
+    [data-testid="stTextInput"] input:focus {
+        border-color: #F27A1A !important;
+        box-shadow: 0 0 0 3px rgba(242,122,26,.22) !important;
+        background: rgba(242,122,26,.06) !important;
+    }
+    /* Şifre göster ikonu */
+    [data-testid="stTextInput"] button { color: rgba(255,255,255,.5) !important; }
+
+    /* ── Sekmeler (Tabs) ── */
+    [data-testid="stTabs"] [role="tablist"] {
+        border-bottom: 1px solid rgba(255,255,255,.1) !important;
+        gap: .5rem !important;
+    }
+    [data-testid="stTabs"] [role="tab"] {
+        color: rgba(255,255,255,.45) !important;
+        font-weight: 500 !important;
+        border-radius: 6px 6px 0 0 !important;
+        padding: .5rem 1.1rem !important;
+        transition: color .2s !important;
+    }
+    [data-testid="stTabs"] [role="tab"]:hover {
+        color: rgba(255,255,255,.8) !important;
+        background: rgba(255,255,255,.05) !important;
+    }
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        color: #F27A1A !important;
+        border-bottom: 2px solid #F27A1A !important;
+        background: transparent !important;
+    }
+    [data-testid="stTabsContent"] { background: transparent !important; }
+
+    /* ── Form submit butonu ── */
+    [data-testid="stFormSubmitButton"] > button {
+        background: linear-gradient(135deg, #F27A1A 0%, #D4601A 100%) !important;
+        color: #fff !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        font-size: .96rem !important;
+        letter-spacing: .04em !important;
+        box-shadow: 0 4px 18px rgba(242,122,26,.45) !important;
+        transition: transform .15s, box-shadow .15s !important;
+        padding: .65rem !important;
+    }
+    [data-testid="stFormSubmitButton"] > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 7px 24px rgba(242,122,26,.55) !important;
+    }
+    [data-testid="stFormSubmitButton"] > button:active {
+        transform: translateY(0) !important;
+    }
+
+    /* ── Hata / bilgi mesajları ── */
+    [data-testid="stAlert"] {
+        border-radius: 10px !important;
+        background: rgba(255,255,255,.06) !important;
+        border: 1px solid rgba(255,255,255,.12) !important;
+    }
+
+    /* ── Footer ── */
+    .login-footer {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        text-align: center;
+        padding: .9rem;
+        font-size: .73rem;
+        color: rgba(255,255,255,.22);
+        letter-spacing: .06em;
+        background: linear-gradient(transparent, rgba(6,21,32,.6));
+        pointer-events: none;
+        z-index: 9999;
+    }
+    .login-footer a {
+        color: rgba(242,122,26,.55) !important;
+        text-decoration: none !important;
+        pointer-events: all;
+    }
+    .login-footer a:hover { color: #F27A1A !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ── Orta kolon layout ────────────────────────────────────────────────────
     col_l, col_c, col_r = st.columns([1, 1.4, 1])
     with col_c:
         st.markdown(
             """
-            <div style="text-align:center; margin-bottom:2rem;">
-                <span style="font-size:4rem;">🔄</span>
-                <h1 style="color:#1A1A2E; font-size:2rem; margin:.4rem 0 .2rem;">ReOrder</h1>
-                <p style="color:#6B7280; margin:.2rem 0 0;">Trendyol Retention & Müşteri Analiz Platformu</p>
-                <p style="color:#F27A1A; font-size:.78rem; font-style:italic; margin:.35rem 0 0; letter-spacing:.02em;">
+            <div style="text-align:center; margin-bottom:2rem; padding-top:.5rem;">
+                <div style="font-size:3.2rem; margin-bottom:.4rem; filter:drop-shadow(0 0 16px rgba(242,122,26,.5));">🔄</div>
+                <h1 style="color:#F1F5F9; font-size:2.1rem; font-weight:800;
+                           margin:.2rem 0 .1rem; letter-spacing:-.02em;
+                           text-shadow:0 2px 12px rgba(0,0,0,.4);">ReOrder</h1>
+                <p style="color:rgba(203,213,225,.75); margin:.2rem 0 0; font-size:.88rem;">
+                    Trendyol Retention & Müşteri Analiz Platformu
+                </p>
+                <p style="color:#F27A1A; font-size:.72rem; font-style:italic;
+                           margin:.45rem 0 0; letter-spacing:.03em;
+                           opacity:.85;">
                     Seamless Experience, Return Customers.&nbsp;&nbsp;|&nbsp;&nbsp;Kusursuz Deneyim, Geri Dönen Müşteriler.
                 </p>
             </div>
@@ -260,6 +430,14 @@ def show_auth() -> None:
                         st.rerun()
                     else:
                         st.error(res["error"])
+
+    # ── Footer ───────────────────────────────────────────────────────────────
+    st.markdown(
+        '<div class="login-footer">'
+        'ReOrder &copy; 2026 &nbsp;|&nbsp; <a href="mailto:support@reorder.app">Support</a>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
