@@ -179,72 +179,121 @@ st.markdown(
     }
 
     /* ══════════════════════════════════════════════════════════════════
-       SIDEBAR HAMBURGER BUTONU — GLOBAL (tüm ekran boyutları)
-       Streamlit ≥1.36: stSidebarCollapsedControl bağımsız bir div.
-       Streamlit  <1.36: sidebar içindeki ilk buton (fallback).
+       SIDEBAR HAMBURGER BUTONU — KESİN ÇÖZÜM (tüm Streamlit sürümleri)
+
+       Gerçek DOM analizi sonucu (2026-05):
+         • Bu sürümde "stExpandSidebarButton" (header içi BUTTON)
+         • Eski/gelecek sürümlerde "stSidebarCollapsedControl" (bağımsız div)
+         • Sidebar içi kapama butonu: stSidebarCollapseButton
+
+       Sorun: header {visibility:hidden} tüm header içeriğini gizliyor,
+              stExpandSidebarButton da header içinde olduğu için görünmüyor.
+       Çözüm: visibility:visible !important + position:fixed ile görünür yap.
     ══════════════════════════════════════════════════════════════════ */
 
-    /* Yeni yapı — Streamlit ≥1.36 */
-    div[data-testid="stSidebarCollapsedControl"] {
-        position:  fixed   !important;
-        left:      12px    !important;
-        top:       12px    !important;
-        z-index:   9999    !important;
-    }
-    div[data-testid="stSidebarCollapsedControl"] button {
-        background:      linear-gradient(135deg,
-                             rgba(26,26,46,.96)  0%,
-                             rgba(22,33,62,.96) 100%) !important;
-        border:          1px solid rgba(242,122,26,.65) !important;
-        border-radius:   10px !important;
-        min-width:       40px !important;
-        min-height:      40px !important;
-        backdrop-filter: blur(8px) !important;
-        box-shadow:      0 0 10px rgba(242,122,26,.40),
-                         0 0 22px rgba(242,122,26,.18),
+    /* ── 1. stExpandSidebarButton (mevcut Streamlit versiyonu) ─────── */
+    [data-testid="stExpandSidebarButton"] {
+        visibility:      visible !important;   /* header:hidden'ı ezer */
+        position:        fixed   !important;
+        left:            12px    !important;
+        top:             12px    !important;
+        z-index:         9999    !important;
+        width:           40px    !important;
+        height:          40px    !important;
+        display:         flex    !important;
+        align-items:     center  !important;
+        justify-content: center  !important;
+        background:      rgba(40, 60, 75, 0.85) !important;
+        border:          1px solid rgba(242, 133, 0, 0.5) !important;
+        border-radius:   8px    !important;
+        box-shadow:      0 0 10px rgba(242,133,0,.30),
+                         0 0 22px rgba(242,133,0,.15),
                          0 4px 14px rgba(0,0,0,.45) !important;
-        transition:      box-shadow .25s ease, transform .15s ease,
+        backdrop-filter: blur(8px) !important;
+        transition:      box-shadow .3s ease-in-out, transform .15s ease,
                          border-color .2s ease !important;
         cursor:          pointer !important;
+        padding:         2px    !important;
     }
-    div[data-testid="stSidebarCollapsedControl"] button:hover {
-        box-shadow:   0 0 16px rgba(242,122,26,.70),
-                      0 0 34px rgba(242,122,26,.32),
+    [data-testid="stExpandSidebarButton"]:hover {
+        box-shadow:   0 0 15px rgba(242,133,0,.60),
+                      0 0 34px rgba(242,133,0,.28),
                       0 4px 20px rgba(0,0,0,.55) !important;
-        border-color: rgba(242,122,26,.95) !important;
+        border-color: rgba(242,133,0,.85) !important;
         transform:    scale(1.07) !important;
     }
-    div[data-testid="stSidebarCollapsedControl"] button:active {
-        transform: scale(.97) !important;
+    [data-testid="stExpandSidebarButton"]:active {
+        transform: scale(.96) !important;
     }
-    div[data-testid="stSidebarCollapsedControl"] svg,
-    div[data-testid="stSidebarCollapsedControl"] svg * {
-        fill:   #F27A1A !important;
-        stroke: #F27A1A !important;
+    [data-testid="stExpandSidebarButton"] svg,
+    [data-testid="stExpandSidebarButton"] svg *,
+    [data-testid="stExpandSidebarButton"] svg path {
+        visibility: visible !important;
+        fill:       #f28500  !important;
+        stroke:     #f28500  !important;
+        color:      #f28500  !important;
+    }
+    /* Material icon yazı da varsa (keyboard_double_arrow_right) */
+    [data-testid="stExpandSidebarButton"] span {
+        visibility: visible !important;
+        color:      #f28500  !important;
     }
 
-    /* Fallback — Streamlit <1.36 (sidebar içi buton) */
+    /* ── 2. stSidebarCollapsedControl (eski/gelecek sürümler fallback) */
+    div[data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarCollapsedControl"] {
+        position:         fixed !important;
+        left:             12px  !important;
+        top:              12px  !important;
+        z-index:          9999  !important;
+        background-color: rgba(40, 60, 75, 0.85) !important;
+        border:           1px solid rgba(242,133,0,.5) !important;
+        border-radius:    8px  !important;
+        box-shadow:       0 0 10px rgba(242,133,0,.30) !important;
+        padding:          2px  !important;
+        transition:       all .3s ease-in-out !important;
+    }
+    div[data-testid="stSidebarCollapsedControl"]:hover,
+    [data-testid="stSidebarCollapsedControl"]:hover {
+        box-shadow: 0 0 15px rgba(242,133,0,.60) !important;
+    }
+    div[data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="stSidebarCollapsedControl"] button {
+        background: transparent !important;
+        border:     none        !important;
+        color:      #f28500     !important;
+    }
+    div[data-testid="stSidebarCollapsedControl"] svg,
+    [data-testid="stSidebarCollapsedControl"] svg,
+    [data-testid="stSidebarCollapsedControl"] svg path {
+        fill:   #f28500 !important;
+        stroke: #f28500 !important;
+    }
+
+    /* ── 3. Sidebar içi kapama butonu (stSidebarCollapseButton) ─────── */
+    [data-testid="stSidebarCollapseButton"] button,
     section[data-testid="stSidebar"] > div:first-child button:first-child {
-        background:      linear-gradient(135deg,
-                             rgba(26,26,46,.96),
-                             rgba(22,33,62,.96)) !important;
-        border:          1px solid rgba(242,122,26,.65) !important;
-        border-radius:   10px !important;
-        min-width:       40px !important;
-        min-height:      40px !important;
-        box-shadow:      0 0 10px rgba(242,122,26,.40),
-                         0 4px 14px rgba(0,0,0,.45) !important;
+        background:      rgba(40,60,75,.85) !important;
+        border:          1px solid rgba(242,133,0,.5) !important;
+        border-radius:   8px  !important;
+        min-width:       36px !important;
+        min-height:      36px !important;
+        box-shadow:      0 0 8px rgba(242,133,0,.25),
+                         0 4px 12px rgba(0,0,0,.4) !important;
         transition:      box-shadow .25s, transform .15s !important;
     }
+    [data-testid="stSidebarCollapseButton"] button:hover,
     section[data-testid="stSidebar"] > div:first-child button:first-child:hover {
-        box-shadow:  0 0 16px rgba(242,122,26,.70),
-                     0 4px 20px rgba(0,0,0,.55) !important;
+        box-shadow:  0 0 14px rgba(242,133,0,.55),
+                     0 4px 18px rgba(0,0,0,.5) !important;
         transform:   scale(1.07) !important;
     }
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="stSidebarCollapseButton"] svg *,
     section[data-testid="stSidebar"] > div:first-child button:first-child svg,
     section[data-testid="stSidebar"] > div:first-child button:first-child svg * {
-        fill:   #F27A1A !important;
-        stroke: #F27A1A !important;
+        fill:   #f28500 !important;
+        stroke: #f28500 !important;
     }
 
     /* ══════════════════════════════════════════════════════════════════
@@ -270,11 +319,11 @@ st.markdown(
             width:       100vw !important;
         }
 
-        /* Genel padding (hamburger için üst boşluk dahil) */
+        /* Genel padding */
         .block-container {
             padding-left:  0.75rem !important;
             padding-right: 0.75rem !important;
-            padding-top:   3.8rem  !important;
+            padding-top:   0.75rem !important;
         }
 
         /* Başlık şeridi */
