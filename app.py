@@ -305,54 +305,57 @@ def show_auth() -> None:
     [data-testid="stTabsContent"] { background: transparent !important; }
 
     /* ══════════════════════════════════════════════════
-       4. INPUT ALANLARI
+       4. INPUT ALANLARI — beyaz zemin, düzenli köşe
     ══════════════════════════════════════════════════ */
     [data-testid="stTextInput"] label p {
         color: rgba(180,210,230,.85) !important;
         font-size: .83rem !important;
         font-weight: 500 !important;
     }
-    [data-testid="stTextInput"] input {
-        background:  rgba(10, 37, 51, 0.55) !important;
-        border:      1px solid rgba(19, 78, 94, 0.8) !important;
+    /* Tüm wrapper div'ler — beyaz arka plan, yuvarlak köşe */
+    [data-testid="stTextInput"] > div,
+    [data-testid="stTextInput"] > div > div,
+    [data-testid="stTextInput"] > div > div > div {
+        background:    #ffffff !important;
         border-radius: 9px !important;
-        color:       #dff0f8 !important;
-        font-size:   .92rem !important;
-        transition:  border-color .2s, box-shadow .2s !important;
+        border:        none !important;
+        overflow:      hidden !important;
     }
-    [data-testid="stTextInput"] input::placeholder {
-        color: rgba(255,255,255,.25) !important;
+    /* Outer border — wrapper üzerinde */
+    [data-testid="stTextInput"] > div {
+        border: 1px solid rgba(19,78,94,0.5) !important;
+        transition: border-color .2s, box-shadow .2s !important;
     }
-    [data-testid="stTextInput"] input:focus {
-        border-color: rgba(242,133,0,.75) !important;
-        box-shadow:   0 0 0 3px rgba(242,133,0,.18),
-                      0 0 8px  rgba(242,133,0,.12) !important;
-        background:   rgba(10, 37, 51, 0.70) !important;
-    }
-    /* Şifre alanı göz-ikonu butonu — input ile aynı koyu arka plan */
-    [data-testid="stTextInput"] div[data-testid="stTextInputRootElement"] {
-        background:    rgba(10, 37, 51, 0.55) !important;
-        border:        1px solid rgba(19, 78, 94, 0.8) !important;
-        border-radius: 9px !important;
-    }
-    [data-testid="stTextInput"] div[data-testid="stTextInputRootElement"] input {
-        border: none !important;
-        background: transparent !important;
-    }
-    [data-testid="stTextInput"] div[data-testid="stTextInputRootElement"]:focus-within {
+    [data-testid="stTextInput"] > div:focus-within {
         border-color: rgba(242,133,0,.75) !important;
         box-shadow:   0 0 0 3px rgba(242,133,0,.18),
                       0 0 8px rgba(242,133,0,.12) !important;
-        background:   rgba(10, 37, 51, 0.70) !important;
     }
-    [data-testid="stTextInput"] button {
-        background:  transparent !important;
-        border:      none !important;
-        color:       rgba(200,230,245,.55) !important;
+    /* Input — beyaz, koyu metin */
+    [data-testid="stTextInput"] input {
+        background:    #ffffff !important;
+        border:        none !important;
+        border-radius: 0 !important;
+        color:         #0d2433 !important;
+        font-size:     .92rem !important;
     }
-    [data-testid="stTextInput"] button:hover {
-        color: rgba(242,133,0,.85) !important;
-        background: transparent !important;
+    [data-testid="stTextInput"] input::placeholder {
+        color: rgba(100,130,150,.5) !important;
+    }
+    /* Göz-ikonu butonu — beyaz zemin, siyah ikon */
+    [data-testid="stTextInput"] button,
+    [data-testid="stTextInput"] button:hover,
+    [data-testid="stTextInput"] button:focus {
+        background:    #ffffff !important;
+        border:        none !important;
+        box-shadow:    none !important;
+        color:         #0d2433 !important;
+    }
+    [data-testid="stTextInput"] button svg,
+    [data-testid="stTextInput"] button svg * {
+        fill:   #0d2433 !important;
+        stroke: #0d2433 !important;
+        color:  #0d2433 !important;
     }
 
     /* ══════════════════════════════════════════════════
