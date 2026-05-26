@@ -173,6 +173,75 @@ st.markdown(
     }
 
     /* ══════════════════════════════════════════════════════════════════
+       SIDEBAR HAMBURGER BUTONU — GLOBAL (tüm ekran boyutları)
+       Streamlit ≥1.36: stSidebarCollapsedControl bağımsız bir div.
+       Streamlit  <1.36: sidebar içindeki ilk buton (fallback).
+    ══════════════════════════════════════════════════════════════════ */
+
+    /* Yeni yapı — Streamlit ≥1.36 */
+    div[data-testid="stSidebarCollapsedControl"] {
+        position:  fixed   !important;
+        left:      12px    !important;
+        top:       12px    !important;
+        z-index:   9999    !important;
+    }
+    div[data-testid="stSidebarCollapsedControl"] button {
+        background:      linear-gradient(135deg,
+                             rgba(26,26,46,.96)  0%,
+                             rgba(22,33,62,.96) 100%) !important;
+        border:          1px solid rgba(242,122,26,.65) !important;
+        border-radius:   10px !important;
+        min-width:       40px !important;
+        min-height:      40px !important;
+        backdrop-filter: blur(8px) !important;
+        box-shadow:      0 0 10px rgba(242,122,26,.40),
+                         0 0 22px rgba(242,122,26,.18),
+                         0 4px 14px rgba(0,0,0,.45) !important;
+        transition:      box-shadow .25s ease, transform .15s ease,
+                         border-color .2s ease !important;
+        cursor:          pointer !important;
+    }
+    div[data-testid="stSidebarCollapsedControl"] button:hover {
+        box-shadow:   0 0 16px rgba(242,122,26,.70),
+                      0 0 34px rgba(242,122,26,.32),
+                      0 4px 20px rgba(0,0,0,.55) !important;
+        border-color: rgba(242,122,26,.95) !important;
+        transform:    scale(1.07) !important;
+    }
+    div[data-testid="stSidebarCollapsedControl"] button:active {
+        transform: scale(.97) !important;
+    }
+    div[data-testid="stSidebarCollapsedControl"] svg,
+    div[data-testid="stSidebarCollapsedControl"] svg * {
+        fill:   #F27A1A !important;
+        stroke: #F27A1A !important;
+    }
+
+    /* Fallback — Streamlit <1.36 (sidebar içi buton) */
+    section[data-testid="stSidebar"] > div:first-child button:first-child {
+        background:      linear-gradient(135deg,
+                             rgba(26,26,46,.96),
+                             rgba(22,33,62,.96)) !important;
+        border:          1px solid rgba(242,122,26,.65) !important;
+        border-radius:   10px !important;
+        min-width:       40px !important;
+        min-height:      40px !important;
+        box-shadow:      0 0 10px rgba(242,122,26,.40),
+                         0 4px 14px rgba(0,0,0,.45) !important;
+        transition:      box-shadow .25s, transform .15s !important;
+    }
+    section[data-testid="stSidebar"] > div:first-child button:first-child:hover {
+        box-shadow:  0 0 16px rgba(242,122,26,.70),
+                     0 4px 20px rgba(0,0,0,.55) !important;
+        transform:   scale(1.07) !important;
+    }
+    section[data-testid="stSidebar"] > div:first-child button:first-child svg,
+    section[data-testid="stSidebar"] > div:first-child button:first-child svg * {
+        fill:   #F27A1A !important;
+        stroke: #F27A1A !important;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
        MOBILE RESPONSIVE
        Tablet  ≤ 768px : 2-kolonlu grid, küçük font/padding
        Telefon ≤ 480px : tek kolonlu, kompakt layout
@@ -193,50 +262,6 @@ st.markdown(
         section[data-testid="stMain"] {
             margin-left: 0   !important;
             width:       100vw !important;
-        }
-
-        /*
-         * Streamlit ≥1.36 — sidebar kapalıyken hamburger butonu:
-         * [data-testid="stSidebarCollapsedControl"]
-         * Eski sürümlerde sidebar içindeki ilk buton da hedeflenir.
-         */
-        [data-testid="stSidebarCollapsedControl"] {
-            position: fixed !important;
-            left:     8px   !important;
-            top:      12px  !important;
-            z-index:  9999  !important;
-        }
-        [data-testid="stSidebarCollapsedControl"] button,
-        [data-testid="stSidebarCollapsedControl"] > button {
-            background:    rgba(242,122,26,.92) !important;
-            border:        none !important;
-            border-radius: 8px  !important;
-            min-width:     42px !important;
-            min-height:    42px !important;
-            box-shadow:    0 2px 10px rgba(0,0,0,.35) !important;
-            color:         white !important;
-        }
-        [data-testid="stSidebarCollapsedControl"] svg,
-        [data-testid="stSidebarCollapsedControl"] svg * {
-            fill:   white !important;
-            stroke: white !important;
-        }
-        /* Eski Streamlit yapısı için fallback (sidebar içi buton) */
-        section[data-testid="stSidebar"] > div:first-child > button:first-child {
-            position:      fixed    !important;
-            left:          8px      !important;
-            top:           12px     !important;
-            z-index:       9999     !important;
-            background:    rgba(242,122,26,.92) !important;
-            border:        none     !important;
-            border-radius: 8px      !important;
-            min-width:     42px     !important;
-            min-height:    42px     !important;
-            box-shadow:    0 2px 10px rgba(0,0,0,.35) !important;
-        }
-        section[data-testid="stSidebar"] > div:first-child > button:first-child svg {
-            fill:   white !important;
-            stroke: white !important;
         }
 
         /* Genel padding (hamburger için üst boşluk dahil) */
