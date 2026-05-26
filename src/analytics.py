@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pandas as pd
 import numpy as np
+import streamlit as st
 from src.database import get_connection
 
 
@@ -47,6 +48,7 @@ def _fetch_orders(user_id: int, conn=None) -> pd.DataFrame:
 # Özet metrikler (Dashboard kartları)
 # ─────────────────────────────────────────────────────────────────────────────
 
+@st.cache_data(ttl=60)
 def get_summary_metrics(user_id: int) -> dict:
     """
     Temel dashboard metriklerini hesaplar.
@@ -102,6 +104,7 @@ def get_summary_metrics(user_id: int) -> dict:
 # Cohort Retention Matrisi
 # ─────────────────────────────────────────────────────────────────────────────
 
+@st.cache_data(ttl=60)
 def get_cohort_retention(user_id: int) -> tuple[pd.DataFrame, pd.Series]:
     """
     Aylık cohort retention matrisi hesaplar.
@@ -148,6 +151,7 @@ def get_cohort_retention(user_id: int) -> tuple[pd.DataFrame, pd.Series]:
 # Aylık trend (grafik verisi)
 # ─────────────────────────────────────────────────────────────────────────────
 
+@st.cache_data(ttl=60)
 def get_monthly_trend(user_id: int) -> pd.DataFrame:
     """
     Her ay için sipariş sayısı, gelir ve benzersiz müşteri sayısını döndürür.
@@ -171,6 +175,7 @@ def get_monthly_trend(user_id: int) -> pd.DataFrame:
     return monthly
 
 
+@st.cache_data(ttl=60)
 def get_new_vs_returning(user_id: int) -> pd.DataFrame:
     """
     Aylık yeni / geri dönen müşteri ayrımı.
@@ -200,6 +205,7 @@ def get_new_vs_returning(user_id: int) -> pd.DataFrame:
 # Müşteri Segmentasyonu (RFM tabanlı)
 # ─────────────────────────────────────────────────────────────────────────────
 
+@st.cache_data(ttl=60)
 def get_customer_segments(user_id: int) -> pd.DataFrame:
     """
     Her müşteri için basit RFM-tabanlı segment atar.
@@ -244,6 +250,7 @@ def get_customer_segments(user_id: int) -> pd.DataFrame:
 # LTV Dağılımı
 # ─────────────────────────────────────────────────────────────────────────────
 
+@st.cache_data(ttl=60)
 def get_ltv_distribution(user_id: int) -> pd.DataFrame:
     """Müşteri başı toplam harcama dağılımını döndürür."""
     df = _fetch_orders(user_id)
@@ -260,6 +267,7 @@ def get_ltv_distribution(user_id: int) -> pd.DataFrame:
     return ltv
 
 
+@st.cache_data(ttl=60)
 def get_top_customers(user_id: int, n: int = 10) -> pd.DataFrame:
     """En yüksek LTV'li N müşteriyi döndürür."""
     df = get_ltv_distribution(user_id)

@@ -14,7 +14,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 
-from src.database import init_db
+from src.database import init_db as _init_db
 from src.auth import login_user, register_user, update_store_name, change_password
 from src.parser import parse_trendyol_file, import_to_db, generate_sample_orders
 from src.report import generate_report
@@ -33,9 +33,13 @@ from src.analytics import (
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Başlatma
+# Başlatma — cache_resource ile yalnızca bir kez çalışır (rerun'larda atlanır)
 # ─────────────────────────────────────────────────────────────────────────────
-init_db()
+@st.cache_resource
+def _init_db_once():
+    _init_db()
+
+_init_db_once()
 
 st.set_page_config(
     page_title="Reorder — Trendyol Retention",
