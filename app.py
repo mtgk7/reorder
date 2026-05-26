@@ -358,6 +358,31 @@ def show_auth() -> None:
         color:  #0d2433 !important;
     }
 
+    /* Tooltip (help) ikonu — beyaz kuralından muaf, karta uyumlu */
+    [data-testid="stTooltipIcon"],
+    [data-testid="stTooltipIcon"] > div,
+    [data-testid="stTooltipIcon"] button,
+    [data-testid="stTextInput"] [data-testid="stTooltipIcon"],
+    [data-testid="stTextInput"] [data-testid="stTooltipIcon"] > *,
+    [data-testid="stTextInput"] label + div {
+        background:  transparent !important;
+        border:      none !important;
+        box-shadow:  none !important;
+    }
+    [data-testid="stTooltipIcon"] button svg,
+    [data-testid="stTooltipIcon"] button svg *,
+    [data-testid="stTooltipIcon"] svg,
+    [data-testid="stTooltipIcon"] svg * {
+        fill:   rgba(180,210,230,.55) !important;
+        stroke: rgba(180,210,230,.55) !important;
+        color:  rgba(180,210,230,.55) !important;
+    }
+    [data-testid="stTooltipIcon"] button:hover svg,
+    [data-testid="stTooltipIcon"] button:hover svg * {
+        fill:   #F28500 !important;
+        stroke: #F28500 !important;
+    }
+
     /* ══════════════════════════════════════════════════
        5. FORM SUBMIT BUTONU — gümüş-gri/mavi degrade, siyah yazı
     ══════════════════════════════════════════════════ */
