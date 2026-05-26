@@ -56,7 +56,7 @@ st.set_page_config(
     page_title="ReOrder — Trendyol Retention",
     page_icon="🔄",
     layout="wide",
-    initial_sidebar_state="collapsed",   # mobilde kapalı başlar
+    initial_sidebar_state="auto",   # desktop: açık | mobile: otomatik kapalı
 )
 
 # Streamlit UI elementlerini gizle
@@ -201,22 +201,6 @@ st.markdown(
 
     /* ── Tablet (768px ve altı) ── */
     @media screen and (max-width: 768px) {
-
-        /* Sidebar: overlay modunda aç — ana içerik kaymasın */
-        section[data-testid="stSidebar"],
-        div[data-testid="stSidebar"] {
-            position:   fixed    !important;
-            z-index:    999      !important;
-            height:     100vh    !important;
-            box-shadow: 4px 0 24px rgba(0,0,0,.45) !important;
-        }
-
-        /* Sidebar kapalıyken ana içerik tam genişlik */
-        .main .block-container,
-        section[data-testid="stMain"] > div {
-            margin-left: 0 !important;
-            width:       100% !important;
-        }
 
         .block-container {
             padding-left:  0.75rem !important;
