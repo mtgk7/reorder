@@ -56,7 +56,7 @@ st.set_page_config(
     page_title="ReOrder — Trendyol Retention",
     page_icon="🔄",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",   # mobilde kapalı başlar
 )
 
 # Streamlit UI elementlerini gizle
@@ -153,25 +153,41 @@ st.markdown(
         font-size: .78rem; padding: .3rem .5rem;
     }
 
-    /* ── Sidebar nav düğmeleri ── */
-    div[data-testid="stSidebar"] .stButton > button {
-        background: rgba(255,255,255,.08) !important;
-        border: 1px solid rgba(255,255,255,.12) !important;
-        color: #E2E8F0 !important;
-        width: 100%; text-align: left; margin-bottom: .2rem;
-        border-radius: 8px !important;
-        min-height: 44px !important;   /* iOS / Android dokunma standardı */
+    /* ── Sidebar nav düğmeleri (div & section her ikisi) ── */
+    div[data-testid="stSidebar"] .stButton > button,
+    section[data-testid="stSidebar"] .stButton > button {
+        background:    rgba(255,255,255,.08) !important;
+        border:        1px solid rgba(255,255,255,.12) !important;
+        color:         #E2E8F0 !important;
+        width:         100%;
+        text-align:    left;
+        margin-bottom: .2rem;
+        border-radius: 8px    !important;
+        min-height:    44px   !important;   /* iOS / Android dokunma standardı */
     }
-    div[data-testid="stSidebar"] .stButton > button:hover {
-        background: rgba(242,122,26,.25) !important;
+    div[data-testid="stSidebar"] .stButton > button:hover,
+    section[data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(242,122,26,.28) !important;
+        color:      #ffffff !important;
     }
 
-    /* ── Mobile hamburger (sidebar açma) butonu ── */
+    /* ── Sidebar genel buton rengi koruması (turuncu override engeli) ── */
+    [data-testid="stSidebar"] button:not([data-testid="stBaseButton-headerNoPadding"]) {
+        background: rgba(255,255,255,.08) !important;
+        color:      #E2E8F0 !important;
+    }
+
+    /* ── Sidebar kapalıyken görünen hamburger (collapse control) ── */
+    [data-testid="stSidebarCollapsedControl"] {
+        top: 0.6rem !important;
+    }
     [data-testid="stSidebarCollapsedControl"] button {
-        background:    rgba(242,122,26,.92) !important;
+        background:    rgba(242,122,26,.9)  !important;
         border-radius: 8px                  !important;
         border:        none                 !important;
-        box-shadow:    0 2px 8px rgba(0,0,0,.25) !important;
+        box-shadow:    0 2px 10px rgba(0,0,0,.3) !important;
+        min-height:    40px !important;
+        min-width:     40px !important;
     }
     [data-testid="stSidebarCollapsedControl"] svg {
         fill: white !important;
@@ -185,6 +201,23 @@ st.markdown(
 
     /* ── Tablet (768px ve altı) ── */
     @media screen and (max-width: 768px) {
+
+        /* Sidebar: overlay modunda aç — ana içerik kaymasın */
+        section[data-testid="stSidebar"],
+        div[data-testid="stSidebar"] {
+            position:   fixed    !important;
+            z-index:    999      !important;
+            height:     100vh    !important;
+            box-shadow: 4px 0 24px rgba(0,0,0,.45) !important;
+        }
+
+        /* Sidebar kapalıyken ana içerik tam genişlik */
+        .main .block-container,
+        section[data-testid="stMain"] > div {
+            margin-left: 0 !important;
+            width:       100% !important;
+        }
+
         .block-container {
             padding-left:  0.75rem !important;
             padding-right: 0.75rem !important;
