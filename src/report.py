@@ -55,7 +55,7 @@ def _tr(text: str) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 # PDF sınıfı
 # ─────────────────────────────────────────────────────────────────────────────
-class _ReorderPDF(FPDF):
+class _ReOrderPDF(FPDF):
     def __init__(self, store_name: str) -> None:
         super().__init__(orientation="P", unit="mm", format="A4")
         self.store_name  = _tr(store_name)[:28]
@@ -70,7 +70,7 @@ class _ReorderPDF(FPDF):
         self.set_font("Helvetica", style="B", size=11)
         self.set_text_color(*_WHITE)
         self.set_xy(15, 4.5)
-        self.cell(w=120, h=8, text="REORDER  |  Trendyol Retention Raporu")
+        self.cell(w=120, h=8, text="ReOrder  |  Trendyol Retention Raporu")
         self.set_xy(135, 4.5)
         self.cell(w=60, h=8, text=self.store_name, align="R")
         self.set_text_color(0, 0, 0)
@@ -82,7 +82,7 @@ class _ReorderPDF(FPDF):
         self.set_text_color(*_GRAY)
         self.cell(
             0, 8,
-            f"Reorder  |  Rapor Tarihi: {self.report_date}  |  Sayfa {self.page_no()}",
+            f"ReOrder  |  Rapor Tarihi: {self.report_date}  |  Sayfa {self.page_no()}",
             align="C",
         )
         self.set_text_color(0, 0, 0)
@@ -222,7 +222,7 @@ def generate_report(user_id: int, store_name: str) -> bytes:
     seg_df   = get_customer_segments(user_id)
     top10    = get_top_customers(user_id, n=10)
 
-    pdf = _ReorderPDF(store_name)
+    pdf = _ReOrderPDF(store_name)
     pdf.add_page()
     M = 15  # sol margin
 

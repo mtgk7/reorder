@@ -1,4 +1,4 @@
-# 🔄 Reorder — Trendyol Müşteri Retention & Analiz Platformu
+# 🔄 ReOrder — Trendyol Müşteri Retention & Analiz Platformu
 
 Trendyol'da satış yapan mağazaların müşteri sadakatini, geri dönüş oranlarını ve ömür boyu değerini (LTV) otomatik analiz eden **multi-tenant SaaS** uygulaması.
 

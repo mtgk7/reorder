@@ -1,5 +1,5 @@
 """
-app.py — Reorder Streamlit Web Arayüzü (Ana Giriş Noktası)
+app.py — ReOrder Streamlit Web Arayüzü (Ana Giriş Noktası)
 Çalıştırmak için: streamlit run app.py
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ def _init_db_once():
 _init_db_once()
 
 st.set_page_config(
-    page_title="Reorder — Trendyol Retention",
+    page_title="ReOrder — Trendyol Retention",
     page_icon="🔄",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -218,8 +218,11 @@ def show_auth() -> None:
             """
             <div style="text-align:center; margin-bottom:2rem;">
                 <span style="font-size:4rem;">🔄</span>
-                <h1 style="color:#1A1A2E; font-size:2rem; margin:.4rem 0 .2rem;">Reorder</h1>
-                <p style="color:#6B7280;">Trendyol Retention & Müşteri Analiz Platformu</p>
+                <h1 style="color:#1A1A2E; font-size:2rem; margin:.4rem 0 .2rem;">ReOrder</h1>
+                <p style="color:#6B7280; margin:.2rem 0 0;">Trendyol Retention & Müşteri Analiz Platformu</p>
+                <p style="color:#F27A1A; font-size:.78rem; font-style:italic; margin:.35rem 0 0; letter-spacing:.02em;">
+                    Seamless Experience, Return Customers.&nbsp;&nbsp;|&nbsp;&nbsp;Kusursuz Deneyim, Geri Dönen Müşteriler.
+                </p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -268,7 +271,7 @@ def show_sidebar() -> None:
         st.markdown(
             f"""
             <div style="padding:.8rem .2rem 1.2rem; border-bottom:1px solid rgba(255,255,255,.1);">
-                <div style="font-size:1.4rem; font-weight:700; color:#F27A1A;">🔄 Reorder</div>
+                <div style="font-size:1.4rem; font-weight:700; color:#F27A1A;">🔄 ReOrder</div>
                 <div style="font-size:.8rem; margin-top:.3rem; opacity:.7;">{user['store_name']}</div>
                 <div style="font-size:.72rem; opacity:.5;">{user['email']}</div>
             </div>
@@ -628,7 +631,7 @@ def show_upload() -> None:
     with tab_sample:
         st.markdown(
             """<div class="info-box">
-            Gerçek veriniz yokken Reorder'ı test etmek için 120 müşteri ve ~200 siparişten
+            Gerçek veriniz yokken ReOrder'ı test etmek için 120 müşteri ve ~200 siparişten
             oluşan sentetik veri yükleyin.
             </div>""",
             unsafe_allow_html=True,
