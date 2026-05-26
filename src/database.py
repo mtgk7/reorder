@@ -44,6 +44,9 @@ def _to_pg_sql(sql: str) -> str:
         sql,
         flags=re.IGNORECASE,
     )
+    # SQLite tarih fonksiyonları → PostgreSQL karşılıkları
+    sql = re.sub(r"datetime\('now'\)", "NOW()", sql, flags=re.IGNORECASE)
+    sql = re.sub(r"date\('now'\)", "CURRENT_DATE", sql, flags=re.IGNORECASE)
     return sql
 
 

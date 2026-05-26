@@ -59,7 +59,7 @@ st.set_page_config(
     page_title="ReOrder — Trendyol Retention",
     page_icon="🔄",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",   # mobilde kapalı, masaüstünde açık
 )
 
 # Streamlit UI elementlerini gizle
@@ -196,9 +196,32 @@ st.markdown(
         }
 
         /*
-         * Sidebar'ın toggle butonu (<</>>) her zaman ekranın sol üstünde sabit.
-         * Sidebar kapalıyken de açık olduğunda da buton erişilebilir kalır.
+         * Streamlit ≥1.36 — sidebar kapalıyken hamburger butonu:
+         * [data-testid="stSidebarCollapsedControl"]
+         * Eski sürümlerde sidebar içindeki ilk buton da hedeflenir.
          */
+        [data-testid="stSidebarCollapsedControl"] {
+            position: fixed !important;
+            left:     8px   !important;
+            top:      12px  !important;
+            z-index:  9999  !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] button,
+        [data-testid="stSidebarCollapsedControl"] > button {
+            background:    rgba(242,122,26,.92) !important;
+            border:        none !important;
+            border-radius: 8px  !important;
+            min-width:     42px !important;
+            min-height:    42px !important;
+            box-shadow:    0 2px 10px rgba(0,0,0,.35) !important;
+            color:         white !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] svg,
+        [data-testid="stSidebarCollapsedControl"] svg * {
+            fill:   white !important;
+            stroke: white !important;
+        }
+        /* Eski Streamlit yapısı için fallback (sidebar içi buton) */
         section[data-testid="stSidebar"] > div:first-child > button:first-child {
             position:      fixed    !important;
             left:          8px      !important;
