@@ -15,12 +15,18 @@ venv/
 env/
 .env
 
+# ── Kişisel notlar ───────────────────────────────────────────────
+hesaplar.txt
+
 # ── SQLite (sadece lokal geliştirme) ─────────────────────────────
 data/reorder.db
 data/*.db
 
 # ── Streamlit gizli bilgiler (KESİNLİKLE GİT'E GÖNDERME!) ───────
 .streamlit/secrets.toml
+
+# ── Supabase CLI geçici dosyaları ────────────────────────────────
+supabase/.temp/
 
 # ── IDE / Editör ─────────────────────────────────────────────────
 .vscode/

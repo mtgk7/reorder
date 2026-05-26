@@ -4,6 +4,10 @@ app.py — Reorder Streamlit Web Arayüzü (Ana Giriş Noktası)
 """
 from __future__ import annotations
 
+# Lokal geliştirme için .env dosyasını yükle (production'da etkisizdir)
+from dotenv import load_dotenv
+load_dotenv()
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
