@@ -1423,11 +1423,9 @@ def show_upload() -> None:
             if st.button("✅ Veritabanına Aktar", type="primary"):
                 with st.spinner("Aktarılıyor…"):
                     imp = import_to_db(df, user["id"])
+                _skipped_txt = f" ({imp['skipped']:,} tekrar atlandı.)" if imp['skipped'] else ""
                 st.markdown(
-                    f"""<div class="success-box">
-                    ✅ <b>{imp['inserted']:,} yeni sipariş</b> aktarıldı.
-                    {f"({imp['skipped']:,} tekrar atlandı.)" if imp['skipped'] else ""}
-                    </div>""",
+                    f'<div class="success-box">✅ <b>{imp["inserted"]:,} yeni sipariş</b> aktarıldı.{_skipped_txt}</div>',
                     unsafe_allow_html=True,
                 )
                 if st.button("📊 Analizlere Git"):
