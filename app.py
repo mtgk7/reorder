@@ -96,40 +96,68 @@ st.markdown(
 
     /* ── Başlık şeridi ── */
     .app-header {
-        background: linear-gradient(135deg, #F27A1A 0%, #D4621A 100%);
-        border-radius: 12px;
-        padding: 1.2rem 1.6rem;
+        background: linear-gradient(135deg, #F27A1A 0%, #C95A10 100%);
+        border-radius: 14px;
+        padding: 1.1rem 1.6rem;
         margin-bottom: 1.5rem;
         display: flex;
         align-items: center;
-        gap: 0.8rem;
+        gap: 0.9rem;
+        box-shadow: 0 4px 18px rgba(242,122,26,.35);
+        position: relative;
+        overflow: hidden;
     }
-    .app-header h1 { color: white !important; margin: 0; font-size: 1.6rem; }
-    .app-header p  { color: rgba(255,255,255,.85) !important; margin: 0; font-size: .9rem; }
+    .app-header::after {
+        content: "";
+        position: absolute;
+        right: -30px; top: -30px;
+        width: 120px; height: 120px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.06);
+    }
+    .app-header h1 { color: white !important; margin: 0; font-size: 1.5rem; font-weight: 800; }
+    .app-header p  { color: rgba(255,255,255,.82) !important; margin: 0; font-size: .86rem; }
 
     /* ── KPI Kartları ── */
     .kpi-card {
         background: white;
-        border-radius: 12px;
-        padding: 1.2rem 1.4rem;
+        border-radius: 14px;
+        padding: 1.15rem 1.3rem;
         border-left: 4px solid #F27A1A;
-        box-shadow: 0 1px 6px rgba(0,0,0,.06);
+        box-shadow: 0 2px 10px rgba(0,0,0,.07);
         height: 100%;
+        transition: transform .2s ease, box-shadow .2s ease;
+        position: relative;
+        overflow: hidden;
     }
-    .kpi-label { font-size: .78rem; font-weight: 600; color: #6B7280;
-                 text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem; }
-    .kpi-value { font-size: 2rem; font-weight: 700; color: #1A1A2E; }
-    .kpi-sub   { font-size: .8rem; color: #9CA3AF; margin-top: .15rem; }
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(242,122,26,.18);
+    }
+    .kpi-card::after {
+        content: "";
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #F27A1A, rgba(242,122,26,0));
+    }
+    .kpi-label { font-size: .75rem; font-weight: 700; color: #6B7280;
+                 text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
+    .kpi-value { font-size: 1.9rem; font-weight: 800; color: #1A1A2E; line-height: 1.1; }
+    .kpi-sub   { font-size: .78rem; color: #9CA3AF; margin-top: .2rem; }
 
     /* ── Bölüm başlığı ── */
     .section-title {
-        font-size: 1rem;
+        font-size: .92rem;
         font-weight: 700;
         color: #1A1A2E;
-        margin: 1.5rem 0 .6rem 0;
-        padding-bottom: .3rem;
-        border-bottom: 2px solid #F27A1A;
-        display: inline-block;
+        margin: 1.5rem 0 .7rem 0;
+        padding: .3rem .7rem .3rem .65rem;
+        border-left: 3px solid #F27A1A;
+        background: linear-gradient(90deg, rgba(242,122,26,.07), transparent);
+        border-radius: 0 6px 6px 0;
+        display: block;
+        letter-spacing: .01em;
     }
 
     /* ── Bildirim kutuları ── */
@@ -475,13 +503,20 @@ def _fmt_tl(val: float) -> str:
     return f"₺{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def _kpi(label: str, value: str, sub: str = "") -> None:
+def _kpi(label: str, value: str, sub: str = "", icon: str = "") -> None:
+    icon_html = (
+        f'<span style="position:absolute;top:.75rem;right:.8rem;width:34px;height:34px;'
+        f'border-radius:9px;background:rgba(242,122,26,.1);display:inline-flex;'
+        f'align-items:center;justify-content:center;font-size:1.1rem;">{icon}</span>'
+    ) if icon else ""
+    sub_html = f'<div class="kpi-sub">{sub}</div>' if sub else ""
     st.markdown(
-        f"""<div class="kpi-card">
-               <div class="kpi-label">{label}</div>
-               <div class="kpi-value">{value}</div>
-               <div class="kpi-sub">{sub}</div>
-            </div>""",
+        f'<div class="kpi-card" style="position:relative;">'
+        f'{icon_html}'
+        f'<div class="kpi-label">{label}</div>'
+        f'<div class="kpi-value">{value}</div>'
+        f'{sub_html}'
+        f'</div>',
         unsafe_allow_html=True,
     )
 
@@ -912,6 +947,7 @@ def show_auth() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def show_sidebar() -> None:
     user = st.session_state.user
+    current_page = st.session_state.get("page", "dashboard")
     with st.sidebar:
         st.markdown(
             f"""
@@ -934,8 +970,27 @@ def show_sidebar() -> None:
             ("⚙️", "Ayarlar", "settings"),
         ]
         for icon, label, key in pages:
-            if st.button(f"{icon}  {label}", key=f"nav_{key}", use_container_width=True):
-                _go(key)
+            if current_page == key:
+                # Aktif sayfa — tıklanamaz vurgulu div
+                st.markdown(
+                    f"""<div style="
+                        background: linear-gradient(135deg,rgba(242,122,26,.28),rgba(242,122,26,.12));
+                        border: 1px solid rgba(242,122,26,.5);
+                        border-left: 3px solid #F27A1A;
+                        border-radius: 8px;
+                        padding: .72rem 1rem;
+                        margin-bottom: .25rem;
+                        color: #fff;
+                        font-weight: 700;
+                        font-size: .88rem;
+                        letter-spacing: .01em;
+                        cursor: default;
+                    ">{icon}&nbsp;&nbsp;{label}</div>""",
+                    unsafe_allow_html=True,
+                )
+            else:
+                if st.button(f"{icon}  {label}", key=f"nav_{key}", use_container_width=True):
+                    _go(key)
 
         st.markdown("---")
         if st.button("🚪  Çıkış Yap", use_container_width=True, key="logout_btn"):
@@ -974,13 +1029,13 @@ def show_dashboard() -> None:
     # ── KPI Satırı 1 ──
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        _kpi("Toplam Sipariş", f"{m['total_orders']:,}")
+        _kpi("Toplam Sipariş", f"{m['total_orders']:,}", icon="🛒")
     with c2:
-        _kpi("Benzersiz Müşteri", f"{m['unique_customers']:,}")
+        _kpi("Benzersiz Müşteri", f"{m['unique_customers']:,}", icon="👤")
     with c3:
-        _kpi("Toplam Gelir", _fmt_tl(m["total_revenue"]))
+        _kpi("Toplam Gelir", _fmt_tl(m["total_revenue"]), icon="💰")
     with c4:
-        _kpi("Ort. Sipariş Değeri", _fmt_tl(m["avg_order_value"]))
+        _kpi("Ort. Sipariş Değeri", _fmt_tl(m["avg_order_value"]), icon="📊")
 
     st.markdown("&nbsp;")
 
@@ -991,11 +1046,12 @@ def show_dashboard() -> None:
             "Tekrar Eden Müşteriler",
             f"%{m['repeat_rate']}",
             f"{m['repeat_customers']:,} müşteri geri döndü",
+            icon="🔄",
         )
     with c2:
-        _kpi("Ortalama LTV", _fmt_tl(m["avg_ltv"]), "Müşteri başı ömür boyu değer")
+        _kpi("Ortalama LTV", _fmt_tl(m["avg_ltv"]), "Müşteri başı ömür boyu değer", icon="💎")
     with c3:
-        _kpi("En Yüksek LTV", _fmt_tl(m["top_customer_revenue"]), "Tek müşteri rekoru")
+        _kpi("En Yüksek LTV", _fmt_tl(m["top_customer_revenue"]), "Tek müşteri rekoru", icon="🏆")
 
     st.markdown("&nbsp;")
 
