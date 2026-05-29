@@ -475,21 +475,30 @@ def get_stores(user_id: int) -> list[dict]:
 
 
 def create_store(user_id: int, store_name: str) -> int:
-    """Yeni mağaza oluşturur; store_id döndürür."""
+    """Yeni mağaza oluşturur; store_id döndürür.
+    İlk mağaza oluşturulurken mevcut store_id=NULL siparişleri bu mağazaya bağlar."""
     conn = get_connection()
-    db_url = _get_db_url()
-    if db_url:
-        cur = conn.execute(
-            "INSERT INTO stores (user_id, store_name) VALUES (?, ?) RETURNING id",
-            (user_id, store_name.strip()),
+    # Mevcut mağaza sayısını kontrol et (ilk mağaza mı?)
+    existing = conn.execute("SELECT COUNT(*) FROM stores WHERE user_id = ?", (user_id,)).fetchone()
+    is_first = (list(existing)[0] if existing else 0) == 0
+
+    cur = conn.execute(
+        "INSERT INTO stores (user_id, store_name) VALUES (?, ?)",
+        (user_id, store_name.strip()),
+    )
+    store_id = cur.lastrowid
+
+    # İlk mağaza ise mevcut store_id=NULL siparişleri bağla
+    if is_first and store_id:
+        conn.execute(
+            "UPDATE orders SET store_id = ? WHERE user_id = ? AND store_id IS NULL",
+            (store_id, user_id),
         )
-        store_id = cur.lastrowid
-    else:
-        cur = conn.execute(
-            "INSERT INTO stores (user_id, store_name) VALUES (?, ?)",
-            (user_id, store_name.strip()),
+        conn.execute(
+            "UPDATE campaigns SET store_id = ? WHERE user_id = ? AND store_id IS NULL",
+            (store_id, user_id),
         )
-        store_id = cur.lastrowid
+
     conn.commit()
     conn.close()
     return store_id
