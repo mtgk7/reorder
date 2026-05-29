@@ -281,7 +281,7 @@ def generate_report(user_id: int, store_name: str, store_id: int | None = None) 
     # SAYFA 2 — Cohort Retention Matrisi
     # ══════════════════════════════════════════════════════════════════════════
     pdf.add_page()
-    pdf.section_title("Cohort Retention Matrisi")
+    pdf.section_title("Cohort (Musteri Grubu) Retention Matrisi")
 
     pdf.set_font("Helvetica", style="I", size=8)
     pdf.set_text_color(*_GRAY)
@@ -304,7 +304,7 @@ def generate_report(user_id: int, store_name: str, store_id: int | None = None) 
         pdf.set_fill_color(*_DARK)
         pdf.set_text_color(*_WHITE)
         pdf.set_font("Helvetica", style="B", size=7)
-        pdf.cell(cohort_w, 6, "Cohort Ayi", fill=True)
+        pdf.cell(cohort_w, 6, "Cohort Ayi (Grup)", fill=True)
         pdf.cell(size_w,   6, "n",          fill=True, align="C")
         for c in show_cols:
             pdf.cell(cell_w, 6, f"Ay {c}", fill=True, align="C")

@@ -968,11 +968,321 @@ def show_auth() -> None:
         }
         .ro-login-footer { display: none !important; }
     }
+
+    /* ══════════════════════════════════════════════════
+       7. PREVIEW PANEL — sol kolon (masaüstü)
+    ══════════════════════════════════════════════════ */
+    .ro-preview {
+        animation: roFadeInLeft .65s ease both;
+        padding: 1.8rem 1.2rem 1.8rem 0.4rem;
+        display: flex; flex-direction: column; gap: 1.1rem;
+        height: 100%; box-sizing: border-box;
+    }
+    @keyframes roFadeInLeft {
+        from { opacity:0; transform:translateX(-22px); }
+        to   { opacity:1; transform:translateX(0);     }
+    }
+
+    .ro-prev-badge {
+        display: inline-flex; align-items: center; gap: .35rem;
+        background: rgba(16,185,129,.13);
+        border: 1px solid rgba(16,185,129,.38);
+        border-radius: 20px; padding: .18rem .65rem;
+        font-size: .7rem; color: #10B981;
+        font-weight: 700; letter-spacing: .07em;
+        margin-bottom: .3rem;
+    }
+    .ro-prev-title {
+        font-size: 1.5rem; font-weight: 800; line-height: 1.22;
+        background: linear-gradient(130deg, #e8f4fa 0%, #F28500 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text; margin: 0 0 .3rem;
+    }
+    .ro-prev-sub {
+        color: rgba(180,210,230,.55); font-size: .82rem; margin: 0;
+    }
+
+    /* KPI strip */
+    .ro-prev-kpis {
+        display: flex; align-items: center; gap: .6rem;
+        background: rgba(255,255,255,.04);
+        border: 1px solid rgba(255,255,255,.07);
+        border-radius: 12px; padding: .75rem .9rem;
+    }
+    .ro-pkpi { flex:1; text-align:center; }
+    .ro-pkpi-val {
+        font-size: 1.25rem; font-weight: 800; color: #F28500; display:block;
+    }
+    .ro-pkpi-lbl {
+        font-size: .65rem; color: rgba(180,210,230,.5);
+        text-transform: uppercase; letter-spacing: .05em;
+    }
+    .ro-pkpi-div { width:1px; height:28px; background:rgba(255,255,255,.09); flex-shrink:0; }
+
+    /* Mini cohort heatmap */
+    .ro-prev-cohort {
+        background: rgba(255,255,255,.03);
+        border: 1px solid rgba(255,255,255,.07);
+        border-radius: 12px; padding: .7rem .9rem;
+    }
+    .ro-pch-label {
+        font-size: .67rem; color: rgba(180,210,230,.45);
+        text-transform: uppercase; letter-spacing: .06em; margin-bottom: .45rem;
+    }
+    .ro-pch-grid { display:flex; flex-direction:column; gap:.22rem; }
+    .ro-pch-row  { display:flex; align-items:center; gap:.22rem; }
+    .ro-pch-cohort {
+        font-size: .62rem; color: rgba(180,210,230,.4); width:50px; flex-shrink:0;
+    }
+    .ro-pch-cell {
+        flex:1; text-align:center; font-size:.62rem; font-weight:700;
+        padding:.2rem .05rem; border-radius:3px;
+    }
+    .pch-g  { background:#10B981; color:#fff; }
+    .pch-y  { background:#F59E0B; color:#1a1a1a; }
+    .pch-o  { background:#F97316; color:#fff; }
+    .pch-r  { background:#EF4444; color:#fff; }
+    .pch-d  { background:rgba(255,255,255,.05); color:rgba(255,255,255,.18); }
+
+    /* Feature list */
+    .ro-prev-feats { display:flex; flex-direction:column; gap:.5rem; }
+    .ro-pfeat {
+        display:flex; align-items:center; gap:.7rem;
+        padding:.45rem .7rem;
+        background: rgba(255,255,255,.03);
+        border: 1px solid rgba(255,255,255,.06);
+        border-left: 2px solid rgba(242,133,0,.45);
+        border-radius: 8px;
+        transition: background .2s, border-left-color .2s;
+        animation: roFadeInLeft .65s ease both;
+    }
+    .ro-pfeat:nth-child(1) { animation-delay:.05s; }
+    .ro-pfeat:nth-child(2) { animation-delay:.12s; }
+    .ro-pfeat:nth-child(3) { animation-delay:.19s; }
+    .ro-pfeat:nth-child(4) { animation-delay:.26s; }
+    .ro-pfeat:hover { background:rgba(242,133,0,.07); border-left-color:#F28500; }
+    .ro-pfeat-icon { font-size:1.05rem; flex-shrink:0; }
+    .ro-pfeat-body { display:flex; flex-direction:column; gap:.08rem; }
+    .ro-pfeat-title { font-size:.78rem; color:rgba(220,240,250,.88); font-weight:700; }
+    .ro-pfeat-desc  { font-size:.68rem; color:rgba(180,210,230,.48); }
+
+    @media screen and (max-width: 640px) {
+        .ro-preview { display: none !important; }
+    }
     </style>
     """, unsafe_allow_html=True)
 
-    # ── Orta kolon layout ────────────────────────────────────────────────────
-    col_l, col_c, col_r = st.columns([1, 1.4, 1])
+    # ── Kolon layout — sol: fragman, orta: login kartı, sağ: minimal boşluk ──
+    col_l, col_c, col_r = st.columns([1.5, 1.2, 0.05])
+
+    with col_l:
+        import streamlit.components.v1 as _components
+        _components.html("""<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{
+  background:linear-gradient(145deg,#0a2533 0%,#0d3a4b 40%,#134e5e 75%,#0a2e3d 100%);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  color:#e8f4fa;height:100%;overflow:hidden;
+}
+.sc{display:flex;flex-direction:column;gap:.75rem;padding:1.4rem .6rem 1rem .3rem;height:100vh;}
+/* Badge */
+.badge{display:inline-flex;align-items:center;gap:.3rem;background:rgba(16,185,129,.13);
+  border:1px solid rgba(16,185,129,.35);border-radius:20px;padding:.18rem .65rem;
+  font-size:.68rem;color:#10B981;font-weight:700;letter-spacing:.07em;margin-bottom:.3rem;}
+/* Headline */
+.hl-wrap{min-height:3.8rem;}
+#hl{font-size:1.45rem;font-weight:800;line-height:1.22;
+  background:linear-gradient(130deg,#e8f4fa 0%,#F28500 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;transition:opacity .4s;}
+#sl{color:rgba(180,210,230,.52);font-size:.78rem;margin-top:.25rem;transition:opacity .4s;}
+/* Carousel */
+.carousel{flex:1;position:relative;min-height:0;}
+.slide{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;display:flex;flex-direction:column;gap:.4rem;}
+.slide.on{opacity:1;}
+/* Slide 1 - Dashboard */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;}
+.kpi-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  border-left:3px solid #F28500;border-radius:8px;padding:.45rem .6rem;}
+.kv{font-size:.95rem;font-weight:800;color:#F28500;}
+.kl{font-size:.58rem;color:rgba(180,210,230,.42);text-transform:uppercase;letter-spacing:.05em;}
+.chart-wrap{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  border-radius:8px;padding:.4rem .5rem .3rem;display:flex;align-items:flex-end;gap:3px;height:80px;overflow:hidden;}
+.bar{flex:1;border-radius:2px 2px 0 0;background:rgba(242,133,0,.55);}
+/* Slide 2 - Cohort */
+.c-lbl{font-size:.6rem;color:rgba(180,210,230,.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.2rem;}
+.c-grid{display:flex;flex-direction:column;gap:.2rem;}
+.c-row{display:flex;align-items:center;gap:.15rem;}
+.c-mo{font-size:.58rem;color:rgba(180,210,230,.38);width:46px;flex-shrink:0;}
+.cc{flex:1;text-align:center;font-size:.6rem;font-weight:700;padding:.22rem .05rem;border-radius:3px;}
+.cg{background:#10B981;color:#fff;}.cy{background:#F59E0B;color:#1a1a1a;}
+.co{background:#F97316;color:#fff;}.cr{background:#EF4444;color:#fff;}
+.cd{background:rgba(255,255,255,.05);color:rgba(255,255,255,.18);}
+/* Slide 3 - Segments */
+.seg-list{display:flex;flex-direction:column;gap:.35rem;}
+.seg{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:.38rem .6rem;}
+.sb{font-size:.62rem;font-weight:700;padding:.12rem .45rem;border-radius:20px;}
+.sg{background:rgba(16,185,129,.2);color:#10B981;border:1px solid rgba(16,185,129,.3);}
+.sb2{background:rgba(59,130,246,.2);color:#60A5FA;border:1px solid rgba(59,130,246,.3);}
+.sy{background:rgba(251,191,36,.2);color:#FBB824;border:1px solid rgba(251,191,36,.3);}
+.sr{background:rgba(239,68,68,.2);color:#F87171;border:1px solid rgba(239,68,68,.3);}
+.sn{font-size:.72rem;font-weight:600;flex:1;}
+.sc2{font-size:.62rem;color:rgba(180,210,230,.4);}
+.chb{width:44px;height:3px;background:rgba(255,255,255,.08);border-radius:2px;}
+.chbf{height:3px;border-radius:2px;}
+/* Slide 4 - PDF */
+.pdf-wrap{display:flex;flex-direction:column;gap:.35rem;}
+.pdf-pg{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+  border-radius:6px;padding:.5rem .7rem;display:flex;flex-direction:column;gap:.25rem;}
+.pdf-pg-header{background:rgba(242,133,0,.6);height:6px;border-radius:3px;}
+.pdf-pg-rows{display:flex;flex-direction:column;gap:.18rem;}
+.pdf-row{height:5px;border-radius:2px;background:rgba(255,255,255,.12);}
+.pdf-row.short{width:60%;}
+.pdf-row.med{width:80%;}
+.pdf-title{font-size:.62rem;color:rgba(180,210,230,.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.1rem;}
+/* Progress dots */
+.dots{display:flex;gap:.35rem;justify-content:center;}
+.dot{width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.14);transition:all .3s;}
+.dot.on{background:#F28500;width:26px;}
+/* Feature strip */
+.feat-strip{display:flex;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:.45rem .5rem;}
+.fi{flex:1;text-align:center;font-size:.6rem;color:rgba(180,210,230,.38);
+  display:flex;flex-direction:column;align-items:center;gap:.12rem;transition:color .3s;}
+.fi em{font-size:.85rem;font-style:normal;}
+.fi.on{color:#F28500;}
+</style></head><body>
+<div class="sc">
+  <div>
+    <div class="badge">&#9679; CANLI PLATFORM</div>
+    <div class="hl-wrap">
+      <div id="hl">Mağazanızın<br>Nabzını Tutun</div>
+      <div id="sl">Tüm metrikleri tek bakışta görün</div>
+    </div>
+  </div>
+  <div class="carousel">
+    <div class="slide on" id="s0">
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kv" id="v1">0</div><div class="kl">Sipariş</div></div>
+        <div class="kpi-card"><div class="kv" id="v2">%0</div><div class="kl">Tekrar Oranı</div></div>
+        <div class="kpi-card"><div class="kv" id="v3">₺0</div><div class="kl">Toplam Gelir</div></div>
+        <div class="kpi-card"><div class="kv" id="v4">₺0</div><div class="kl">Ort. LTV</div></div>
+      </div>
+      <div class="chart-wrap" id="chart"></div>
+    </div>
+    <div class="slide" id="s1">
+      <div class="c-lbl">Cohort Retention Matrisi</div>
+      <div class="c-grid" id="cgrid"></div>
+    </div>
+    <div class="slide" id="s2">
+      <div class="c-lbl">RFM Müşteri Segmentleri</div>
+      <div class="seg-list" id="slist"></div>
+    </div>
+    <div class="slide" id="s3">
+      <div class="c-lbl">PDF Rapor — 3 Sayfalık Analitik</div>
+      <div class="pdf-wrap" id="pdfwrap"></div>
+    </div>
+  </div>
+  <div class="dots" id="dots"></div>
+  <div class="feat-strip">
+    <div class="fi on" id="f0"><em>📊</em><span>Dashboard</span></div>
+    <div class="fi" id="f1"><em>🔥</em><span>Cohort</span></div>
+    <div class="fi" id="f2"><em>👥</em><span>Segmentler</span></div>
+    <div class="fi" id="f3"><em>📄</em><span>PDF Rapor</span></div>
+  </div>
+</div>
+<script>
+var slides=[
+  {h:"Mağazanızın<br>Nabzını Tutun",s:"Tüm metrikleri tek bakışta görün"},
+  {h:"Hangi Müşteriler<br>Geri Dönüyor?",s:"Cohort analizi ile retention'ı anlayın"},
+  {h:"Riski Olan<br>Müşteriyi Önceden Bilin",s:"RFM segmentasyon ile churn önleyin"},
+  {h:"Profesyonel Rapor<br>Tek Tıkla",s:"3 sayfalık PDF analitik — saniyeler içinde"}
+];
+// Bars
+var bh=[22,30,34,43,47,39,50,38,55,45,40,51]; // max 55px, container 80px
+var ch=document.getElementById("chart");
+bh.forEach(function(h){var b=document.createElement("div");b.className="bar";b.style.height=h+"px";ch.appendChild(b);});
+// Cohort
+var cdata=[
+  {m:"2025-10",cs:["cg","cy","cd","cd","cd"],vs:["%100","%14","-","-","-"]},
+  {m:"2025-11",cs:["cg","cy","cr","cd","cd"],vs:["%100","%22","%11","-","-"]},
+  {m:"2025-12",cs:["cg","cy","co","cr","cd"],vs:["%100","%25","%38","%25","-"]},
+  {m:"2026-01",cs:["cg","cr","cr","cd","cd"],vs:["%100","%18","%18","-","-"]},
+  {m:"2026-02",cs:["cg","co","cd","cd","cd"],vs:["%100","%43","-","-","-"]}
+];
+var cg=document.getElementById("cgrid");
+cdata.forEach(function(r){
+  var row=document.createElement("div");row.className="c-row";
+  var mo=document.createElement("span");mo.className="c-mo";mo.textContent=r.m;row.appendChild(mo);
+  r.cs.forEach(function(c,i){var cell=document.createElement("span");cell.className="cc "+c;cell.textContent=r.vs[i];row.appendChild(cell);});
+  cg.appendChild(row);
+});
+// Segments
+var segs=[
+  {cls:"sg",label:"Sadık Müşteri",count:"2 kişi",churn:8,color:"#10B981"},
+  {cls:"sb2",label:"Gelişen Müşteri",count:"18 kişi",churn:28,color:"#60A5FA"},
+  {cls:"sy",label:"Yeni Müşteri",count:"14 kişi",churn:42,color:"#FBB824"},
+  {cls:"sr",label:"Risk Altında",count:"22 kişi",churn:74,color:"#F87171"}
+];
+var sl=document.getElementById("slist");
+segs.forEach(function(s){
+  sl.innerHTML+='<div class="seg"><span class="sb '+s.cls+'">'+s.label.split(" ")[0]+'</span>'
+    +'<span class="sn">'+s.label+'</span><span class="sc2">'+s.count+'</span>'
+    +'<div class="chb"><div class="chbf" style="width:'+s.churn+'%;background:'+s.color+'"></div></div></div>';
+});
+// PDF mockup pages
+var pw=document.getElementById("pdfwrap");
+[["Özet Metrikler & Trend","short","med","","med"],
+ ["Cohort Retention","","short","med",""],
+ ["Segmentler & Top 10","short","","med","short"]].forEach(function(page){
+  var pg='<div class="pdf-pg"><div class="pdf-title">'+page[0]+'</div><div class="pdf-pg-header"></div><div class="pdf-pg-rows">';
+  for(var i=1;i<page.length;i++){if(page[i])pg+='<div class="pdf-row '+page[i]+'"></div>';}
+  pg+='</div></div>';
+  pw.innerHTML+=pg;
+});
+// Dots
+var dotEl=document.getElementById("dots");
+for(var i=0;i<4;i++){var d=document.createElement("div");d.className="dot"+(i===0?" on":"");dotEl.appendChild(d);}
+// Counter
+function countUp(id,target,pre,suf,ms){
+  var el=document.getElementById(id);var v=0;var step=target/(ms/16);
+  var iv=setInterval(function(){v=Math.min(v+step,target);
+    el.textContent=pre+Math.floor(v).toLocaleString("tr-TR")+suf;
+    if(v>=target)clearInterval(iv);},16);
+}
+function animS0(){
+  countUp("v1",170,"","",1100);
+  setTimeout(function(){document.getElementById("v2").textContent="%42.7";},750);
+  countUp("v3",70077,"₺","",1300);
+  setTimeout(function(){document.getElementById("v4").textContent="₺680";},850);
+}
+animS0();
+// Carousel
+var cur=0;
+var slideEls=document.querySelectorAll(".slide");
+var dotEls=document.querySelectorAll(".dot");
+var featEls=document.querySelectorAll(".fi");
+var hlEl=document.getElementById("hl");
+var slEl=document.getElementById("sl");
+function goTo(idx){
+  slideEls[cur].classList.remove("on");
+  dotEls[cur].classList.remove("on");
+  featEls[cur].classList.remove("on");
+  cur=idx%4;
+  slideEls[cur].classList.add("on");
+  dotEls[cur].classList.add("on");
+  featEls[cur].classList.add("on");
+  hlEl.style.opacity="0";slEl.style.opacity="0";
+  setTimeout(function(){
+    hlEl.innerHTML=slides[cur].h;slEl.textContent=slides[cur].s;
+    hlEl.style.opacity="1";slEl.style.opacity="1";
+  },350);
+  if(cur===0)animS0();
+}
+setInterval(function(){goTo(cur+1);},4200);
+</script></body></html>""", height=650, scrolling=False)
+
     with col_c:
         st.markdown(
             """
@@ -1891,7 +2201,7 @@ def show_upload() -> None:
 def show_analytics() -> None:
     user = st.session_state.user
     store_id = st.session_state.get("active_store_id")
-    _header("📈", "Analitik", "Cohort Retention, LTV ve Müşteri Davranışı")
+    _header("📈", "Analitik", "Cohort (Müşteri Grubu) Retention, LTV ve Müşteri Davranışı")
 
     m = get_summary_metrics(user["id"], store_id)
     if not m["has_data"]:
@@ -1899,15 +2209,15 @@ def show_analytics() -> None:
         return
 
     tab_cohort, tab_ltv, tab_retention, tab_product = st.tabs(
-        ["🔢 Cohort Analizi", "💰 LTV Analizi", "📉 Retention Trendi", "📦 Ürün Analizi"]
+        ["🔢 Cohort (Müşteri Grubu) Analizi", "💰 LTV Analizi", "📉 Retention Trendi", "📦 Ürün Analizi"]
     )
 
     # ── Cohort ───────────────────────────────────────────────────────────────
     with tab_cohort:
-        _section("Aylık Cohort Retention Matrisi")
+        _section("Aylık Cohort (Müşteri Grubu) Retention Matrisi")
         st.markdown(
             """<div class="info-box" style="font-size:.82rem;">
-            Her satır bir <b>cohort</b> (o ay ilk kez alışveriş yapan müşteriler).
+            Her satır bir <b>cohort</b> (müşteri grubu — o ay ilk kez alışveriş yapanlar).
             Sütunlar ilk alışverişten sonraki ayları gösterir.
             %100 = tüm cohort o ayda aktifti.
             </div>""",
@@ -1915,7 +2225,7 @@ def show_analytics() -> None:
         )
         ret_df, cohort_sizes = get_cohort_retention(user["id"], store_id)
         if ret_df.empty:
-            st.info("Cohort analizi için en az 2 farklı müşteriye ihtiyaç var.")
+            st.info("Cohort (müşteri grubu) analizi için en az 2 farklı müşteriye ihtiyaç var.")
         else:
             # Maks 12 ay göster
             show_cols = [c for c in ret_df.columns if c <= 11]
@@ -1948,13 +2258,13 @@ def show_analytics() -> None:
                 height=max(300, len(y_labels) * 38 + 80),
                 margin=dict(l=0, r=0, t=20, b=0),
                 xaxis_title="İlk Alışverişten Sonraki Ay",
-                yaxis_title="Cohort Ayı",
+                yaxis_title="Cohort (Müşteri Grubu) Ayı",
                 template="plotly_white",
                 yaxis=dict(autorange="reversed"),
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            _section("Cohort Boyutları")
+            _section("Cohort (Müşteri Grubu) Boyutları")
             sizes_df = pd.DataFrame(
                 {"Cohort Ayı": cohort_sizes.index.astype(str), "Müşteri Sayısı": cohort_sizes.values}
             )
