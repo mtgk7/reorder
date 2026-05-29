@@ -1778,7 +1778,13 @@ def show_upload() -> None:
         n_cust = st.slider("Müşteri sayısı", 30, 300, 120, step=10)
         if st.button("🎲 Örnek Veri Oluştur & Yükle", type="primary"):
             with st.spinner("Örnek veri oluşturuluyor…"):
-                sample_df = generate_sample_orders(n_customers=n_cust)
+                # Her mağaza farklı seed ve ürün listesiyle üretilir
+                seed = (store_id or 42) % (2 ** 31)
+                sample_df = generate_sample_orders(
+                    n_customers=n_cust,
+                    seed=seed,
+                    store_name=store_name,
+                )
                 imp = import_to_db(sample_df, user["id"], batch="sample_data", store_id=store_id)
             st.markdown(
                 f"""<div class="success-box">

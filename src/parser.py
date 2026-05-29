@@ -286,10 +286,59 @@ def import_to_db(
 # Örnek veri üretici (test / demo amaçlı)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def generate_sample_orders(n_customers: int = 120, seed: int = 42) -> pd.DataFrame:
+STORE_PRODUCTS: dict[str, list[str]] = {
+    "elektronik": [
+        "Akıllı Telefon", "Laptop", "Tablet", "Kablosuz Kulaklık",
+        "Şarj Aleti", "Powerbank", "Akıllı Saat", "Bluetooth Hoparlör",
+        "Oyun Konsolu", "Fotoğraf Makinesi", "SSD Disk", "USB Hub",
+    ],
+    "giyim": [
+        "Erkek Tişört", "Kadın Bluz", "Kot Pantolon", "Spor Ayakkabı",
+        "Kışlık Mont", "Elbise", "Kazak", "Gömlek", "Şort",
+        "Çanta", "Kemer", "Eşarp",
+    ],
+    "spor": [
+        "Yoga Matı", "Dumbbell Set", "Protein Tozu", "Sporcu Çantası",
+        "Bisiklet Kaskı", "Yüzücü Gözlüğü", "Tenis Raketi",
+        "Fitness Eldiveni", "Atlama İpi", "Koşu Bandı", "Labut Set", "Ter Bandı",
+    ],
+    "ev": [
+        "Kahve Makinesi", "Robot Süpürge", "Hava Fritözü", "Pasta Kalıbı",
+        "Dekoratif Yastık", "Bambu Kesme Tahtası", "Çay Bardağı Seti",
+        "Mum Seti", "Organizör Kutu", "Havlu Seti", "Koku Difüzörü", "Pişirme Seti",
+    ],
+    "default": [
+        "Erkek Spor Ayakkabı", "Kadın Bot", "Çocuk Kabot", "Deri Cüzdan",
+        "Laptop Çantası", "Bluetooth Kulaklık", "Akıllı Saat", "Güneş Gözlüğü",
+        "Parfüm", "Saç Kurutma Makinesi", "Termos", "Yoga Matı",
+    ],
+}
+
+
+def _detect_store_category(store_name: str) -> str:
+    """Mağaza adından ürün kategorisi tespit eder."""
+    name = store_name.lower()
+    if any(k in name for k in ["elektro", "tech", "dijital", "bilişim"]):
+        return "elektronik"
+    if any(k in name for k in ["giyim", "tekstil", "moda", "fashion", "butik"]):
+        return "giyim"
+    if any(k in name for k in ["spor", "fitness", "sport"]):
+        return "spor"
+    if any(k in name for k in ["ev", "yaşam", "home", "dekor", "mutfak"]):
+        return "ev"
+    return "default"
+
+
+def generate_sample_orders(
+    n_customers: int = 120,
+    seed: int = 42,
+    products: list[str] | None = None,
+    store_name: str = "",
+) -> pd.DataFrame:
     """
     Gerçekçi Trendyol sipariş verisi simüle eder.
     Cohort analizi için 12 aylık veri üretir.
+    store_name verilirse mağazaya uygun ürün listesi otomatik seçilir.
     """
     rng = np.random.default_rng(seed)
     names_first = [
@@ -303,11 +352,9 @@ def generate_sample_orders(n_customers: int = 120, seed: int = 42) -> pd.DataFra
         "Arslan", "Taş", "Aydın", "Özdemir", "Koç", "Kurt", "Öztürk",
         "Erdoğan", "Aktaş", "Çetin", "Polat", "Korkmaz", "Güneş",
     ]
-    products = [
-        "Erkek Spor Ayakkabı", "Kadın Bot", "Çocuk Kabot", "Deri Cüzdan",
-        "Laptop Çantası", "Bluetooth Kulaklık", "Akıllı Saat", "Güneş Gözlüğü",
-        "Parfüm", "Saç Kurutma Makinesi", "Termos", "Yoga Matı",
-    ]
+    if products is None:
+        category = _detect_store_category(store_name)
+        products = STORE_PRODUCTS[category]
 
     customers = [
         f"{rng.choice(names_first)} {rng.choice(names_last)}"
