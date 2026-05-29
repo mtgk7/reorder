@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime
 
-from src.database import init_db as _init_db
+from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store
 from src.auth import (
     login_user, register_user, update_store_name, change_password,
     create_session_token, verify_session_token, delete_session_token,
@@ -51,7 +51,7 @@ from src.analytics import (
 # _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
 # Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
-_SCHEMA_VER = "v3"  # session_tokens tablosu eklendi
+_SCHEMA_VER = "v4"  # çoklu mağaza + store_id desteği
 
 
 @st.cache_resource
@@ -476,7 +476,13 @@ st.markdown(
 # Session state
 # ─────────────────────────────────────────────────────────────────────────────
 def _init_state() -> None:
-    defaults = {"user": None, "page": "dashboard", "upload_result": None}
+    defaults = {
+        "user": None,
+        "page": "dashboard",
+        "upload_result": None,
+        "active_store_id": None,
+        "stores": [],
+    }
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
@@ -491,6 +497,16 @@ def _init_state() -> None:
                     st.session_state.user = user
             except Exception:
                 pass
+
+    # ── Mağaza listesini yükle ────────────────────────────────────────────────
+    if st.session_state.user is not None and not st.session_state.stores:
+        try:
+            stores = get_stores(st.session_state.user["id"])
+            st.session_state.stores = stores
+            if stores and st.session_state.active_store_id is None:
+                st.session_state.active_store_id = stores[0]["id"]
+        except Exception:
+            pass
 
 
 _init_state()
@@ -948,17 +964,122 @@ def show_auth() -> None:
 def show_sidebar() -> None:
     user = st.session_state.user
     current_page = st.session_state.get("page", "dashboard")
+    stores = st.session_state.get("stores", [])
+    active_store_id = st.session_state.get("active_store_id")
+
     with st.sidebar:
         st.markdown(
             f"""
-            <div style="padding:.8rem .2rem 1.2rem; border-bottom:1px solid rgba(255,255,255,.1);">
+            <div style="padding:.8rem .2rem 1rem; border-bottom:1px solid rgba(255,255,255,.1);">
                 <div style="font-size:1.4rem; font-weight:700; color:#F27A1A;">🔄 ReOrder</div>
-                <div style="font-size:.8rem; margin-top:.3rem; opacity:.7;">{user['store_name']}</div>
-                <div style="font-size:.72rem; opacity:.5;">{user['email']}</div>
+                <div style="font-size:.72rem; opacity:.5; margin-top:.2rem;">{user['email']}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+        # ── Mağaza Seçici ────────────────────────────────────────────────────
+        st.markdown("&nbsp;")
+        st.markdown(
+            '<div style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.4);'
+            'letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem;">🏪 Aktif Mağaza</div>',
+            unsafe_allow_html=True,
+        )
+
+        if stores:
+            store_names = [s["store_name"] for s in stores]
+            store_ids   = [s["id"] for s in stores]
+            try:
+                current_idx = store_ids.index(active_store_id) if active_store_id in store_ids else 0
+            except ValueError:
+                current_idx = 0
+
+            selected_idx = st.selectbox(
+                "Mağaza",
+                options=range(len(stores)),
+                format_func=lambda i: store_names[i],
+                index=current_idx,
+                label_visibility="collapsed",
+                key="store_selector",
+            )
+            if store_ids[selected_idx] != active_store_id:
+                st.session_state.active_store_id = store_ids[selected_idx]
+                st.rerun()
+
+            active_store = stores[current_idx]
+            # Trendyol API bilgileri var mı?
+            creds = None
+            try:
+                from src.trendyol_api import load_credentials as _lc
+                creds = _lc(user["id"], active_store["id"])
+            except Exception:
+                pass
+
+            if creds:
+                last_sync = creds.get("last_sync_at")
+                sync_label = "Henüz senkronize edilmedi"
+                if last_sync:
+                    try:
+                        import datetime as _dt
+                        if isinstance(last_sync, str):
+                            _ls = _dt.datetime.fromisoformat(last_sync.replace("Z", ""))
+                        else:
+                            _ls = last_sync
+                        mins = int((_dt.datetime.now() - _ls).total_seconds() / 60)
+                        sync_label = f"{mins} dk önce senkronize edildi" if mins < 60 else f"{mins//60} sa önce"
+                    except Exception:
+                        sync_label = str(last_sync)[:16]
+                st.markdown(
+                    f'<div style="font-size:.71rem;color:rgba(255,255,255,.38);margin:.2rem 0 .4rem;">'
+                    f'⏱ {sync_label}</div>',
+                    unsafe_allow_html=True,
+                )
+                if st.button("🔄 Son 7 Günü Senkronize Et", use_container_width=True, key="quick_sync"):
+                    import datetime as _dt
+                    today = _dt.date.today()
+                    start = (today - _dt.timedelta(days=7)).strftime("%Y-%m-%d")
+                    end   = today.strftime("%Y-%m-%d")
+                    with st.spinner("Senkronize ediliyor…"):
+                        from src.trendyol_api import sync_orders as _so
+                        res = _so(user["id"], start, end, active_store["id"])
+                    if res["success"]:
+                        st.success(f"✅ {res['inserted']} yeni sipariş eklendi.")
+                        # Mağaza listesini ve cache'i yenile
+                        st.session_state.stores = get_stores(user["id"])
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error(res["error"])
+
+        # ── Yeni mağaza ekle ─────────────────────────────────────────────────
+        with st.expander("➕ Mağaza Ekle / Yönet"):
+            new_store_name = st.text_input("Yeni Mağaza Adı", placeholder="Mağaza adı", key="new_store_input")
+            if st.button("Ekle", key="add_store_btn", use_container_width=True):
+                if new_store_name.strip():
+                    new_id = create_store(user["id"], new_store_name.strip())
+                    st.session_state.stores = get_stores(user["id"])
+                    st.session_state.active_store_id = new_id
+                    st.success(f"'{new_store_name}' eklendi!")
+                    st.rerun()
+                else:
+                    st.error("Mağaza adı boş olamaz.")
+
+            if stores and len(stores) > 1:
+                st.markdown("---")
+                st.caption("Mağaza Sil (Veriler de silinir!)")
+                del_store = st.selectbox(
+                    "Silinecek mağaza",
+                    options=[s["id"] for s in stores if s["id"] != active_store_id],
+                    format_func=lambda sid: next((s["store_name"] for s in stores if s["id"] == sid), str(sid)),
+                    key="del_store_select",
+                )
+                if st.button("🗑️ Sil", key="del_store_btn", use_container_width=True):
+                    delete_store(del_store, user["id"])
+                    st.session_state.stores = get_stores(user["id"])
+                    if st.session_state.stores:
+                        st.session_state.active_store_id = st.session_state.stores[0]["id"]
+                    st.rerun()
+
         st.markdown("&nbsp;")
 
         pages = [
@@ -1004,6 +1125,8 @@ def show_sidebar() -> None:
             st.query_params.clear()
             st.session_state.user = None
             st.session_state.page = "dashboard"
+            st.session_state.stores = []
+            st.session_state.active_store_id = None
             st.rerun()
 
 
@@ -1012,9 +1135,12 @@ def show_sidebar() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def show_dashboard() -> None:
     user = st.session_state.user
-    _header("📊", "Genel Bakış", f"{user['store_name']} — Müşteri Metrikleri")
+    store_id = st.session_state.get("active_store_id")
+    stores = st.session_state.get("stores", [])
+    store_name = next((s["store_name"] for s in stores if s["id"] == store_id), user["store_name"])
+    _header("📊", "Genel Bakış", f"{store_name} — Müşteri Metrikleri")
 
-    m = get_summary_metrics(user["id"])
+    m = get_summary_metrics(user["id"], store_id)
 
     if not m["has_data"]:
         st.markdown(
@@ -1056,8 +1182,8 @@ def show_dashboard() -> None:
     st.markdown("&nbsp;")
 
     # ── Grafikler ──
-    trend = get_monthly_trend(user["id"])
-    nvr = get_new_vs_returning(user["id"])
+    trend = get_monthly_trend(user["id"], store_id)
+    nvr = get_new_vs_returning(user["id"], store_id)
 
     gcol1, gcol2 = st.columns(2)
 
@@ -1148,7 +1274,7 @@ def show_dashboard() -> None:
     _section("📊 Sipariş Analitiği")
 
     # ── 1. KPI Kartları ──────────────────────────────────────────────────────
-    kpis = get_order_status_kpis(user["id"])
+    kpis = get_order_status_kpis(user["id"], store_id)
 
     k1, k2, k3 = st.columns(3)
     with k1:
@@ -1185,7 +1311,7 @@ def show_dashboard() -> None:
     # ── En Çok Satan Ürünler (Bar Chart) ─────────────────────────────────────
     with chart_col1:
         _section("🏆 En Çok Satan Ürünler")
-        top_prods = get_top_products(user["id"], n=8)
+        top_prods = get_top_products(user["id"], n=8, store_id=store_id)
 
         if top_prods.empty:
             st.markdown(
@@ -1239,7 +1365,7 @@ def show_dashboard() -> None:
     # ── Günlük Ciro Trendi (Line Chart) ──────────────────────────────────────
     with chart_col2:
         _section("📅 Günlük Ciro Trendi")
-        daily_rev = get_daily_revenue(user["id"], days=30)
+        daily_rev = get_daily_revenue(user["id"], days=30, store_id=store_id)
 
         if daily_rev.empty:
             st.markdown(
@@ -1358,6 +1484,7 @@ def show_dashboard() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def show_upload() -> None:
     user = st.session_state.user
+    store_id = st.session_state.get("active_store_id")
     _header("📁", "Veri Yükle", "Trendyol sipariş raporunuzu içe aktarın")
 
     tab_file, tab_api, tab_sample, tab_manage = st.tabs(
@@ -1422,7 +1549,7 @@ def show_upload() -> None:
 
             if st.button("✅ Veritabanına Aktar", type="primary"):
                 with st.spinner("Aktarılıyor…"):
-                    imp = import_to_db(df, user["id"])
+                    imp = import_to_db(df, user["id"], store_id=store_id)
                 _skipped_txt = f" ({imp['skipped']:,} tekrar atlandı.)" if imp['skipped'] else ""
                 st.markdown(
                     f'<div class="success-box">✅ <b>{imp["inserted"]:,} yeni sipariş</b> aktarıldı.{_skipped_txt}</div>',
@@ -1433,7 +1560,7 @@ def show_upload() -> None:
 
     # ── Trendyol API ─────────────────────────────────────────────────────────
     with tab_api:
-        creds = load_credentials(user["id"])
+        creds = load_credentials(user["id"], store_id)
 
         if not creds:
             st.markdown(
@@ -1465,7 +1592,7 @@ def show_upload() -> None:
                 if not (seller_id and api_key and api_secret):
                     st.error("Tüm alanları doldurun.")
                 else:
-                    save_credentials(user["id"], seller_id, api_key, api_secret)
+                    save_credentials(user["id"], seller_id, api_key, api_secret, store_id)
                     st.success("✅ API bilgileri kaydedildi!")
                     st.rerun()
 
@@ -1531,6 +1658,7 @@ def show_upload() -> None:
                             user["id"],
                             sync_start.strftime("%Y-%m-%d"),
                             sync_end.strftime("%Y-%m-%d"),
+                            store_id,
                         )
 
                     if result["success"]:
@@ -1563,7 +1691,7 @@ def show_upload() -> None:
         if st.button("🎲 Örnek Veri Oluştur & Yükle", type="primary"):
             with st.spinner("Örnek veri oluşturuluyor…"):
                 sample_df = generate_sample_orders(n_customers=n_cust)
-                imp = import_to_db(sample_df, user["id"], batch="sample_data")
+                imp = import_to_db(sample_df, user["id"], batch="sample_data", store_id=store_id)
             st.markdown(
                 f"""<div class="success-box">
                 🎉 <b>{imp['inserted']:,} örnek sipariş</b> yüklendi!
@@ -1579,7 +1707,7 @@ def show_upload() -> None:
         from src.database import delete_all_orders
         from src.analytics import get_summary_metrics as _sm
 
-        m = _sm(user["id"])
+        m = _sm(user["id"], store_id)
         if m["has_data"]:
             st.markdown(
                 f"""<div class="warn-box">
@@ -1591,7 +1719,7 @@ def show_upload() -> None:
             confirm = st.checkbox("Evet, tüm sipariş verilerimi silmek istiyorum")
             if confirm:
                 if st.button("🗑️ Tüm Verileri Sil", type="primary"):
-                    cnt = delete_all_orders(user["id"])
+                    cnt = delete_all_orders(user["id"], store_id)
                     st.success(f"{cnt:,} sipariş silindi.")
                     st.rerun()
         else:
@@ -1603,9 +1731,10 @@ def show_upload() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def show_analytics() -> None:
     user = st.session_state.user
+    store_id = st.session_state.get("active_store_id")
     _header("📈", "Analitik", "Cohort Retention, LTV ve Müşteri Davranışı")
 
-    m = get_summary_metrics(user["id"])
+    m = get_summary_metrics(user["id"], store_id)
     if not m["has_data"]:
         st.info("Veri bulunamadı. Lütfen önce sipariş yükleyin.")
         return
@@ -1625,7 +1754,7 @@ def show_analytics() -> None:
             </div>""",
             unsafe_allow_html=True,
         )
-        ret_df, cohort_sizes = get_cohort_retention(user["id"])
+        ret_df, cohort_sizes = get_cohort_retention(user["id"], store_id)
         if ret_df.empty:
             st.info("Cohort analizi için en az 2 farklı müşteriye ihtiyaç var.")
         else:
@@ -1682,8 +1811,8 @@ def show_analytics() -> None:
 
     # ── LTV ──────────────────────────────────────────────────────────────────
     with tab_ltv:
-        ltv_df = get_ltv_distribution(user["id"])
-        top10 = get_top_customers(user["id"])
+        ltv_df = get_ltv_distribution(user["id"], store_id)
+        top10 = get_top_customers(user["id"], store_id=store_id)
 
         if ltv_df.empty:
             st.info("LTV verisi yok.")
@@ -1750,8 +1879,8 @@ def show_analytics() -> None:
     # ── Retention Trendi ─────────────────────────────────────────────────────
     with tab_retention:
         _section("Aylık Retention Oranı Trendi")
-        nvr = get_new_vs_returning(user["id"])
-        trend = get_monthly_trend(user["id"])
+        nvr = get_new_vs_returning(user["id"], store_id)
+        trend = get_monthly_trend(user["id"], store_id)
 
         if nvr.empty or trend.empty:
             st.info("Yeterli veri yok.")
@@ -1798,14 +1927,15 @@ def show_analytics() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def show_segments() -> None:
     user = st.session_state.user
+    store_id = st.session_state.get("active_store_id")
     _header("👥", "Müşteri Segmentleri", "RFM tabanlı otomatik segmentasyon")
 
-    m = get_summary_metrics(user["id"])
+    m = get_summary_metrics(user["id"], store_id)
     if not m["has_data"]:
         st.info("Veri bulunamadı.")
         return
 
-    segments_df = get_customer_segments(user["id"])
+    segments_df = get_customer_segments(user["id"], store_id)
     if segments_df.empty:
         st.info("Yeterli veri yok.")
         return
@@ -1885,6 +2015,7 @@ def show_segments() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def show_campaigns() -> None:
     user = st.session_state.user
+    store_id = st.session_state.get("active_store_id")
     _header("📧", "E-posta Kampanyaları", "Segment bazlı müşteri iletişimi")
 
     tab_smtp, tab_send, tab_history = st.tabs([
@@ -1984,12 +2115,12 @@ def show_campaigns() -> None:
             st.warning("⚠️ Önce **SMTP Ayarları** sekmesinden e-posta yapılandırmanızı tamamlayın.")
             return
 
-        m = get_summary_metrics(user["id"])
+        m = get_summary_metrics(user["id"], store_id)
         if not m["has_data"]:
             st.info("📂 Önce **Veri Yükle** sayfasından sipariş verisi yükleyin.")
             return
 
-        segments_df = get_customer_segments(user["id"])
+        segments_df = get_customer_segments(user["id"], store_id)
         if segments_df.empty:
             st.info("Yeterli müşteri verisi yok.")
             return
@@ -2132,6 +2263,7 @@ def show_campaigns() -> None:
                         result["subject"],
                         recipient,
                         len(customers_list),
+                        store_id,
                     )
                     st.balloons()
                 else:
@@ -2140,7 +2272,7 @@ def show_campaigns() -> None:
     # ── Sekme 3: Geçmiş ──────────────────────────────────────────────────────
     with tab_history:
         _section("📋 Kampanya Geçmişi")
-        history = load_campaign_history(user["id"])
+        history = load_campaign_history(user["id"], store_id)
         if not history:
             st.info("Henüz kampanya gönderilmedi. **Kampanya Gönder** sekmesini kullanın.")
         else:
@@ -2163,6 +2295,7 @@ def show_campaigns() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def show_settings() -> None:
     user = st.session_state.user
+    store_id = st.session_state.get("active_store_id")
     _header("⚙️", "Ayarlar", "Hesap ve mağaza bilgilerinizi yönetin")
 
     tab_account, tab_api = st.tabs(["👤 Hesap Bilgileri", "🔌 Trendyol API (Pro)"])
@@ -2196,7 +2329,7 @@ def show_settings() -> None:
                         st.error(res["error"])
 
     with tab_api:
-        creds_s = load_credentials(user["id"])
+        creds_s = load_credentials(user["id"], store_id)
         st.markdown(
             """<div class="info-box">
             🔌 <b>Trendyol API Entegrasyonu</b><br>
@@ -2229,7 +2362,7 @@ def show_settings() -> None:
             if not (s_seller and s_key and s_secret):
                 st.error("Tüm alanları doldurun.")
             else:
-                save_credentials(user["id"], s_seller, s_key, s_secret)
+                save_credentials(user["id"], s_seller, s_key, s_secret, store_id)
                 st.success("✅ API bilgileri kaydedildi!")
                 st.rerun()
         if test_s:

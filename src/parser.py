@@ -228,7 +228,12 @@ def parse_trendyol_file(file) -> dict:
     }
 
 
-def import_to_db(df: pd.DataFrame, user_id: int, batch: str | None = None) -> dict:
+def import_to_db(
+    df: pd.DataFrame,
+    user_id: int,
+    batch: str | None = None,
+    store_id: int | None = None,
+) -> dict:
     """
     Parse edilmiş sipariş DataFrame'ini veritabanına yazar.
 
@@ -247,13 +252,14 @@ def import_to_db(df: pd.DataFrame, user_id: int, batch: str | None = None) -> di
             cur.execute(
                 """
                 INSERT INTO orders
-                    (user_id, order_number, customer_identifier, order_date,
+                    (user_id, store_id, order_number, customer_identifier, order_date,
                      total_amount, status, product_name, quantity, import_batch)
-                VALUES (?,?,?,?,?,?,?,?,?)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT (user_id, order_number, customer_identifier) DO NOTHING
                 """,
                 (
                     user_id,
+                    store_id,
                     str(row.order_number),
                     str(row.customer_identifier),
                     str(row.order_date),

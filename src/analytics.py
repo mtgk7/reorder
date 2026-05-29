@@ -23,16 +23,22 @@ def _rows_to_df(rows) -> pd.DataFrame:
     return pd.DataFrame([[r[c] for c in cols] for r in rows], columns=cols)
 
 
-def _fetch_orders(user_id: int, conn=None) -> pd.DataFrame:
-    """Kullanıcıya ait tüm siparişleri DataFrame olarak döndürür."""
+def _fetch_orders(user_id: int, store_id: int | None = None, conn=None) -> pd.DataFrame:
+    """Kullanıcıya (veya mağazaya) ait tüm siparişleri DataFrame olarak döndürür."""
     close = conn is None
     if conn is None:
         conn = get_connection()
 
-    rows = conn.execute(
-        "SELECT * FROM orders WHERE user_id = ? ORDER BY order_date",
-        (user_id,),
-    ).fetchall()
+    if store_id is not None:
+        rows = conn.execute(
+            "SELECT * FROM orders WHERE user_id = ? AND store_id = ? ORDER BY order_date",
+            (user_id, store_id),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM orders WHERE user_id = ? ORDER BY order_date",
+            (user_id,),
+        ).fetchall()
 
     if close:
         conn.close()
@@ -49,7 +55,7 @@ def _fetch_orders(user_id: int, conn=None) -> pd.DataFrame:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=60)
-def get_summary_metrics(user_id: int) -> dict:
+def get_summary_metrics(user_id: int, store_id: int | None = None) -> dict:
     """
     Temel dashboard metriklerini hesaplar.
 
@@ -58,7 +64,7 @@ def get_summary_metrics(user_id: int) -> dict:
         avg_order_value, repeat_customers, repeat_rate,
         avg_ltv, top_customer_revenue
     """
-    df = _fetch_orders(user_id)
+    df = _fetch_orders(user_id, store_id)
 
     empty = {
         "has_data": False,
@@ -105,7 +111,7 @@ def get_summary_metrics(user_id: int) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=60)
-def get_cohort_retention(user_id: int) -> tuple[pd.DataFrame, pd.Series]:
+def get_cohort_retention(user_id: int, store_id: int | None = None) -> tuple[pd.DataFrame, pd.Series]:
     """
     Aylık cohort retention matrisi hesaplar.
 
@@ -114,7 +120,7 @@ def get_cohort_retention(user_id: int) -> tuple[pd.DataFrame, pd.Series]:
         retention_pct_df  — satır=cohort ayı, sütun=Ay 0,1,2… → değer = %
         cohort_sizes      — her cohort'taki benzersiz müşteri sayısı
     """
-    df = _fetch_orders(user_id)
+    df = _fetch_orders(user_id, store_id)
     if df.empty or df["customer_identifier"].nunique() < 2:
         return pd.DataFrame(), pd.Series(dtype=int)
 
@@ -152,11 +158,11 @@ def get_cohort_retention(user_id: int) -> tuple[pd.DataFrame, pd.Series]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=60)
-def get_monthly_trend(user_id: int) -> pd.DataFrame:
+def get_monthly_trend(user_id: int, store_id: int | None = None) -> pd.DataFrame:
     """
     Her ay için sipariş sayısı, gelir ve benzersiz müşteri sayısını döndürür.
     """
-    df = _fetch_orders(user_id)
+    df = _fetch_orders(user_id, store_id)
     if df.empty:
         return pd.DataFrame()
 
@@ -176,11 +182,11 @@ def get_monthly_trend(user_id: int) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=60)
-def get_new_vs_returning(user_id: int) -> pd.DataFrame:
+def get_new_vs_returning(user_id: int, store_id: int | None = None) -> pd.DataFrame:
     """
     Aylık yeni / geri dönen müşteri ayrımı.
     """
-    df = _fetch_orders(user_id)
+    df = _fetch_orders(user_id, store_id)
     if df.empty:
         return pd.DataFrame()
 
@@ -206,7 +212,7 @@ def get_new_vs_returning(user_id: int) -> pd.DataFrame:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=60)
-def get_customer_segments(user_id: int) -> pd.DataFrame:
+def get_customer_segments(user_id: int, store_id: int | None = None) -> pd.DataFrame:
     """
     Her müşteri için basit RFM-tabanlı segment atar.
 
@@ -214,7 +220,7 @@ def get_customer_segments(user_id: int) -> pd.DataFrame:
         Sadık Müşteri | Gelişen Müşteri | Yeni Müşteri |
         Risk Altında  | Tek Alışveriş   | Kaybolma Riski
     """
-    df = _fetch_orders(user_id)
+    df = _fetch_orders(user_id, store_id)
     if df.empty:
         return pd.DataFrame()
 
@@ -251,9 +257,9 @@ def get_customer_segments(user_id: int) -> pd.DataFrame:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=60)
-def get_ltv_distribution(user_id: int) -> pd.DataFrame:
+def get_ltv_distribution(user_id: int, store_id: int | None = None) -> pd.DataFrame:
     """Müşteri başı toplam harcama dağılımını döndürür."""
-    df = _fetch_orders(user_id)
+    df = _fetch_orders(user_id, store_id)
     if df.empty:
         return pd.DataFrame()
 
@@ -268,9 +274,9 @@ def get_ltv_distribution(user_id: int) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=60)
-def get_top_customers(user_id: int, n: int = 10) -> pd.DataFrame:
+def get_top_customers(user_id: int, n: int = 10, store_id: int | None = None) -> pd.DataFrame:
     """En yüksek LTV'li N müşteriyi döndürür."""
-    df = get_ltv_distribution(user_id)
+    df = get_ltv_distribution(user_id, store_id)
     if df.empty:
         return pd.DataFrame()
     return df.head(n).reset_index(drop=True)
@@ -281,14 +287,14 @@ def get_top_customers(user_id: int, n: int = 10) -> pd.DataFrame:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=60)
-def get_order_status_kpis(user_id: int) -> dict:
+def get_order_status_kpis(user_id: int, store_id: int | None = None) -> dict:
     """
     Toplam ciro, bekleyen (Pending) ve tamamlanan (Completed) sipariş sayıları.
 
     Anahtarlar:
         total_revenue, pending, completed
     """
-    df = _fetch_orders(user_id)
+    df = _fetch_orders(user_id, store_id)
     if df.empty:
         return {"total_revenue": 0.0, "pending": 0, "completed": 0}
 
@@ -307,7 +313,7 @@ def get_order_status_kpis(user_id: int) -> dict:
 
 
 @st.cache_data(ttl=60)
-def get_top_products(user_id: int, n: int = 10) -> pd.DataFrame:
+def get_top_products(user_id: int, n: int = 10, store_id: int | None = None) -> pd.DataFrame:
     """
     En çok satan ürünler — ürün adı başına toplam miktar ve gelir.
 
@@ -315,7 +321,7 @@ def get_top_products(user_id: int, n: int = 10) -> pd.DataFrame:
     Sütun yoksa veya 0 ise product_name içindeki "x<N>" kalıbından çıkarır.
     Dönüş sütunları: product_name, total_qty, total_revenue
     """
-    df = _fetch_orders(user_id)
+    df = _fetch_orders(user_id, store_id)
     if df.empty or "product_name" not in df.columns:
         return pd.DataFrame()
 
@@ -351,14 +357,14 @@ def get_top_products(user_id: int, n: int = 10) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=60)
-def get_daily_revenue(user_id: int, days: int = 30) -> pd.DataFrame:
+def get_daily_revenue(user_id: int, days: int = 30, store_id: int | None = None) -> pd.DataFrame:
     """
     Günlük ciro trendi.
 
     Son `days` günü filtreler; bu aralıkta veri yoksa tüm geçmiş kullanılır.
     Dönüş sütunları: date_str, revenue, orders
     """
-    df = _fetch_orders(user_id)
+    df = _fetch_orders(user_id, store_id)
     if df.empty:
         return pd.DataFrame()
 

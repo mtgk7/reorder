@@ -238,10 +238,46 @@ def _migrate_postgres(cur) -> None:
             f"ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS {col} {dtype}"
         )
 
+    # ── Çoklu Mağaza Desteği ──────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS stores (
+            id              SERIAL PRIMARY KEY,
+            user_id         INTEGER NOT NULL,
+            store_name      TEXT NOT NULL,
+            ty_seller_id    TEXT,
+            ty_api_key      TEXT,
+            ty_api_secret   TEXT,
+            last_sync_at    TIMESTAMPTZ,
+            last_sync_count INTEGER DEFAULT 0,
+            created_at      TIMESTAMPTZ DEFAULT NOW(),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_stores_user ON stores(user_id)")
+
+    # orders ve campaigns tablolarına store_id ekle
+    cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES stores(id)")
+    cur.execute("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES stores(id)")
+
+    # Mevcut kullanıcılar için varsayılan mağaza oluştur
+    cur.execute("""
+        INSERT INTO stores (user_id, store_name)
+        SELECT u.id, u.store_name FROM users u
+        WHERE NOT EXISTS (SELECT 1 FROM stores s WHERE s.user_id = u.id)
+    """)
+
+    # Mevcut siparişleri varsayılan mağazaya bağla
+    cur.execute("""
+        UPDATE orders SET store_id = (
+            SELECT id FROM stores WHERE user_id = orders.user_id LIMIT 1
+        ) WHERE store_id IS NULL
+    """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS campaigns (
             id             SERIAL PRIMARY KEY,
             user_id        INTEGER NOT NULL,
+            store_id       INTEGER REFERENCES stores(id),
             segment        TEXT NOT NULL,
             subject        TEXT,
             sent_to        TEXT,
@@ -335,12 +371,57 @@ def _migrate_sqlite(cur) -> None:
         try:
             cur.execute(f"ALTER TABLE user_settings ADD COLUMN {col} {dtype}")
         except Exception:
-            pass  # Sütun zaten varsa atla
+            pass
+
+    # ── Çoklu Mağaza Desteği ──────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS stores (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id         INTEGER NOT NULL,
+            store_name      TEXT NOT NULL,
+            ty_seller_id    TEXT,
+            ty_api_key      TEXT,
+            ty_api_secret   TEXT,
+            last_sync_at    DATETIME,
+            last_sync_count INTEGER DEFAULT 0,
+            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_stores_user ON stores(user_id)")
+    except Exception:
+        pass
+
+    for col in ("store_id",):
+        try:
+            cur.execute(f"ALTER TABLE orders ADD COLUMN {col} INTEGER")
+        except Exception:
+            pass
+        try:
+            cur.execute(f"ALTER TABLE campaigns ADD COLUMN {col} INTEGER")
+        except Exception:
+            pass
+
+    # Mevcut kullanıcılar için varsayılan mağaza oluştur
+    cur.execute("""
+        INSERT OR IGNORE INTO stores (user_id, store_name)
+        SELECT u.id, u.store_name FROM users u
+        WHERE NOT EXISTS (SELECT 1 FROM stores s WHERE s.user_id = u.id)
+    """)
+
+    # Mevcut siparişleri varsayılan mağazaya bağla
+    cur.execute("""
+        UPDATE orders SET store_id = (
+            SELECT id FROM stores WHERE user_id = orders.user_id LIMIT 1
+        ) WHERE store_id IS NULL
+    """)
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS campaigns (
             id             INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id        INTEGER NOT NULL,
+            store_id       INTEGER,
             segment        TEXT NOT NULL,
             subject        TEXT,
             sent_to        TEXT,
@@ -356,10 +437,68 @@ def _migrate_sqlite(cur) -> None:
 
 # ─── Yardımcı fonksiyonlar ───────────────────────────────────────────────────
 
-def delete_all_orders(user_id: int) -> int:
-    """Kullanıcıya ait tüm siparişleri siler; silinen satır sayısını döndürür."""
+def get_stores(user_id: int) -> list[dict]:
+    """Kullanıcıya ait tüm mağazaları döndürür."""
     conn = get_connection()
-    result = conn.execute("DELETE FROM orders WHERE user_id = ?", (user_id,))
+    rows = conn.execute(
+        "SELECT * FROM stores WHERE user_id = ? ORDER BY created_at",
+        (user_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def create_store(user_id: int, store_name: str) -> int:
+    """Yeni mağaza oluşturur; store_id döndürür."""
+    conn = get_connection()
+    db_url = _get_db_url()
+    if db_url:
+        cur = conn.execute(
+            "INSERT INTO stores (user_id, store_name) VALUES (?, ?) RETURNING id",
+            (user_id, store_name.strip()),
+        )
+        store_id = cur.lastrowid
+    else:
+        cur = conn.execute(
+            "INSERT INTO stores (user_id, store_name) VALUES (?, ?)",
+            (user_id, store_name.strip()),
+        )
+        store_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return store_id
+
+
+def rename_store(store_id: int, user_id: int, new_name: str) -> None:
+    """Mağaza adını günceller."""
+    conn = get_connection()
+    conn.execute(
+        "UPDATE stores SET store_name = ? WHERE id = ? AND user_id = ?",
+        (new_name.strip(), store_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_store(store_id: int, user_id: int) -> None:
+    """Mağazayı ve bağlı tüm siparişleri siler."""
+    conn = get_connection()
+    conn.execute("DELETE FROM orders WHERE store_id = ? AND user_id = ?", (store_id, user_id))
+    conn.execute("DELETE FROM stores WHERE id = ? AND user_id = ?", (store_id, user_id))
+    conn.commit()
+    conn.close()
+
+
+def delete_all_orders(user_id: int, store_id: int | None = None) -> int:
+    """Kullanıcıya (veya mağazaya) ait tüm siparişleri siler; silinen satır sayısını döndürür."""
+    conn = get_connection()
+    if store_id is not None:
+        result = conn.execute(
+            "DELETE FROM orders WHERE user_id = ? AND store_id = ?",
+            (user_id, store_id),
+        )
+    else:
+        result = conn.execute("DELETE FROM orders WHERE user_id = ?", (user_id,))
     deleted = result.rowcount
     conn.commit()
     conn.close()

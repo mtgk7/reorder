@@ -172,26 +172,34 @@ def save_campaign_log(
     subject: str,
     sent_to: str,
     customer_count: int,
+    store_id: int | None = None,
 ) -> None:
     """Gönderilen kampanyayı campaigns tablosuna kaydeder."""
     conn = get_connection()
     conn.execute(
-        "INSERT INTO campaigns (user_id, segment, subject, sent_to, customer_count) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (user_id, segment, subject, sent_to, customer_count),
+        "INSERT INTO campaigns (user_id, store_id, segment, subject, sent_to, customer_count) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (user_id, store_id, segment, subject, sent_to, customer_count),
     )
     conn.commit()
     conn.close()
 
 
-def load_campaign_history(user_id: int) -> list[dict]:
-    """Kullanıcının kampanya geçmişini döndürür (en yeni önce)."""
+def load_campaign_history(user_id: int, store_id: int | None = None) -> list[dict]:
+    """Kullanıcının (veya mağazanın) kampanya geçmişini döndürür (en yeni önce)."""
     conn = get_connection()
-    rows = conn.execute(
-        "SELECT segment, subject, sent_to, customer_count, sent_at "
-        "FROM campaigns WHERE user_id = ? ORDER BY sent_at DESC LIMIT 50",
-        (user_id,),
-    ).fetchall()
+    if store_id is not None:
+        rows = conn.execute(
+            "SELECT segment, subject, sent_to, customer_count, sent_at "
+            "FROM campaigns WHERE user_id = ? AND store_id = ? ORDER BY sent_at DESC LIMIT 50",
+            (user_id, store_id),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT segment, subject, sent_to, customer_count, sent_at "
+            "FROM campaigns WHERE user_id = ? ORDER BY sent_at DESC LIMIT 50",
+            (user_id,),
+        ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 

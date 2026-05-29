@@ -185,23 +185,35 @@ def orders_to_dataframe(raw_orders: list[dict]) -> "pd.DataFrame":
 # Credential yönetimi (DB'de şifreli saklama)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def save_credentials(user_id: int, seller_id: str, api_key: str, api_secret: str) -> None:
-    """API kimlik bilgilerini veritabanına kaydeder."""
+def save_credentials(
+    user_id: int,
+    seller_id: str,
+    api_key: str,
+    api_secret: str,
+    store_id: int | None = None,
+) -> None:
+    """API kimlik bilgilerini veritabanına kaydeder (mağaza veya kullanıcı bazında)."""
     from src.database import get_connection
     conn = get_connection()
-    conn.execute("""
-        INSERT INTO user_settings (user_id, trendyol_seller_id, trendyol_api_key, trendyol_api_secret)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            trendyol_seller_id  = excluded.trendyol_seller_id,
-            trendyol_api_key    = excluded.trendyol_api_key,
-            trendyol_api_secret = excluded.trendyol_api_secret
-    """, (user_id, str(seller_id).strip(), str(api_key).strip(), str(api_secret).strip()))
+    if store_id is not None:
+        conn.execute(
+            "UPDATE stores SET ty_seller_id=?, ty_api_key=?, ty_api_secret=? WHERE id=? AND user_id=?",
+            (str(seller_id).strip(), str(api_key).strip(), str(api_secret).strip(), store_id, user_id),
+        )
+    else:
+        conn.execute("""
+            INSERT INTO user_settings (user_id, trendyol_seller_id, trendyol_api_key, trendyol_api_secret)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                trendyol_seller_id  = excluded.trendyol_seller_id,
+                trendyol_api_key    = excluded.trendyol_api_key,
+                trendyol_api_secret = excluded.trendyol_api_secret
+        """, (user_id, str(seller_id).strip(), str(api_key).strip(), str(api_secret).strip()))
     conn.commit()
     conn.close()
 
 
-def load_credentials(user_id: int) -> dict | None:
+def load_credentials(user_id: int, store_id: int | None = None) -> dict | None:
     """
     DB'den API kimlik bilgilerini yükler.
     Döndürür: {'seller_id', 'api_key', 'api_secret', 'last_sync_at', 'last_sync_count'}
@@ -209,37 +221,63 @@ def load_credentials(user_id: int) -> dict | None:
     """
     from src.database import get_connection
     conn = get_connection()
-    row = conn.execute(
-        "SELECT * FROM user_settings WHERE user_id = ?", (user_id,)
-    ).fetchone()
-    conn.close()
-    if not row or not row["trendyol_seller_id"]:
-        return None
-    return {
-        "seller_id":       row["trendyol_seller_id"],
-        "api_key":         row["trendyol_api_key"],
-        "api_secret":      row["trendyol_api_secret"],
-        "last_sync_at":    row["last_sync_at"],
-        "last_sync_count": row["last_sync_count"] or 0,
-    }
+    if store_id is not None:
+        row = conn.execute(
+            "SELECT ty_seller_id, ty_api_key, ty_api_secret, last_sync_at, last_sync_count "
+            "FROM stores WHERE id=? AND user_id=?",
+            (store_id, user_id),
+        ).fetchone()
+        conn.close()
+        if not row or not row["ty_seller_id"]:
+            return None
+        return {
+            "seller_id":       row["ty_seller_id"],
+            "api_key":         row["ty_api_key"],
+            "api_secret":      row["ty_api_secret"],
+            "last_sync_at":    row["last_sync_at"],
+            "last_sync_count": row["last_sync_count"] or 0,
+        }
+    else:
+        row = conn.execute("SELECT * FROM user_settings WHERE user_id = ?", (user_id,)).fetchone()
+        conn.close()
+        if not row or not row["trendyol_seller_id"]:
+            return None
+        return {
+            "seller_id":       row["trendyol_seller_id"],
+            "api_key":         row["trendyol_api_key"],
+            "api_secret":      row["trendyol_api_secret"],
+            "last_sync_at":    row["last_sync_at"],
+            "last_sync_count": row["last_sync_count"] or 0,
+        }
 
 
-def update_sync_time(user_id: int, count: int) -> None:
+def update_sync_time(user_id: int, count: int, store_id: int | None = None) -> None:
     """Son senkronizasyon zamanını ve sipariş sayısını günceller."""
     from src.database import get_connection
     conn = get_connection()
-    conn.execute("""
-        INSERT INTO user_settings (user_id, last_sync_at, last_sync_count)
-        VALUES (?, CURRENT_TIMESTAMP, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            last_sync_at    = CURRENT_TIMESTAMP,
-            last_sync_count = excluded.last_sync_count
-    """, (user_id, count))
+    if store_id is not None:
+        conn.execute(
+            "UPDATE stores SET last_sync_at=CURRENT_TIMESTAMP, last_sync_count=? WHERE id=? AND user_id=?",
+            (count, store_id, user_id),
+        )
+    else:
+        conn.execute("""
+            INSERT INTO user_settings (user_id, last_sync_at, last_sync_count)
+            VALUES (?, CURRENT_TIMESTAMP, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                last_sync_at    = CURRENT_TIMESTAMP,
+                last_sync_count = excluded.last_sync_count
+        """, (user_id, count))
     conn.commit()
     conn.close()
 
 
-def sync_orders(user_id: int, start_date: str, end_date: str) -> dict:
+def sync_orders(
+    user_id: int,
+    start_date: str,
+    end_date: str,
+    store_id: int | None = None,
+) -> dict:
     """
     Trendyol API'den siparişleri çeker ve DB'ye aktarır.
 
@@ -247,16 +285,17 @@ def sync_orders(user_id: int, start_date: str, end_date: str) -> dict:
         user_id    : Kullanıcı ID
         start_date : "YYYY-MM-DD"
         end_date   : "YYYY-MM-DD"
+        store_id   : Mağaza ID (None → kullanıcı bazlı eski mod)
 
     Döndürür:
         {'success': bool, 'inserted': int, 'skipped': int, 'error': str | None}
     """
     from src.parser import import_to_db
 
-    creds = load_credentials(user_id)
+    creds = load_credentials(user_id, store_id)
     if not creds:
         return {"success": False, "inserted": 0, "skipped": 0,
-                "error": "API kimlik bilgileri bulunamadı. Ayarlar sayfasından ekleyin."}
+                "error": "API kimlik bilgileri bulunamadı. Veri Yükle → Trendyol API sekmesini kullanın."}
 
     try:
         client = TrendyolClient(creds["seller_id"], creds["api_key"], creds["api_secret"])
@@ -266,8 +305,8 @@ def sync_orders(user_id: int, start_date: str, end_date: str) -> dict:
             return {"success": True, "inserted": 0, "skipped": 0, "error": None}
 
         df = orders_to_dataframe(raw_orders)
-        result = import_to_db(df, user_id, batch=f"api_{start_date}_{end_date}")
-        update_sync_time(user_id, result["inserted"])
+        result = import_to_db(df, user_id, batch=f"api_{start_date}_{end_date}", store_id=store_id)
+        update_sync_time(user_id, result["inserted"], store_id)
 
         return {
             "success": True,
