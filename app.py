@@ -239,23 +239,36 @@ st.markdown(
         color: rgba(226,232,240,0.4) !important;
     }
 
-    /* ── Sidebar text input (mağaza adı, diğer inputlar) ── */
-    [data-testid="stSidebar"] [data-testid="stTextInput"] > div {
-        background-color: rgba(255,255,255,0.08) !important;
-        border: 1px solid rgba(255,255,255,0.18) !important;
-        border-radius: 8px !important;
+    /* ── Sidebar text input — tüm katmanları hedefle ── */
+    [data-testid="stSidebar"] [data-testid="stTextInput"],
+    [data-testid="stSidebar"] [data-testid="stTextInput"] > div,
+    [data-testid="stSidebar"] [data-testid="stTextInput"] > div > div,
+    [data-testid="stSidebar"] [data-testid="stTextInput"] > div > div > div {
+        background-color: transparent !important;
+        border-color: transparent !important;
     }
+    /* Dış wrapper: görünür arka plan ve border */
+    [data-testid="stSidebar"] [data-testid="stTextInput"] > div {
+        background-color: rgba(255,255,255,0.1) !important;
+        border: 1px solid rgba(255,255,255,0.25) !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stTextInput"] > div:focus-within {
+        border-color: rgba(242,122,26,0.8) !important;
+        box-shadow: 0 0 0 2px rgba(242,122,26,0.2) !important;
+    }
+    /* Input elementi */
     [data-testid="stSidebar"] [data-testid="stTextInput"] input {
+        background: transparent !important;
         background-color: transparent !important;
         color: #E2E8F0 !important;
         caret-color: #F27A1A !important;
+        -webkit-text-fill-color: #E2E8F0 !important;
     }
     [data-testid="stSidebar"] [data-testid="stTextInput"] input::placeholder {
-        color: rgba(226,232,240,0.35) !important;
-    }
-    [data-testid="stSidebar"] [data-testid="stTextInput"] > div:focus-within {
-        border-color: rgba(242,122,26,0.7) !important;
-        box-shadow: 0 0 0 2px rgba(242,122,26,0.18) !important;
+        color: rgba(226,232,240,0.4) !important;
+        -webkit-text-fill-color: rgba(226,232,240,0.4) !important;
     }
     /* Sidebar caption ve yardım metinleri */
     [data-testid="stSidebar"] .stCaption,
