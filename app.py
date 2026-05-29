@@ -2258,6 +2258,7 @@ def show_segments() -> None:
                     template="plotly_white",
                 )
                 fig_m.update_layout(height=260, margin=dict(l=0, r=0, t=8, b=0))
+                fig_m.update_xaxes(type="category")  # Period string'ini tarih olarak parse etmeyi önle
                 st.plotly_chart(fig_m, use_container_width=True)
 
             # Sipariş tablosu
