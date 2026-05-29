@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime
 
-from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store, save_goals, load_goals
+from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store, save_goals, load_goals, link_null_orders
 from src.auth import (
     login_user, register_user, update_store_name, change_password,
     create_session_token, verify_session_token, delete_session_token,
@@ -521,14 +521,20 @@ def _init_state() -> None:
     # ── Mağaza listesini yükle, yoksa varsayılan oluştur ─────────────────────
     if st.session_state.user is not None and not st.session_state.stores:
         try:
-            stores = get_stores(st.session_state.user["id"])
+            uid = st.session_state.user["id"]
+            stores = get_stores(uid)
             if not stores:
-                # Yeni kullanıcı: varsayılan mağaza otomatik oluştur
-                new_id = create_store(st.session_state.user["id"], st.session_state.user["store_name"])
-                stores = get_stores(st.session_state.user["id"])
+                create_store(uid, st.session_state.user["store_name"])
+                stores = get_stores(uid)
             st.session_state.stores = stores
             if stores and st.session_state.active_store_id is None:
                 st.session_state.active_store_id = stores[0]["id"]
+            # NULL store_id'li siparişleri ilk mağazaya bağla (migration)
+            if stores:
+                try:
+                    link_null_orders(uid, stores[0]["id"])
+                except Exception:
+                    pass
         except Exception:
             pass
 

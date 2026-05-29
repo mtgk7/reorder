@@ -478,17 +478,33 @@ def create_store(user_id: int, store_name: str) -> int:
     """Yeni mağaza oluşturur; store_id döndürür.
     İlk mağaza oluşturulurken mevcut store_id=NULL siparişleri bu mağazaya bağlar."""
     conn = get_connection()
-    # Mevcut mağaza sayısını kontrol et (ilk mağaza mı?)
     existing = conn.execute("SELECT COUNT(*) FROM stores WHERE user_id = ?", (user_id,)).fetchone()
     is_first = (list(existing)[0] if existing else 0) == 0
 
-    cur = conn.execute(
-        "INSERT INTO stores (user_id, store_name) VALUES (?, ?)",
-        (user_id, store_name.strip()),
-    )
-    store_id = cur.lastrowid
+    db_url = _get_db_url()
+    if db_url:
+        # PostgreSQL: RETURNING ile id'yi güvenilir şekilde al
+        cur = conn.execute(
+            "INSERT INTO stores (user_id, store_name) VALUES (?, ?) RETURNING id",
+            (user_id, store_name.strip()),
+        )
+        store_id = cur.lastrowid
+    else:
+        cur = conn.execute(
+            "INSERT INTO stores (user_id, store_name) VALUES (?, ?)",
+            (user_id, store_name.strip()),
+        )
+        store_id = cur.lastrowid
 
-    # İlk mağaza ise mevcut store_id=NULL siparişleri bağla
+    # Fallback: lastrowid None gelirse DB'den sorgula
+    if not store_id:
+        row = conn.execute(
+            "SELECT id FROM stores WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+            (user_id,),
+        ).fetchone()
+        store_id = list(row.values())[0] if row else None
+
+    # İlk mağaza: mevcut store_id=NULL siparişleri bu mağazaya bağla
     if is_first and store_id:
         conn.execute(
             "UPDATE orders SET store_id = ? WHERE user_id = ? AND store_id IS NULL",
@@ -501,7 +517,22 @@ def create_store(user_id: int, store_name: str) -> int:
 
     conn.commit()
     conn.close()
-    return store_id
+    return store_id or 0
+
+
+def link_null_orders(user_id: int, store_id: int) -> None:
+    """Kullanıcıya ait store_id=NULL siparişleri belirtilen mağazaya bağlar."""
+    conn = get_connection()
+    conn.execute(
+        "UPDATE orders SET store_id = ? WHERE user_id = ? AND store_id IS NULL",
+        (store_id, user_id),
+    )
+    conn.execute(
+        "UPDATE campaigns SET store_id = ? WHERE user_id = ? AND store_id IS NULL",
+        (store_id, user_id),
+    )
+    conn.commit()
+    conn.close()
 
 
 def rename_store(store_id: int, user_id: int, new_name: str) -> None:

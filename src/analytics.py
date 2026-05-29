@@ -30,9 +30,8 @@ def _fetch_orders(user_id: int, store_id: int | None = None, conn=None) -> pd.Da
         conn = get_connection()
 
     if store_id is not None:
-        # store_id eşleşen VEYA henüz mağazaya atanmamış (NULL) siparişleri getir
         rows = conn.execute(
-            "SELECT * FROM orders WHERE user_id = ? AND (store_id = ? OR store_id IS NULL) ORDER BY order_date",
+            "SELECT * FROM orders WHERE user_id = ? AND store_id = ? ORDER BY order_date",
             (user_id, store_id),
         ).fetchall()
     else:
