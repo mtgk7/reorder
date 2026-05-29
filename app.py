@@ -1395,8 +1395,8 @@ def show_sidebar() -> None:
     with st.sidebar:
         st.markdown(
             f"""
-            <div style="padding:.8rem .2rem 1.1rem; border-bottom:1px solid rgba(255,255,255,.1);">
-                <div style="font-size:1.4rem; font-weight:700; color:#F27A1A;">🔄 ReOrder</div>
+            <div style="padding:.8rem .2rem 1.1rem; border-bottom:1px solid rgba(255,255,255,.1); text-align:center;">
+                <div style="font-size:1.75rem; font-weight:800; color:#F27A1A; letter-spacing:-.01em;">🔄 ReOrder</div>
                 <div style="font-size:.72rem; opacity:.5; margin-top:.2rem;">{user['email']}</div>
                 <div style="
                     margin-top:.65rem;
