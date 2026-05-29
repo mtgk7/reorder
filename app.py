@@ -888,17 +888,22 @@ def show_auth() -> None:
        LOGIN — MOBILE RESPONSIVE (≤ 640px)
     ══════════════════════════════════════════════════ */
     @media screen and (max-width: 640px) {
-        /* Sol & sağ boş sütunları gizle → kart tam genişliğe açılsın */
-        [data-testid="stHorizontalBlock"]
-            > [data-testid="stColumn"]:first-child,
+        /* Sağ boşluk sütununu gizle, sol (tanıtım) ve orta (login) tam genişliğe açılsın */
         [data-testid="stHorizontalBlock"]
             > [data-testid="stColumn"]:last-child {
             display: none !important;
         }
         [data-testid="stHorizontalBlock"]
+            > [data-testid="stColumn"]:first-child,
+        [data-testid="stHorizontalBlock"]
             > [data-testid="stColumn"]:nth-child(2) {
             min-width: 100% !important;
             flex:      1 1 100% !important;
+        }
+        /* Tanıtım iframe'ini mobilde kompakt göster */
+        [data-testid="stHorizontalBlock"]
+            > [data-testid="stColumn"]:first-child iframe {
+            height: 360px !important;
         }
 
         /* Glassmorphic kart mobil ayarı */
@@ -1110,6 +1115,20 @@ html,body{
 .chart-wrap{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
   border-radius:8px;padding:.4rem .5rem .3rem;display:flex;align-items:flex-end;gap:3px;height:80px;overflow:hidden;}
 .bar{flex:1;border-radius:2px 2px 0 0;background:rgba(242,133,0,.55);}
+@media(max-width:600px){
+  .sc{gap:.5rem;padding:1rem .5rem .6rem .3rem;}
+  #hl{font-size:1.15rem;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .kv{font-size:.82rem;}.kl{font-size:.55rem;}
+  .kpi-card{padding:.35rem .45rem;}
+  .chart-wrap{height:55px;}
+  .c-grid{gap:.15rem;}.cc{font-size:.55rem;padding:.18rem .03rem;}
+  .c-mo{font-size:.55rem;width:40px;}
+  .seg{padding:.3rem .45rem;}.sn{font-size:.65rem;}.sb{font-size:.58rem;}
+  .pdf-pg{padding:.35rem .5rem;}
+  .feat-strip{padding:.35rem .4rem;}.fi{font-size:.55rem;}.fi em{font-size:.75rem;}
+  .dots{gap:.28rem;}
+}
 /* Slide 2 - Cohort */
 .c-lbl{font-size:.6rem;color:rgba(180,210,230,.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.2rem;}
 .c-grid{display:flex;flex-direction:column;gap:.2rem;}
