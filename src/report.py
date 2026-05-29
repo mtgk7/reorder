@@ -69,10 +69,15 @@ class _ReOrderPDF(FPDF):
         self.rect(0, 0, 210, 17, style="F")
         self.set_font("Helvetica", style="B", size=11)
         self.set_text_color(*_WHITE)
+        # Sol: ReOrder logosu
         self.set_xy(15, 4.5)
-        self.cell(w=120, h=8, text="ReOrder  |  Trendyol Retention Raporu")
-        self.set_xy(135, 4.5)
-        self.cell(w=60, h=8, text=self.store_name, align="R")
+        self.cell(w=50, h=8, text="ReOrder")
+        # Orta: Rapor başlığı — ortalı
+        self.set_xy(55, 4.5)
+        self.cell(w=100, h=8, text="Trendyol Retention Raporu", align="C")
+        # Sağ: Mağaza adı
+        self.set_xy(155, 4.5)
+        self.cell(w=40, h=8, text=self.store_name[:14], align="R")
         self.set_text_color(0, 0, 0)
 
     # ── Altbilgi ───────────────────────────────────────────────────────────────
@@ -231,13 +236,8 @@ def generate_report(user_id: int, store_name: str, store_id: int | None = None) 
     # SAYFA 1 — Özet Metrikler + Trend
     # ══════════════════════════════════════════════════════════════════════════
 
-    # Tarih satırı
-    pdf.set_x(M)
-    pdf.set_font("Helvetica", style="I", size=9)
-    pdf.set_text_color(*_GRAY)
-    pdf.cell(0, 6, f"Rapor Tarihi: {datetime.now().strftime('%d.%m.%Y  %H:%M')}", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_text_color(0, 0, 0)
-    pdf.ln(1)
+    # Tarih footer'da gösterildiği için burada tekrar gerekmez; küçük üst boşluk
+    pdf.ln(2)
 
     # KPI — Satır 1
     pdf.section_title("Ozet Metrikler")
