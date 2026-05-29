@@ -1149,7 +1149,7 @@ html,body{
   .c-grid{gap:.15rem;}.cc{font-size:.55rem;padding:.18rem .03rem;}
   .c-mo{font-size:.55rem;width:40px;}
   .seg{padding:.3rem .45rem;}.sn{font-size:.65rem;}.sb{font-size:.58rem;}
-  .pdf-pg{padding:.35rem .5rem;}
+  .real-pdf{width:130px;}
   .feat-strip{padding:.35rem .4rem;}.fi{font-size:.55rem;}.fi em{font-size:.75rem;}
   .dots{gap:.28rem;}
 }
@@ -1175,16 +1175,16 @@ html,body{
 .sc2{font-size:.62rem;color:rgba(180,210,230,.4);}
 .chb{width:44px;height:3px;background:rgba(255,255,255,.08);border-radius:2px;}
 .chbf{height:3px;border-radius:2px;}
-/* Slide 4 - PDF */
-.pdf-wrap{display:flex;flex-direction:column;gap:.35rem;}
-.pdf-pg{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
-  border-radius:6px;padding:.5rem .7rem;display:flex;flex-direction:column;gap:.25rem;}
-.pdf-pg-header{background:rgba(242,133,0,.6);height:6px;border-radius:3px;}
-.pdf-pg-rows{display:flex;flex-direction:column;gap:.18rem;}
-.pdf-row{height:5px;border-radius:2px;background:rgba(255,255,255,.12);}
-.pdf-row.short{width:60%;}
-.pdf-row.med{width:80%;}
-.pdf-title{font-size:.62rem;color:rgba(180,210,230,.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.1rem;}
+/* Slide 4 - PDF gerçekçi sayfa görünümü */
+.pdf-wrap{display:flex;gap:5px;justify-content:center;align-items:flex-start;padding:2px 0;}
+.real-pdf{background:#fff;border-radius:3px;box-shadow:0 6px 24px rgba(0,0,0,.65),0 2px 8px rgba(0,0,0,.4);overflow:hidden;flex-shrink:0;width:155px;}
+.real-pdf-hdr{background:linear-gradient(135deg,#F27A1A,#C95A10);padding:5px 8px;display:flex;align-items:center;justify-content:space-between;}
+.real-pdf-logo{font-size:6px;font-weight:800;color:#fff;letter-spacing:.03em;}
+.real-pdf-date{font-size:5px;color:rgba(255,255,255,.8);}
+.real-pdf-body{padding:6px 8px;}
+.real-pdf-sec{font-size:5.5px;font-weight:800;color:#1a1a2e;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #eee;text-transform:uppercase;letter-spacing:.04em;}
+.real-pdf-ftr{background:#f8f8f8;padding:3px 8px;border-top:1px solid #eee;display:flex;justify-content:space-between;}
+.real-pdf-ftr-t{font-size:4.5px;color:#bbb;}
 /* Progress dots */
 .dots{display:flex;gap:.35rem;justify-content:center;}
 .dot{width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.14);transition:all .3s;}
@@ -1274,16 +1274,80 @@ segs.forEach(function(s){
     +'<span class="sn">'+s.label+'</span><span class="sc2">'+s.count+'</span>'
     +'<div class="chb"><div class="chbf" style="width:'+s.churn+'%;background:'+s.color+'"></div></div></div>';
 });
-// PDF mockup pages
+// PDF gerçekçi sayfa mockup
 var pw=document.getElementById("pdfwrap");
-[["Özet Metrikler & Trend","short","med","","med"],
- ["Cohort (Müş. Grubu) Retention","","short","med",""],
- ["Segmentler & Top 10","short","","med","short"]].forEach(function(page){
-  var pg='<div class="pdf-pg"><div class="pdf-title">'+page[0]+'</div><div class="pdf-pg-header"></div><div class="pdf-pg-rows">';
-  for(var i=1;i<page.length;i++){if(page[i])pg+='<div class="pdf-row '+page[i]+'"></div>';}
-  pg+='</div></div>';
-  pw.innerHTML+=pg;
-});
+(function(){
+var p1='<div class="real-pdf" style="margin-top:0">'
++'<div class="real-pdf-hdr"><div class="real-pdf-logo">🔄 ReOrder</div><div class="real-pdf-date">Haz 2026</div></div>'
++'<div class="real-pdf-body"><div class="real-pdf-sec">Özet Metrikler &amp; Trend</div>'
++'<div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5px;margin-bottom:4px;">'
++'<div style="background:#FFF7F0;border:1px solid #FFD4A8;border-radius:2px;padding:3px 4px;"><div style="font-size:4px;color:#888;text-transform:uppercase;">Sipariş</div><div style="font-size:8px;font-weight:900;color:#F27A1A;">2.140</div></div>'
++'<div style="background:#F0FFF9;border:1px solid #A8FFD4;border-radius:2px;padding:3px 4px;"><div style="font-size:4px;color:#888;text-transform:uppercase;">Tekrar</div><div style="font-size:8px;font-weight:900;color:#10B981;">%42.7</div></div>'
++'<div style="background:#F5F0FF;border:1px solid #C4A8FF;border-radius:2px;padding:3px 4px;"><div style="font-size:4px;color:#888;text-transform:uppercase;">Gelir</div><div style="font-size:8px;font-weight:900;color:#7C3AED;">₺283K</div></div>'
++'<div style="background:#F0F8FF;border:1px solid #A8D4FF;border-radius:2px;padding:3px 4px;"><div style="font-size:4px;color:#888;text-transform:uppercase;">Ort LTV</div><div style="font-size:8px;font-weight:900;color:#2563EB;">₺680</div></div>'
++'</div>'
++'<div style="font-size:4px;color:#aaa;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em;">Aylık Gelir Trendi</div>'
++'<div style="display:flex;align-items:flex-end;gap:1.5px;height:30px;background:#f8f8f8;border-radius:2px;padding:3px;">'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:25%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:38%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:50%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:44%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:62%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:70%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:60%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:78%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:72%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:85%;"></div>'
++'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:80%;"></div>'
++'<div style="flex:1;background:#ffb347;border-radius:1px 1px 0 0;height:100%;box-shadow:0 0 4px rgba(242,122,26,.5);"></div>'
++'</div>'
++'<div style="display:flex;justify-content:space-between;font-size:4px;color:#bbb;margin-top:1px;"><span>Tem 25</span><span>Haz 26</span></div>'
++'</div>'
++'<div class="real-pdf-ftr"><div class="real-pdf-ftr-t">Sayfa 1 / 3</div><div class="real-pdf-ftr-t">reorder-panel.streamlit.app</div></div>'
++'</div>';
+
+var p2='<div class="real-pdf" style="margin-top:12px">'
++'<div class="real-pdf-hdr"><div class="real-pdf-logo">🔄 ReOrder</div><div class="real-pdf-date">Haz 2026</div></div>'
++'<div class="real-pdf-body"><div class="real-pdf-sec">Cohort Retention Matrisi</div>'
++'<div style="display:flex;flex-direction:column;gap:1.5px;margin-bottom:4px;">'
++'<div style="display:flex;gap:1.5px;align-items:center;"><div style="font-size:4px;color:#888;width:26px;">2025-10</div><div style="flex:1;background:#10B981;border-radius:1px;text-align:center;font-size:4px;color:#fff;font-weight:700;padding:1.5px 0;">100%</div><div style="flex:1;background:#F59E0B;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">42%</div><div style="flex:1;background:#F97316;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">28%</div><div style="flex:1;background:#EF4444;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">14%</div><div style="flex:1;background:#EF4444;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">8%</div></div>'
++'<div style="display:flex;gap:1.5px;align-items:center;"><div style="font-size:4px;color:#888;width:26px;">2025-11</div><div style="flex:1;background:#10B981;border-radius:1px;text-align:center;font-size:4px;color:#fff;font-weight:700;padding:1.5px 0;">100%</div><div style="flex:1;background:#34d399;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">38%</div><div style="flex:1;background:#F97316;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">25%</div><div style="flex:1;background:#EF4444;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">11%</div><div style="flex:1;background:#f0f0f0;border-radius:1px;text-align:center;font-size:4px;color:#ccc;padding:1.5px 0;">—</div></div>'
++'<div style="display:flex;gap:1.5px;align-items:center;"><div style="font-size:4px;color:#888;width:26px;">2025-12</div><div style="flex:1;background:#10B981;border-radius:1px;text-align:center;font-size:4px;color:#fff;font-weight:700;padding:1.5px 0;">100%</div><div style="flex:1;background:#F59E0B;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">44%</div><div style="flex:1;background:#F97316;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">31%</div><div style="flex:1;background:#f0f0f0;border-radius:1px;text-align:center;font-size:4px;color:#ccc;padding:1.5px 0;">—</div><div style="flex:1;background:#f0f0f0;border-radius:1px;text-align:center;font-size:4px;color:#ccc;padding:1.5px 0;">—</div></div>'
++'<div style="display:flex;gap:1.5px;align-items:center;"><div style="font-size:4px;color:#888;width:26px;">2026-01</div><div style="flex:1;background:#10B981;border-radius:1px;text-align:center;font-size:4px;color:#fff;font-weight:700;padding:1.5px 0;">100%</div><div style="flex:1;background:#34d399;border-radius:1px;text-align:center;font-size:4px;color:#fff;padding:1.5px 0;">48%</div><div style="flex:1;background:#f0f0f0;border-radius:1px;text-align:center;font-size:4px;color:#ccc;padding:1.5px 0;">—</div><div style="flex:1;background:#f0f0f0;border-radius:1px;text-align:center;font-size:4px;color:#ccc;padding:1.5px 0;">—</div><div style="flex:1;background:#f0f0f0;border-radius:1px;text-align:center;font-size:4px;color:#ccc;padding:1.5px 0;">—</div></div>'
++'</div>'
++'<div style="display:flex;gap:3px;align-items:center;margin-bottom:4px;">'
++'<div style="width:7px;height:7px;border-radius:1px;background:#10B981;"></div><div style="font-size:4px;color:#888;">%60+</div>'
++'<div style="width:7px;height:7px;border-radius:1px;background:#F59E0B;"></div><div style="font-size:4px;color:#888;">%40+</div>'
++'<div style="width:7px;height:7px;border-radius:1px;background:#F97316;"></div><div style="font-size:4px;color:#888;">%20+</div>'
++'<div style="width:7px;height:7px;border-radius:1px;background:#EF4444;"></div><div style="font-size:4px;color:#888;">&lt;%20</div>'
++'</div>'
++'<div style="background:#FFF7F0;border:1px solid #FFD4A8;border-radius:2px;padding:4px 5px;">'
++'<div style="font-size:4.5px;font-weight:700;color:#C95A10;">Ort. Retention (6 ay)</div>'
++'<div style="font-size:10px;font-weight:900;color:#F27A1A;">%34.2</div>'
++'<div style="font-size:4px;color:#F27A1A;">▲ Sektör ort. 1.6× üstünde</div>'
++'</div></div>'
++'<div class="real-pdf-ftr"><div class="real-pdf-ftr-t">Sayfa 2 / 3</div><div class="real-pdf-ftr-t">reorder-panel.streamlit.app</div></div>'
++'</div>';
+
+var p3='<div class="real-pdf" style="margin-top:7px">'
++'<div class="real-pdf-hdr"><div class="real-pdf-logo">🔄 ReOrder</div><div class="real-pdf-date">Haz 2026</div></div>'
++'<div class="real-pdf-body"><div class="real-pdf-sec">Segmentler &amp; Top Müşteriler</div>'
++'<div style="display:flex;flex-direction:column;gap:2.5px;margin-bottom:5px;">'
++'<div style="display:flex;align-items:center;gap:2px;"><div style="font-size:4.5px;width:38px;color:#555;font-weight:600;">💎 Sadık</div><div style="flex:1;height:6px;background:#f0f0f0;border-radius:1px;overflow:hidden;"><div style="width:82%;height:100%;background:#10B981;border-radius:1px;"></div></div><div style="font-size:4.5px;color:#10B981;font-weight:700;width:16px;text-align:right;">248</div></div>'
++'<div style="display:flex;align-items:center;gap:2px;"><div style="font-size:4.5px;width:38px;color:#555;font-weight:600;">🚀 Gelişen</div><div style="flex:1;height:6px;background:#f0f0f0;border-radius:1px;overflow:hidden;"><div style="width:62%;height:100%;background:#60A5FA;border-radius:1px;"></div></div><div style="font-size:4.5px;color:#60A5FA;font-weight:700;width:16px;text-align:right;">531</div></div>'
++'<div style="display:flex;align-items:center;gap:2px;"><div style="font-size:4.5px;width:38px;color:#555;font-weight:600;">⚡ Yeni</div><div style="flex:1;height:6px;background:#f0f0f0;border-radius:1px;overflow:hidden;"><div style="width:45%;height:100%;background:#FBB824;border-radius:1px;"></div></div><div style="font-size:4.5px;color:#FBB824;font-weight:700;width:16px;text-align:right;">387</div></div>'
++'<div style="display:flex;align-items:center;gap:2px;"><div style="font-size:4.5px;width:38px;color:#555;font-weight:600;">🚨 Risk</div><div style="flex:1;height:6px;background:#f0f0f0;border-radius:1px;overflow:hidden;"><div style="width:28%;height:100%;background:#F87171;border-radius:1px;"></div></div><div style="font-size:4.5px;color:#F87171;font-weight:700;width:16px;text-align:right;">614</div></div>'
++'</div>'
++'<div style="font-size:4px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2.5px;">Top Müşteriler (LTV)</div>'
++'<div style="display:flex;flex-direction:column;gap:2px;">'
++'<div style="display:flex;align-items:center;justify-content:space-between;padding:2.5px 4px;background:#f8f8f8;border-radius:2px;"><div style="display:flex;align-items:center;gap:2px;"><div style="width:9px;height:9px;border-radius:50%;background:#F27A1A;display:flex;align-items:center;justify-content:center;font-size:4.5px;color:#fff;font-weight:800;">A</div><div style="font-size:5px;color:#333;font-weight:600;">Ayşe K.</div></div><div style="font-size:5.5px;font-weight:800;color:#F27A1A;">₺4.280</div></div>'
++'<div style="display:flex;align-items:center;justify-content:space-between;padding:2.5px 4px;background:#f8f8f8;border-radius:2px;"><div style="display:flex;align-items:center;gap:2px;"><div style="width:9px;height:9px;border-radius:50%;background:#10B981;display:flex;align-items:center;justify-content:center;font-size:4.5px;color:#fff;font-weight:800;">M</div><div style="font-size:5px;color:#333;font-weight:600;">Mehmet Y.</div></div><div style="font-size:5.5px;font-weight:800;color:#F27A1A;">₺3.950</div></div>'
++'<div style="display:flex;align-items:center;justify-content:space-between;padding:2.5px 4px;background:#f8f8f8;border-radius:2px;"><div style="display:flex;align-items:center;gap:2px;"><div style="width:9px;height:9px;border-radius:50%;background:#60A5FA;display:flex;align-items:center;justify-content:center;font-size:4.5px;color:#fff;font-weight:800;">Z</div><div style="font-size:5px;color:#333;font-weight:600;">Zeynep A.</div></div><div style="font-size:5.5px;font-weight:800;color:#F27A1A;">₺3.710</div></div>'
++'</div></div>'
++'<div class="real-pdf-ftr"><div class="real-pdf-ftr-t">Sayfa 3 / 3</div><div class="real-pdf-ftr-t">reorder-panel.streamlit.app</div></div>'
++'</div>';
+pw.innerHTML=p1+p2+p3;
+}());
 // Dots
 var dotEl=document.getElementById("dots");
 for(var i=0;i<4;i++){var d=document.createElement("div");d.className="dot"+(i===0?" on":"");dotEl.appendChild(d);}
