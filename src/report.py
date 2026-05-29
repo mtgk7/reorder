@@ -77,7 +77,7 @@ class _ReOrderPDF(FPDF):
 
     # ── Altbilgi ───────────────────────────────────────────────────────────────
     def footer(self) -> None:
-        self.set_y(-12)
+        self.set_xy(self.l_margin, -12)
         self.set_font("Helvetica", style="I", size=8)
         self.set_text_color(*_GRAY)
         self.cell(
@@ -89,6 +89,7 @@ class _ReOrderPDF(FPDF):
 
     # ── Bölüm başlığı ─────────────────────────────────────────────────────────
     def section_title(self, title: str) -> None:
+        self.set_x(self.l_margin)
         self.set_fill_color(*_DARK)
         self.set_text_color(*_WHITE)
         self.set_font("Helvetica", style="B", size=10)
@@ -231,6 +232,7 @@ def generate_report(user_id: int, store_name: str, store_id: int | None = None) 
     # ══════════════════════════════════════════════════════════════════════════
 
     # Tarih satırı
+    pdf.set_x(M)
     pdf.set_font("Helvetica", style="I", size=9)
     pdf.set_text_color(*_GRAY)
     pdf.cell(0, 6, f"Rapor Tarihi: {datetime.now().strftime('%d.%m.%Y  %H:%M')}", new_x="LMARGIN", new_y="NEXT")
@@ -283,7 +285,7 @@ def generate_report(user_id: int, store_name: str, store_id: int | None = None) 
 
     pdf.set_font("Helvetica", style="I", size=8)
     pdf.set_text_color(*_GRAY)
-    pdf.multi_cell(0, 5,
+    pdf.multi_cell(180, 5,
         "Her satir o ay ilk kez alisveris yapan musterileri gosterir. "
         "Yuzde degerleri o cohort'tan geri donen musteri oranini gosterir."
     )
@@ -296,7 +298,7 @@ def generate_report(user_id: int, store_name: str, store_id: int | None = None) 
 
         cohort_w = 28
         size_w   = 14
-        cell_w   = (180 - cohort_w - size_w) / max(len(show_cols), 1)
+        cell_w   = int((180 - cohort_w - size_w) / max(len(show_cols), 1))
 
         # Tablo başlığı
         pdf.set_fill_color(*_DARK)
@@ -362,14 +364,14 @@ def generate_report(user_id: int, store_name: str, store_id: int | None = None) 
             .sort_values("musteri", ascending=False)
             .reset_index()
         )
-        x_tbl = M + 95
+        x_tbl = M + 92
         y_tbl = pdf.get_y()
         pdf.set_xy(x_tbl, y_tbl)
 
         pdf.set_fill_color(*_DARK)
         pdf.set_text_color(*_WHITE)
         pdf.set_font("Helvetica", style="B", size=7)
-        for lbl, w in [("Segment", 46), ("Musteri", 18), ("Gelir (TL)", 26)]:
+        for lbl, w in [("Segment", 44), ("Musteri", 17), ("Gelir (TL)", 24)]:
             pdf.cell(w, 6, lbl, fill=True)
         pdf.ln()
 
@@ -379,9 +381,9 @@ def generate_report(user_id: int, store_name: str, store_id: int | None = None) 
             pdf.set_fill_color(*bg)
             pdf.set_text_color(0, 0, 0)
             pdf.set_font("Helvetica", size=7)
-            pdf.cell(46, 5.5, _tr(str(row["segment"])), fill=True)
-            pdf.cell(18, 5.5, str(int(row["musteri"])), fill=True, align="C")
-            pdf.cell(26, 5.5, f"TL{row['gelir']:,.0f}", fill=True, align="R")
+            pdf.cell(44, 5.5, _tr(str(row["segment"])), fill=True)
+            pdf.cell(17, 5.5, str(int(row["musteri"])), fill=True, align="C")
+            pdf.cell(24, 5.5, f"TL{row['gelir']:,.0f}", fill=True, align="R")
             pdf.ln()
 
         pdf.set_xy(M, y_tbl + 52)
