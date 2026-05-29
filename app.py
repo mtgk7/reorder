@@ -287,6 +287,9 @@ st.markdown(
         border-radius: 8px  !important;
         min-height:    44px !important;
     }
+    [data-testid="stSidebar"] .stButton > button p {
+        font-size: 0.8rem !important;
+    }
     [data-testid="stSidebar"] .stButton > button:hover {
         background: rgba(242,122,26,.3) !important;
         color:      #ffffff !important;
@@ -410,21 +413,21 @@ st.markdown(
         stroke: #f28500 !important;
     }
 
-    /* ── Sidebar logo butonu (sidebar_logo_btn — ilk stButton div içindeki buton) ── */
-    [data-testid="stSidebar"] > div > div > div > div:first-child button {
-        background:     transparent !important;
-        border:         none        !important;
-        box-shadow:     none        !important;
-        padding:        .5rem .4rem .2rem !important;
+    /* ── Sidebar logo butonu ── */
+    [data-testid="stSidebar"] > div > div > div > div:first-child .stButton > button {
+        background:  transparent !important;
+        border:      none        !important;
+        box-shadow:  none        !important;
+        padding:     .5rem .4rem .2rem !important;
     }
-    [data-testid="stSidebar"] > div > div > div > div:first-child button p {
+    [data-testid="stSidebar"] > div > div > div > div:first-child .stButton > button p {
         font-size:      1.75rem !important;
         font-weight:    800     !important;
         color:          #F27A1A !important;
         letter-spacing: -.01em  !important;
     }
-    [data-testid="stSidebar"] > div > div > div > div:first-child button:hover {
-        background: rgba(242,122,26,.1) !important;
+    [data-testid="stSidebar"] > div > div > div > div:first-child .stButton > button:hover {
+        background:    rgba(242,122,26,.1) !important;
         border-radius: 8px !important;
     }
 
