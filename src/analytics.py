@@ -23,12 +23,11 @@ def _rows_to_df(rows) -> pd.DataFrame:
     return pd.DataFrame([[r[c] for c in cols] for r in rows], columns=cols)
 
 
-def _fetch_orders(user_id: int, store_id: int | None = None, conn=None) -> pd.DataFrame:
-    """Kullanıcıya (veya mağazaya) ait tüm siparişleri DataFrame olarak döndürür."""
-    close = conn is None
-    if conn is None:
-        conn = get_connection()
-
+@st.cache_data(ttl=300)
+def _fetch_orders(user_id: int, store_id: int | None = None) -> pd.DataFrame:
+    """Kullanıcıya (veya mağazaya) ait tüm siparişleri döndürür.
+    300s önbellek: tüm analytics fonksiyonları tek DB sorgusunu paylaşır."""
+    conn = get_connection()
     if store_id is not None:
         rows = conn.execute(
             "SELECT * FROM orders WHERE user_id = ? AND store_id = ? ORDER BY order_date",
@@ -39,10 +38,7 @@ def _fetch_orders(user_id: int, store_id: int | None = None, conn=None) -> pd.Da
             "SELECT * FROM orders WHERE user_id = ? ORDER BY order_date",
             (user_id,),
         ).fetchall()
-
-    if close:
-        conn.close()
-
+    conn.close()
     df = _rows_to_df(rows)
     if not df.empty:
         df["order_date"] = pd.to_datetime(df["order_date"], errors="coerce")
@@ -54,7 +50,7 @@ def _fetch_orders(user_id: int, store_id: int | None = None, conn=None) -> pd.Da
 # Özet metrikler (Dashboard kartları)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_summary_metrics(user_id: int, store_id: int | None = None) -> dict:
     """
     Temel dashboard metriklerini hesaplar.
@@ -110,7 +106,7 @@ def get_summary_metrics(user_id: int, store_id: int | None = None) -> dict:
 # Cohort Retention Matrisi
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_cohort_retention(user_id: int, store_id: int | None = None) -> tuple[pd.DataFrame, pd.Series]:
     """
     Aylık cohort retention matrisi hesaplar.
@@ -157,7 +153,7 @@ def get_cohort_retention(user_id: int, store_id: int | None = None) -> tuple[pd.
 # Aylık trend (grafik verisi)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_monthly_trend(user_id: int, store_id: int | None = None) -> pd.DataFrame:
     """
     Her ay için sipariş sayısı, gelir ve benzersiz müşteri sayısını döndürür.
@@ -181,7 +177,7 @@ def get_monthly_trend(user_id: int, store_id: int | None = None) -> pd.DataFrame
     return monthly
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_new_vs_returning(user_id: int, store_id: int | None = None) -> pd.DataFrame:
     """
     Aylık yeni / geri dönen müşteri ayrımı.
@@ -211,7 +207,7 @@ def get_new_vs_returning(user_id: int, store_id: int | None = None) -> pd.DataFr
 # Müşteri Segmentasyonu (RFM tabanlı)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_customer_segments(user_id: int, store_id: int | None = None) -> pd.DataFrame:
     """
     Her müşteri için basit RFM-tabanlı segment atar.
@@ -265,7 +261,7 @@ def get_customer_segments(user_id: int, store_id: int | None = None) -> pd.DataF
 # LTV Dağılımı
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_ltv_distribution(user_id: int, store_id: int | None = None) -> pd.DataFrame:
     """Müşteri başı toplam harcama dağılımını döndürür."""
     df = _fetch_orders(user_id, store_id)
@@ -282,7 +278,7 @@ def get_ltv_distribution(user_id: int, store_id: int | None = None) -> pd.DataFr
     return ltv
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_top_customers(user_id: int, n: int = 10, store_id: int | None = None) -> pd.DataFrame:
     """En yüksek LTV'li N müşteriyi döndürür."""
     df = get_ltv_distribution(user_id, store_id)
@@ -295,7 +291,7 @@ def get_top_customers(user_id: int, n: int = 10, store_id: int | None = None) ->
 # Mini Dashboard — Sipariş Analitiği (KPI + Ürün + Günlük Ciro)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_order_status_kpis(user_id: int, store_id: int | None = None) -> dict:
     """
     Toplam ciro, bekleyen (Pending) ve tamamlanan (Completed) sipariş sayıları.
@@ -324,7 +320,7 @@ def get_order_status_kpis(user_id: int, store_id: int | None = None) -> dict:
     }
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_top_products(user_id: int, n: int = 10, store_id: int | None = None) -> pd.DataFrame:
     """
     En çok satan ürünler — ürün adı başına toplam miktar ve gelir.
@@ -368,7 +364,7 @@ def get_top_products(user_id: int, n: int = 10, store_id: int | None = None) -> 
     return products
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_daily_revenue(user_id: int, days: int = 30, store_id: int | None = None) -> pd.DataFrame:
     """
     Günlük ciro trendi.
@@ -399,7 +395,7 @@ def get_daily_revenue(user_id: int, days: int = 30, store_id: int | None = None)
 # Müşteri Detay (Özellik 2)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_customer_detail(
     user_id: int,
     customer_identifier: str,
@@ -468,7 +464,7 @@ def get_customer_detail(
 # Hedef / KPI — Bu ayki ilerleme (Özellik 3)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_current_month_metrics(user_id: int, store_id: int | None = None) -> dict:
     """Bu ayki gelir, yeni müşteri sayısı ve retention oranını döndürür."""
     df = _fetch_orders(user_id, store_id)
@@ -505,7 +501,7 @@ def get_current_month_metrics(user_id: int, store_id: int | None = None) -> dict
 # Ürün × Müşteri Analizi (Özellik 4)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def get_product_analysis(user_id: int, store_id: int | None = None) -> dict:
     """
     Ürün bazlı müşteri davranışı:
