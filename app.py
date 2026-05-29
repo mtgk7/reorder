@@ -1598,21 +1598,36 @@ def show_dashboard() -> None:
         tek sayfalık PDF raporu olarak indirin. Mağaza raporlaması veya arşivleme için idealdir.</div>""",
         unsafe_allow_html=True,
     )
+    # PDF'i "Hazırla" tıklanınca üret ve session_state'e koy.
+    # İndirme butonu blok DIŞINDA render edilir → rerun'da kaybolmaz,
+    # bozuk/boş dosya servis edilmez (Streamlit download_button anti-pattern'i önlenir).
     if st.button("📄 PDF Raporu Hazırla", key="pdf_generate_btn"):
         with st.spinner("PDF hazırlanıyor…"):
             try:
-                pdf_bytes = generate_report(user["id"], user["store_name"])
-                fname = f"reorder_rapor_{user['store_name'].replace(' ', '_')}_{__import__('datetime').datetime.now().strftime('%Y%m%d')}.pdf"
-                st.download_button(
-                    label="⬇️ PDF'i İndir",
-                    data=pdf_bytes,
-                    file_name=fname,
-                    mime="application/pdf",
-                    key="pdf_download_btn",
-                )
-                st.success("✅ PDF hazır! Yukarıdaki butona tıklayarak indirebilirsiniz.")
+                pdf_bytes = generate_report(user["id"], store_name, store_id)
+                st.session_state["pdf_report"] = {
+                    "bytes": bytes(pdf_bytes),
+                    "store": store_name,
+                    "store_id": store_id,
+                }
             except Exception as e:
+                st.session_state.pop("pdf_report", None)
                 st.error(f"PDF oluşturulurken hata: {e}")
+
+    # İndirme butonu — yalnızca aktif mağaza için üretilmiş PDF varsa göster
+    _report = st.session_state.get("pdf_report")
+    if _report and _report.get("store_id") == store_id and _report.get("bytes"):
+        import re as _re
+        safe_store = _re.sub(r"[^A-Za-z0-9_-]", "_", _report["store"]) or "magaza"
+        fname = f"reorder_rapor_{safe_store}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        st.download_button(
+            label="⬇️ PDF'i İndir",
+            data=_report["bytes"],
+            file_name=fname,
+            mime="application/pdf",
+            key="pdf_download_btn",
+        )
+        st.success("✅ PDF hazır! Yukarıdaki butona tıklayarak indirebilirsiniz.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -208,19 +208,19 @@ def _chart_segments(seg_df: pd.DataFrame) -> bytes:
 # Ana üretici fonksiyon
 # ─────────────────────────────────────────────────────────────────────────────
 
-def generate_report(user_id: int, store_name: str) -> bytes:
+def generate_report(user_id: int, store_name: str, store_id: int | None = None) -> bytes:
     """
-    Kullanıcı için tam analitik PDF raporu üretir.
+    Kullanıcı (veya aktif mağaza) için tam analitik PDF raporu üretir.
 
     Dönüş:
         PDF içeriği bytes olarak (Streamlit st.download_button ile kullanılabilir)
     """
-    # ── Veri çek ──────────────────────────────────────────────────────────────
-    metrics  = get_summary_metrics(user_id)
-    trend    = get_monthly_trend(user_id)
-    ret_df, cohort_sizes = get_cohort_retention(user_id)
-    seg_df   = get_customer_segments(user_id)
-    top10    = get_top_customers(user_id, n=10)
+    # ── Veri çek (aktif mağazaya göre filtreli) ─────────────────────────────────
+    metrics  = get_summary_metrics(user_id, store_id)
+    trend    = get_monthly_trend(user_id, store_id)
+    ret_df, cohort_sizes = get_cohort_retention(user_id, store_id)
+    seg_df   = get_customer_segments(user_id, store_id)
+    top10    = get_top_customers(user_id, n=10, store_id=store_id)
 
     pdf = _ReOrderPDF(store_name)
     pdf.add_page()
