@@ -210,6 +210,24 @@ st.markdown(
         fill: #E2E8F0 !important;
     }
 
+    /* ── Sidebar text input (mağaza adı, diğer inputlar) ── */
+    [data-testid="stSidebar"] [data-testid="stTextInput"] > div {
+        background-color: rgba(255,255,255,0.1) !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stTextInput"] input {
+        background-color: transparent !important;
+        color: #E2E8F0 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stTextInput"] input::placeholder {
+        color: rgba(226,232,240,0.45) !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stTextInput"] > div:focus-within {
+        border-color: rgba(242,122,26,0.6) !important;
+        box-shadow: 0 0 0 2px rgba(242,122,26,0.15) !important;
+    }
+
     /* ── Sidebar nav düğmeleri ── */
     [data-testid="stSidebar"] .stButton > button {
         background:    rgba(255,255,255,.08) !important;
