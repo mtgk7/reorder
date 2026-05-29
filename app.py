@@ -410,6 +410,29 @@ st.markdown(
         stroke: #f28500 !important;
     }
 
+    /* ── Sidebar logo butonu ── */
+    [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"][kind="secondary"]:has(p:first-child),
+    [data-testid="stSidebar"] button[kind="secondary"]:first-of-type {
+        background:    transparent !important;
+        border:        none        !important;
+        box-shadow:    none        !important;
+        color:         #F27A1A    !important;
+        font-size:     1.75rem    !important;
+        font-weight:   800        !important;
+        letter-spacing: -.01em   !important;
+        padding:       .6rem .4rem .3rem !important;
+        text-align:    center     !important;
+    }
+    [data-testid="stSidebar"] button[kind="secondary"]:first-of-type:hover {
+        background: rgba(242,122,26,.1) !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stSidebar"] button[kind="secondary"]:first-of-type p {
+        font-size:   1.75rem !important;
+        font-weight: 800     !important;
+        color:       #F27A1A !important;
+    }
+
     /* ══════════════════════════════════════════════════════════════════
        MOBILE RESPONSIVE
        Tablet  ≤ 768px : 2-kolonlu grid, küçük font/padding
@@ -1393,10 +1416,12 @@ def show_sidebar() -> None:
     active_store_id = st.session_state.get("active_store_id")
 
     with st.sidebar:
+        # ReOrder başlığı — tıklanınca Genel Bakış açılır
+        if st.button("🔄 ReOrder", key="sidebar_logo_btn", use_container_width=True):
+            _go("dashboard")
         st.markdown(
             f"""
-            <div style="padding:.8rem .2rem 1.1rem; border-bottom:1px solid rgba(255,255,255,.1); text-align:center;">
-                <div style="font-size:1.75rem; font-weight:800; color:#F27A1A; letter-spacing:-.01em;">🔄 ReOrder</div>
+            <div style="padding:.1rem .2rem 1.1rem; border-bottom:1px solid rgba(255,255,255,.1); text-align:center;">
                 <div style="font-size:.72rem; opacity:.5; margin-top:.2rem;">{user['email']}</div>
                 <div style="
                     margin-top:.65rem;
