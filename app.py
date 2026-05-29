@@ -144,10 +144,12 @@ st.markdown(
         height: 3px;
         background: linear-gradient(90deg, #F27A1A, rgba(242,122,26,0));
     }
-    .kpi-label { font-size: .75rem; font-weight: 700; color: #6B7280;
-                 text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
-    .kpi-value { font-size: 1.9rem; font-weight: 800; color: #1A1A2E; line-height: 1.1; }
-    .kpi-sub   { font-size: .78rem; color: #9CA3AF; margin-top: .2rem; }
+    .kpi-label { font-size: .72rem; font-weight: 700; color: #6B7280;
+                 text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem;
+                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kpi-value { font-size: clamp(1.2rem, 2.2vw, 1.8rem); font-weight: 800; color: #1A1A2E;
+                 line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kpi-sub   { font-size: .75rem; color: #9CA3AF; margin-top: .2rem; }
 
     /* ── Bölüm başlığı ── */
     .section-title {
@@ -501,10 +503,14 @@ def _init_state() -> None:
             except Exception:
                 pass
 
-    # ── Mağaza listesini yükle ────────────────────────────────────────────────
+    # ── Mağaza listesini yükle, yoksa varsayılan oluştur ─────────────────────
     if st.session_state.user is not None and not st.session_state.stores:
         try:
             stores = get_stores(st.session_state.user["id"])
+            if not stores:
+                # Yeni kullanıcı: varsayılan mağaza otomatik oluştur
+                new_id = create_store(st.session_state.user["id"], st.session_state.user["store_name"])
+                stores = get_stores(st.session_state.user["id"])
             st.session_state.stores = stores
             if stores and st.session_state.active_store_id is None:
                 st.session_state.active_store_id = stores[0]["id"]
@@ -1281,9 +1287,12 @@ def show_dashboard() -> None:
 
     k1, k2, k3 = st.columns(3)
     with k1:
+        # st.metric büyük değerleri keser; kısa format kullan
+        rev_k = kpis["total_revenue"] / 1000
+        rev_str = f"₺{rev_k:,.1f}K" if kpis["total_revenue"] >= 10_000 else _fmt_tl(kpis["total_revenue"])
         st.metric(
             label="💰 Toplam Ciro",
-            value=_fmt_tl(kpis["total_revenue"]),
+            value=rev_str,
             delta=f"{m['total_orders']:,} toplam sipariş",
             delta_color="off",
         )
@@ -1464,6 +1473,8 @@ def show_dashboard() -> None:
             meta = goal_meta.get(metric, (metric, 0, "", "#6B7280"))
             label, current, unit, color = meta
             pct = min(round(current / target * 100) if target else 0, 100)
+            cur_fmt = f"{current:,.1f}" if isinstance(current, float) else str(current)
+            tgt_fmt = f"{target:,.0f}"
             with goal_cols[i]:
                 st.markdown(
                     f"""<div style="background:white;border-radius:14px;padding:1rem 1.2rem;
@@ -1471,13 +1482,13 @@ def show_dashboard() -> None:
                         <div style="font-size:.72rem;font-weight:700;color:#6B7280;
                             text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;">{label}</div>
                         <div style="font-size:1.5rem;font-weight:800;color:#1A1A2E;margin-bottom:.5rem;">
-                            {unit}{current:,.0f if isinstance(current, float) and current == int(current) else current}</div>
+                            {unit}{cur_fmt}</div>
                         <div style="background:#F3F4F6;border-radius:999px;height:8px;overflow:hidden;">
                             <div style="width:{pct}%;height:100%;background:{color};border-radius:999px;
                                 transition:width .4s ease;"></div>
                         </div>
                         <div style="font-size:.75rem;color:#9CA3AF;margin-top:.4rem;">
-                            Hedef: {unit}{target:,.0f} &nbsp;·&nbsp; <b style="color:{color};">{pct}%</b>
+                            Hedef: {unit}{tgt_fmt} &nbsp;·&nbsp; <b style="color:{color};">{pct}%</b>
                         </div>
                     </div>""",
                     unsafe_allow_html=True,
@@ -2148,7 +2159,10 @@ def show_segments() -> None:
             return "background-color:#FEF9C3;color:#854D0E;font-weight:700;"
         return "background-color:#DCFCE7;color:#166534;font-weight:700;"
 
-    styled = display.style.applymap(_color_churn, subset=["Churn Risk"])
+    try:
+        styled = display.style.map(_color_churn, subset=["Churn Risk"])  # pandas >= 2.1
+    except AttributeError:
+        styled = display.style.applymap(_color_churn, subset=["Churn Risk"])  # pandas < 2.1
     st.dataframe(styled, use_container_width=True, hide_index=True)
 
     # ── Müşteri Detay ─────────────────────────────────────────────────────────

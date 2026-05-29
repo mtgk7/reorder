@@ -311,8 +311,11 @@ def get_order_status_kpis(user_id: int, store_id: int | None = None) -> dict:
 
     status_col = df.get("status", pd.Series(dtype=str))
     status_lower = status_col.fillna("").str.strip().str.lower()
-    pending   = int((status_lower == "pending").sum())
-    completed = int((status_lower == "completed").sum())
+    # Türkçe ve İngilizce status değerlerini kapsıyoruz
+    pending_vals   = {"pending", "işlemde", "hazırlanıyor", "beklemede"}
+    completed_vals = {"completed", "teslim edildi", "delivered", "tamamlandı"}
+    pending   = int(status_lower.isin(pending_vals).sum())
+    completed = int(status_lower.isin(completed_vals).sum())
 
     return {
         "total_revenue": round(total_revenue, 2),
