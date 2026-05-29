@@ -1191,7 +1191,7 @@ html,body{
       <div class="chart-wrap" id="chart"></div>
     </div>
     <div class="slide" id="s1">
-      <div class="c-lbl">Cohort Retention Matrisi</div>
+      <div class="c-lbl">Cohort (Müşteri Grubu) Retention Matrisi</div>
       <div class="c-grid" id="cgrid"></div>
     </div>
     <div class="slide" id="s2">
@@ -1214,7 +1214,7 @@ html,body{
 <script>
 var slides=[
   {h:"Mağazanızın<br>Nabzını Tutun",s:"Tüm metrikleri tek bakışta görün"},
-  {h:"Hangi Müşteriler<br>Geri Dönüyor?",s:"Cohort analizi ile retention'ı anlayın"},
+  {h:"Hangi Müşteriler<br>Geri Dönüyor?",s:"Cohort (müşteri grubu) analizi ile retention'ı anlayın"},
   {h:"Riski Olan<br>Müşteriyi Önceden Bilin",s:"RFM segmentasyon ile churn önleyin"},
   {h:"Profesyonel Rapor<br>Tek Tıkla",s:"3 sayfalık PDF analitik — saniyeler içinde"}
 ];
@@ -1253,7 +1253,7 @@ segs.forEach(function(s){
 // PDF mockup pages
 var pw=document.getElementById("pdfwrap");
 [["Özet Metrikler & Trend","short","med","","med"],
- ["Cohort Retention","","short","med",""],
+ ["Cohort (Müş. Grubu) Retention","","short","med",""],
  ["Segmentler & Top 10","short","","med","short"]].forEach(function(page){
   var pg='<div class="pdf-pg"><div class="pdf-title">'+page[0]+'</div><div class="pdf-pg-header"></div><div class="pdf-pg-rows">';
   for(var i=1;i<page.length;i++){if(page[i])pg+='<div class="pdf-row '+page[i]+'"></div>';}
@@ -1395,9 +1395,22 @@ def show_sidebar() -> None:
     with st.sidebar:
         st.markdown(
             f"""
-            <div style="padding:.8rem .2rem 1rem; border-bottom:1px solid rgba(255,255,255,.1);">
+            <div style="padding:.8rem .2rem 1.1rem; border-bottom:1px solid rgba(255,255,255,.1);">
                 <div style="font-size:1.4rem; font-weight:700; color:#F27A1A;">🔄 ReOrder</div>
                 <div style="font-size:.72rem; opacity:.5; margin-top:.2rem;">{user['email']}</div>
+                <div style="
+                    margin-top:.65rem;
+                    font-size:.8rem;
+                    font-style:italic;
+                    font-weight:700;
+                    letter-spacing:.03em;
+                    background:linear-gradient(90deg,#F28500,#ffb347);
+                    -webkit-background-clip:text;
+                    -webkit-text-fill-color:transparent;
+                    background-clip:text;
+                    line-height:1.35;
+                ">Seamless Experience, Return Customers.<br>
+                <span style="font-size:.75rem;font-weight:600;">Kusursuz Deneyim, Geri Dönen Müşteriler.</span></div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1923,7 +1936,7 @@ def show_dashboard() -> None:
     st.markdown("&nbsp;")
     _section("📄 PDF Rapor")
     st.markdown(
-        """<div class="info-box">Tüm metrikleri, cohort matrisini ve müşteri segmentlerini
+        """<div class="info-box">Tüm metrikleri, cohort (müşteri grubu) matrisini ve müşteri segmentlerini
         tek sayfalık PDF raporu olarak indirin. Mağaza raporlaması veya arşivleme için idealdir.</div>""",
         unsafe_allow_html=True,
     )
@@ -2238,7 +2251,7 @@ def show_analytics() -> None:
             """<div class="info-box" style="font-size:.82rem;">
             Her satır bir <b>cohort</b> (müşteri grubu — o ay ilk kez alışveriş yapanlar).
             Sütunlar ilk alışverişten sonraki ayları gösterir.
-            %100 = tüm cohort o ayda aktifti.
+            %100 = tüm cohort (müşteri grubu) o ayda aktifti.
             </div>""",
             unsafe_allow_html=True,
         )
@@ -2285,11 +2298,11 @@ def show_analytics() -> None:
 
             _section("Cohort (Müşteri Grubu) Boyutları")
             sizes_df = pd.DataFrame(
-                {"Cohort Ayı": cohort_sizes.index.astype(str), "Müşteri Sayısı": cohort_sizes.values}
+                {"Cohort (Müş. Grubu) Ayı": cohort_sizes.index.astype(str), "Müşteri Sayısı": cohort_sizes.values}
             )
             fig2 = px.bar(
                 sizes_df,
-                x="Cohort Ayı",
+                x="Cohort (Müş. Grubu) Ayı",
                 y="Müşteri Sayısı",
                 color_discrete_sequence=["#F27A1A"],
                 template="plotly_white",
