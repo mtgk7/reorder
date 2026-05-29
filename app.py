@@ -287,8 +287,10 @@ st.markdown(
         border-radius: 8px  !important;
         min-height:    44px !important;
     }
-    [data-testid="stSidebar"] .stButton > button p {
-        font-size: 0.8rem !important;
+    [data-testid="stSidebar"] .stButton > button p,
+    [data-testid="stSidebar"] [data-testid^="stBaseButton"] p {
+        font-size: 0.78rem !important;
+        line-height: 1.2   !important;
     }
     [data-testid="stSidebar"] .stButton > button:hover {
         background: rgba(242,122,26,.3) !important;
@@ -413,20 +415,21 @@ st.markdown(
         stroke: #f28500 !important;
     }
 
-    /* ── Sidebar logo butonu ── */
-    [data-testid="stSidebar"] > div > div > div > div:first-child .stButton > button {
+    /* ── Sidebar logo butonu (yalnızca sidebar_logo_btn key'i) ── */
+    [data-testid="stSidebar"] .st-key-sidebar_logo_btn .stButton > button {
         background:  transparent !important;
         border:      none        !important;
         box-shadow:  none        !important;
         padding:     .5rem .4rem .2rem !important;
+        min-height:  auto !important;
     }
-    [data-testid="stSidebar"] > div > div > div > div:first-child .stButton > button p {
-        font-size:      1.75rem !important;
+    [data-testid="stSidebar"] .st-key-sidebar_logo_btn .stButton > button p {
+        font-size:      1.45rem !important;
         font-weight:    800     !important;
         color:          #F27A1A !important;
         letter-spacing: -.01em  !important;
     }
-    [data-testid="stSidebar"] > div > div > div > div:first-child .stButton > button:hover {
+    [data-testid="stSidebar"] .st-key-sidebar_logo_btn .stButton > button:hover {
         background:    rgba(242,122,26,.1) !important;
         border-radius: 8px !important;
     }
