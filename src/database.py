@@ -273,6 +273,19 @@ def _migrate_postgres(cur) -> None:
         ) WHERE store_id IS NULL
     """)
 
+    # ── Hedef / KPI Takibi ────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS goals (
+            id        SERIAL PRIMARY KEY,
+            user_id   INTEGER NOT NULL,
+            store_id  INTEGER,
+            metric    TEXT NOT NULL,
+            target    REAL NOT NULL DEFAULT 0,
+            UNIQUE(user_id, store_id, metric),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS campaigns (
             id             SERIAL PRIMARY KEY,
@@ -417,6 +430,19 @@ def _migrate_sqlite(cur) -> None:
         ) WHERE store_id IS NULL
     """)
 
+    # ── Hedef / KPI Takibi ────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS goals (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id   INTEGER NOT NULL,
+            store_id  INTEGER,
+            metric    TEXT NOT NULL,
+            target    REAL NOT NULL DEFAULT 0,
+            UNIQUE(user_id, store_id, metric),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS campaigns (
             id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -487,6 +513,44 @@ def delete_store(store_id: int, user_id: int) -> None:
     conn.execute("DELETE FROM stores WHERE id = ? AND user_id = ?", (store_id, user_id))
     conn.commit()
     conn.close()
+
+
+def save_goals(user_id: int, store_id: int | None, goals: dict) -> None:
+    """Hedefleri kaydeder (upsert)."""
+    conn = get_connection()
+    db_url = _get_db_url()
+    for metric, target in goals.items():
+        if db_url:
+            conn.execute(
+                "INSERT INTO goals (user_id, store_id, metric, target) VALUES (?,?,?,?) "
+                "ON CONFLICT(user_id, store_id, metric) DO UPDATE SET target = excluded.target",
+                (user_id, store_id, metric, float(target)),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO goals (user_id, store_id, metric, target) VALUES (?,?,?,?) "
+                "ON CONFLICT(user_id, store_id, metric) DO UPDATE SET target = excluded.target",
+                (user_id, store_id, metric, float(target)),
+            )
+    conn.commit()
+    conn.close()
+
+
+def load_goals(user_id: int, store_id: int | None) -> dict:
+    """Kaydedilmiş hedefleri döndürür."""
+    conn = get_connection()
+    if store_id is not None:
+        rows = conn.execute(
+            "SELECT metric, target FROM goals WHERE user_id = ? AND store_id = ?",
+            (user_id, store_id),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT metric, target FROM goals WHERE user_id = ? AND store_id IS NULL",
+            (user_id,),
+        ).fetchall()
+    conn.close()
+    return {r["metric"]: r["target"] for r in rows}
 
 
 def delete_all_orders(user_id: int, store_id: int | None = None) -> int:

@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime
 
-from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store
+from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store, save_goals, load_goals
 from src.auth import (
     login_user, register_user, update_store_name, change_password,
     create_session_token, verify_session_token, delete_session_token,
@@ -40,10 +40,13 @@ from src.analytics import (
     get_customer_segments,
     get_ltv_distribution,
     get_top_customers,
-    # Mini Dashboard — Sipariş Analitiği
     get_order_status_kpis,
     get_top_products,
     get_daily_revenue,
+    # Yeni özellikler
+    get_customer_detail,
+    get_current_month_metrics,
+    get_product_analysis,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -51,7 +54,7 @@ from src.analytics import (
 # _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
 # Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
-_SCHEMA_VER = "v4"  # çoklu mağaza + store_id desteği
+_SCHEMA_VER = "v5"  # goals tablosu + churn score
 
 
 @st.cache_resource
@@ -1446,6 +1449,41 @@ def show_dashboard() -> None:
     # ── Bölüm ayracı ─────────────────────────────────────────────────────────
     st.markdown('<hr class="mini-dash-divider">', unsafe_allow_html=True)
 
+    # ── Hedef / KPI Takibi ───────────────────────────────────────────────────
+    goals = load_goals(user["id"], store_id)
+    if goals:
+        _section("🎯 Bu Ay — Hedef Takibi")
+        cur_m = get_current_month_metrics(user["id"], store_id)
+        goal_cols = st.columns(len(goals))
+        goal_meta = {
+            "gelir":      ("💰 Aylık Gelir",     cur_m["revenue"],        "₺", "#F27A1A"),
+            "musterí":    ("👤 Yeni Müşteri",    cur_m["new_customers"],  "",  "#3B82F6"),
+            "retention":  ("🔄 Retention Oranı", cur_m["retention_rate"], "%", "#10B981"),
+        }
+        for i, (metric, target) in enumerate(goals.items()):
+            meta = goal_meta.get(metric, (metric, 0, "", "#6B7280"))
+            label, current, unit, color = meta
+            pct = min(round(current / target * 100) if target else 0, 100)
+            with goal_cols[i]:
+                st.markdown(
+                    f"""<div style="background:white;border-radius:14px;padding:1rem 1.2rem;
+                        border-left:4px solid {color};box-shadow:0 2px 8px rgba(0,0,0,.07);">
+                        <div style="font-size:.72rem;font-weight:700;color:#6B7280;
+                            text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;">{label}</div>
+                        <div style="font-size:1.5rem;font-weight:800;color:#1A1A2E;margin-bottom:.5rem;">
+                            {unit}{current:,.0f if isinstance(current, float) and current == int(current) else current}</div>
+                        <div style="background:#F3F4F6;border-radius:999px;height:8px;overflow:hidden;">
+                            <div style="width:{pct}%;height:100%;background:{color};border-radius:999px;
+                                transition:width .4s ease;"></div>
+                        </div>
+                        <div style="font-size:.75rem;color:#9CA3AF;margin-top:.4rem;">
+                            Hedef: {unit}{target:,.0f} &nbsp;·&nbsp; <b style="color:{color};">{pct}%</b>
+                        </div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+        st.markdown("&nbsp;")
+
     # ── Aylık sipariş tablosu ──
     _section("Aylık Özet Tablosu")
     if not trend.empty:
@@ -1739,8 +1777,8 @@ def show_analytics() -> None:
         st.info("Veri bulunamadı. Lütfen önce sipariş yükleyin.")
         return
 
-    tab_cohort, tab_ltv, tab_retention = st.tabs(
-        ["🔢 Cohort Analizi", "💰 LTV Analizi", "📉 Retention Trendi"]
+    tab_cohort, tab_ltv, tab_retention, tab_product = st.tabs(
+        ["🔢 Cohort Analizi", "💰 LTV Analizi", "📉 Retention Trendi", "📦 Ürün Analizi"]
     )
 
     # ── Cohort ───────────────────────────────────────────────────────────────
@@ -1921,6 +1959,83 @@ def show_analytics() -> None:
                 fig2.update_layout(height=220, margin=dict(l=0, r=0, t=10, b=0))
                 st.plotly_chart(fig2, use_container_width=True)
 
+    # ── Ürün Analizi ─────────────────────────────────────────────────────────
+    with tab_product:
+        prod = get_product_analysis(user["id"], store_id)
+
+        if prod["retention"].empty:
+            st.info("Ürün analizi için sipariş verilerinde ürün adı sütunu gereklidir.")
+        else:
+            _section("🔁 Ürün Başına Tekrar Alım Oranı")
+            st.markdown(
+                """<div class="info-box" style="font-size:.82rem;">
+                Bir ürünü satın alan müşterilerin yüzde kaçı başka bir sipariş daha verdi?
+                Yüksek oran → müşteri sadakatini tetikleyen ürün.
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+            ret_df = prod["retention"].copy()
+            ret_df["product_label"] = ret_df["product_name"].apply(
+                lambda x: x[:32] + "…" if len(str(x)) > 32 else x
+            )
+
+            c1, c2 = st.columns(2)
+            with c1:
+                _section("Alıcı Sayısına Göre")
+                fig_ret = go.Figure(go.Bar(
+                    x=ret_df["retention_rate"],
+                    y=ret_df["product_label"],
+                    orientation="h",
+                    marker=dict(
+                        color=ret_df["retention_rate"],
+                        colorscale=[[0, "#FEE2E2"], [0.5, "#F27A1A"], [1, "#10B981"]],
+                        showscale=False,
+                    ),
+                    text=ret_df["retention_rate"].apply(lambda v: f"%{v:.0f}"),
+                    textposition="outside",
+                    customdata=ret_df["buyer_count"],
+                    hovertemplate="<b>%{y}</b><br>Tekrar: %{x}%<br>Alıcı: %{customdata}<extra></extra>",
+                ))
+                fig_ret.update_layout(
+                    height=max(280, len(ret_df) * 30 + 60),
+                    margin=dict(l=0, r=50, t=8, b=0),
+                    xaxis=dict(title="Tekrar Alım %", ticksuffix="%", range=[0, 110]),
+                    yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
+                    template="plotly_white",
+                )
+                st.plotly_chart(fig_ret, use_container_width=True)
+
+            with c2:
+                _section("Müşteri Başı Ortalama Gelir")
+                ltv_df = prod["ltv"].copy()
+                ltv_df["product_label"] = ltv_df["product_name"].apply(
+                    lambda x: x[:32] + "…" if len(str(x)) > 32 else x
+                )
+                fig_ltv = go.Figure(go.Bar(
+                    x=ltv_df["avg_revenue_per_buyer"],
+                    y=ltv_df["product_label"],
+                    orientation="h",
+                    marker=dict(color="#3B82F6"),
+                    text=ltv_df["avg_revenue_per_buyer"].apply(lambda v: f"₺{v:,.0f}"),
+                    textposition="outside",
+                    hovertemplate="<b>%{y}</b><br>Ort. Gelir: ₺%{x:,.2f}<extra></extra>",
+                ))
+                fig_ltv.update_layout(
+                    height=max(280, len(ltv_df) * 30 + 60),
+                    margin=dict(l=0, r=70, t=8, b=0),
+                    xaxis=dict(title="Müşteri Başı Gelir (₺)", tickprefix="₺"),
+                    yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
+                    template="plotly_white",
+                )
+                st.plotly_chart(fig_ltv, use_container_width=True)
+
+            _section("📋 Ürün Detay Tablosu")
+            tbl = ret_df[["product_name", "buyer_count", "repeat_buyers", "retention_rate", "total_revenue"]].copy()
+            tbl.columns = ["Ürün", "Alıcı", "Tekrar Alıcı", "Tekrar Oranı (%)", "Toplam Gelir (₺)"]
+            tbl["Toplam Gelir (₺)"] = tbl["Toplam Gelir (₺)"].apply(_fmt_tl)
+            st.dataframe(tbl, use_container_width=True, hide_index=True)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Sayfa: Müşteri Segmentleri
@@ -1993,21 +2108,135 @@ def show_segments() -> None:
     table.columns = ["Segment", "Müşteri Sayısı", "Toplam Gelir"]
     st.dataframe(table, use_container_width=True, hide_index=True)
 
-    _section("Müşteri Listesi (İlk 100)")
-    show_cols = ["customer_identifier", "segment", "total_orders", "total_revenue",
-                 "avg_order_value", "days_since_last"]
+    # ── Müşteri Listesi + Churn Score ────────────────────────────────────────
+    _section("Müşteri Listesi — Churn Risk Skoru (İlk 100)")
+    st.markdown(
+        """<div class="info-box" style="font-size:.82rem;">
+        🔴 <b>70+</b> Yüksek Risk &nbsp;·&nbsp;
+        🟡 <b>40-69</b> Orta Risk &nbsp;·&nbsp;
+        🟢 <b>0-39</b> Düşük Risk &nbsp;·&nbsp;
+        Skor yükseldikçe müşteri kaybetme ihtimali artar.
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+    show_cols = ["customer_identifier", "segment", "churn_score", "total_orders",
+                 "total_revenue", "avg_order_value", "days_since_last"]
     col_rename = {
         "customer_identifier": "Müşteri",
-        "segment": "Segment",
-        "total_orders": "Sipariş",
-        "total_revenue": "Toplam Harcama",
-        "avg_order_value": "Ort. Sipariş",
-        "days_since_last": "Son Alışveriş (Gün)",
+        "segment":             "Segment",
+        "churn_score":         "Churn Risk",
+        "total_orders":        "Sipariş",
+        "total_revenue":       "Toplam Harcama",
+        "avg_order_value":     "Ort. Sipariş",
+        "days_since_last":     "Son Alış. (Gün)",
     }
-    display = segments_df[show_cols].rename(columns=col_rename).head(100)
+    display = (
+        segments_df[show_cols]
+        .rename(columns=col_rename)
+        .sort_values("Churn Risk", ascending=False)
+        .head(100)
+        .reset_index(drop=True)
+    )
     display["Toplam Harcama"] = display["Toplam Harcama"].apply(_fmt_tl)
-    display["Ort. Sipariş"] = display["Ort. Sipariş"].apply(_fmt_tl)
-    st.dataframe(display, use_container_width=True, hide_index=True)
+    display["Ort. Sipariş"]   = display["Ort. Sipariş"].apply(_fmt_tl)
+
+    def _color_churn(val):
+        if val >= 70:
+            return "background-color:#FEE2E2;color:#991B1B;font-weight:700;"
+        if val >= 40:
+            return "background-color:#FEF9C3;color:#854D0E;font-weight:700;"
+        return "background-color:#DCFCE7;color:#166534;font-weight:700;"
+
+    styled = display.style.applymap(_color_churn, subset=["Churn Risk"])
+    st.dataframe(styled, use_container_width=True, hide_index=True)
+
+    # ── Müşteri Detay ─────────────────────────────────────────────────────────
+    st.markdown("&nbsp;")
+    _section("👤 Müşteri Detay")
+    all_customers = sorted(segments_df["customer_identifier"].tolist())
+    selected_cust = st.selectbox(
+        "Müşteri seç",
+        options=["— Seçin —"] + all_customers,
+        key="cust_detail_select",
+    )
+
+    if selected_cust and selected_cust != "— Seçin —":
+        detail = get_customer_detail(user["id"], selected_cust, store_id)
+        if detail:
+            churn = detail["churn_score"]
+            churn_color = "#EF4444" if churn >= 70 else ("#F59E0B" if churn >= 40 else "#10B981")
+            seg_colors = {
+                "Sadık Müşteri": "#10B981", "Gelişen Müşteri": "#3B82F6",
+                "Yeni Müşteri": "#F59E0B", "Risk Altında": "#EF4444",
+                "Tek Alışveriş": "#9CA3AF", "Kaybolma Riski": "#6B7280",
+            }
+            seg_color = seg_colors.get(detail["segment"], "#6B7280")
+
+            # Özet kartlar
+            d1, d2, d3, d4, d5 = st.columns(5)
+            d1.metric("Toplam Sipariş",   f"{detail['total_orders']}")
+            d2.metric("Toplam Harcama",   _fmt_tl(detail["total_revenue"]))
+            d3.metric("Ort. Sipariş",     _fmt_tl(detail["avg_order"]))
+            d4.metric("Son Alışveriş",    f"{detail['days_since']} gün önce")
+            d5.metric("İlk Alışveriş",    detail["first_date"])
+
+            # Segment + Churn badge
+            st.markdown(
+                f"""<div style="margin:.6rem 0;">
+                <span style="background:{seg_color}22;color:{seg_color};padding:5px 14px;
+                    border-radius:20px;font-weight:700;font-size:.88rem;border:1px solid {seg_color}55;">
+                    {detail['segment']}
+                </span>
+                &nbsp;
+                <span style="background:{churn_color}22;color:{churn_color};padding:5px 14px;
+                    border-radius:20px;font-weight:700;font-size:.88rem;border:1px solid {churn_color}55;">
+                    🔥 Churn Risk: {churn}/100
+                </span>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+            # LTV Trendi
+            gc1, gc2 = st.columns(2)
+            with gc1:
+                _section("📈 Kümülatif LTV Trendi")
+                fig_ltv = go.Figure(go.Scatter(
+                    x=detail["orders"]["date_str"],
+                    y=detail["orders"]["cumulative_ltv"],
+                    mode="lines+markers",
+                    line=dict(color="#F27A1A", width=2.5),
+                    marker=dict(size=7, color="#F27A1A"),
+                    fill="tozeroy",
+                    fillcolor="rgba(242,122,26,.1)",
+                    hovertemplate="<b>%{x}</b><br>Kümülatif: ₺%{y:,.2f}<extra></extra>",
+                ))
+                fig_ltv.update_layout(
+                    height=260, margin=dict(l=0, r=0, t=8, b=0),
+                    xaxis=dict(title="", tickangle=-30, tickfont=dict(size=10)),
+                    yaxis=dict(title="₺", tickprefix="₺", tickformat=",.0f"),
+                    template="plotly_white",
+                )
+                st.plotly_chart(fig_ltv, use_container_width=True)
+
+            with gc2:
+                _section("📅 Aylık Harcama")
+                fig_m = px.bar(
+                    detail["monthly"],
+                    x="month_str", y="revenue",
+                    color_discrete_sequence=["#3B82F6"],
+                    labels={"month_str": "Ay", "revenue": "₺"},
+                    template="plotly_white",
+                )
+                fig_m.update_layout(height=260, margin=dict(l=0, r=0, t=8, b=0))
+                st.plotly_chart(fig_m, use_container_width=True)
+
+            # Sipariş tablosu
+            _section("📋 Tüm Siparişler")
+            ord_tbl = detail["orders"][["date_str", "order_number", "product_name", "quantity", "total_amount", "status"]].copy()
+            ord_tbl.columns = ["Tarih", "Sipariş No", "Ürün", "Adet", "Tutar (₺)", "Durum"]
+            ord_tbl["Tutar (₺)"] = ord_tbl["Tutar (₺)"].apply(_fmt_tl)
+            st.dataframe(ord_tbl.sort_values("Tarih", ascending=False), use_container_width=True, hide_index=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2298,7 +2527,33 @@ def show_settings() -> None:
     store_id = st.session_state.get("active_store_id")
     _header("⚙️", "Ayarlar", "Hesap ve mağaza bilgilerinizi yönetin")
 
-    tab_account, tab_api = st.tabs(["👤 Hesap Bilgileri", "🔌 Trendyol API (Pro)"])
+    tab_account, tab_goals, tab_api = st.tabs(["👤 Hesap Bilgileri", "🎯 Hedefler", "🔌 Trendyol API (Pro)"])
+
+    with tab_goals:
+        _section("🎯 Aylık Hedefler")
+        st.markdown(
+            """<div class="info-box">Hedeflerinizi belirleyin — Dashboard'da ilerlemenizi progress bar olarak görün.</div>""",
+            unsafe_allow_html=True,
+        )
+        cur_goals = load_goals(user["id"], store_id)
+        with st.form("goals_form"):
+            g1, g2, g3 = st.columns(3)
+            gelir_h  = g1.number_input("💰 Aylık Gelir Hedefi (₺)", value=float(cur_goals.get("gelir", 0)), min_value=0.0, step=1000.0)
+            musteri_h = g2.number_input("👤 Yeni Müşteri Hedefi", value=float(cur_goals.get("musterí", 0)), min_value=0.0, step=5.0)
+            ret_h    = g3.number_input("🔄 Retention Oranı Hedefi (%)", value=float(cur_goals.get("retention", 0)), min_value=0.0, max_value=100.0, step=1.0)
+            if st.form_submit_button("💾 Hedefleri Kaydet", use_container_width=True):
+                new_goals = {}
+                if gelir_h   > 0: new_goals["gelir"]     = gelir_h
+                if musteri_h > 0: new_goals["musterí"]   = musteri_h
+                if ret_h     > 0: new_goals["retention"] = ret_h
+                save_goals(user["id"], store_id, new_goals)
+                st.success("✅ Hedefler kaydedildi! Dashboard'da ilerlemenizi görebilirsiniz.")
+                st.rerun()
+        if cur_goals:
+            st.markdown(
+                '<div class="success-box">✅ Hedefler kayıtlı — Dashboard\'da "🎯 Bu Ay — Hedef Takibi" bölümünde görünür.</div>',
+                unsafe_allow_html=True,
+            )
 
     with tab_account:
         st.subheader("Mağaza Adı")

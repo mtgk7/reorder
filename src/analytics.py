@@ -249,6 +249,15 @@ def get_customer_segments(user_id: int, store_id: int | None = None) -> pd.DataF
         return "Sadık Müşteri" if days <= 90 else "Kaybolma Riski"
 
     stats["segment"] = stats.apply(_segment, axis=1)
+
+    def _churn(row: pd.Series) -> int:
+        recency  = min(int(row["days_since_last"]) / 180 * 40, 40)
+        freq     = max(40 - int(row["total_orders"]) * 8, 0)
+        rev_norm = min(float(row["total_revenue"]) / 500, 1.0)
+        monetary = (1 - rev_norm) * 20
+        return min(int(recency + freq + monetary), 100)
+
+    stats["churn_score"] = stats.apply(_churn, axis=1)
     return stats
 
 
@@ -381,3 +390,161 @@ def get_daily_revenue(user_id: int, days: int = 30, store_id: int | None = None)
     )
     daily["date_str"] = daily["date"].astype(str)
     return daily
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Müşteri Detay (Özellik 2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=60)
+def get_customer_detail(
+    user_id: int,
+    customer_identifier: str,
+    store_id: int | None = None,
+) -> dict:
+    """Tek müşteri için tüm sipariş geçmişi ve istatistikleri döndürür."""
+    df = _fetch_orders(user_id, store_id)
+    if df.empty:
+        return {}
+
+    cdf = df[df["customer_identifier"] == customer_identifier].copy()
+    if cdf.empty:
+        return {}
+
+    cdf = cdf.sort_values("order_date").reset_index(drop=True)
+    cdf["cumulative_ltv"] = cdf["total_amount"].cumsum()
+    cdf["date_str"] = cdf["order_date"].dt.strftime("%Y-%m-%d")
+
+    total_orders   = len(cdf)
+    total_revenue  = round(float(cdf["total_amount"].sum()), 2)
+    avg_order      = round(float(cdf["total_amount"].mean()), 2)
+    first_date     = cdf["order_date"].min()
+    last_date      = cdf["order_date"].max()
+    days_since     = int((pd.Timestamp.now() - last_date).days)
+    span_days      = max(int((last_date - first_date).days), 1)
+
+    # Segment
+    if total_orders == 1:
+        segment = "Yeni Müşteri" if days_since <= 90 else "Tek Alışveriş"
+    elif total_orders <= 3:
+        segment = "Gelişen Müşteri" if days_since <= 90 else "Risk Altında"
+    else:
+        segment = "Sadık Müşteri" if days_since <= 90 else "Kaybolma Riski"
+
+    # Churn score
+    recency  = min(days_since / 180 * 40, 40)
+    freq     = max(40 - total_orders * 8, 0)
+    rev_norm = min(total_revenue / 500, 1.0)
+    churn_score = min(int(recency + freq + (1 - rev_norm) * 20), 100)
+
+    # Aylık harcama
+    monthly = (
+        cdf.groupby(cdf["order_date"].dt.to_period("M"))["total_amount"]
+        .sum()
+        .reset_index()
+    )
+    monthly.columns = ["month", "revenue"]
+    monthly["month_str"] = monthly["month"].astype(str)
+
+    return {
+        "orders":        cdf,
+        "monthly":       monthly,
+        "total_orders":  total_orders,
+        "total_revenue": total_revenue,
+        "avg_order":     avg_order,
+        "first_date":    first_date.strftime("%d.%m.%Y"),
+        "last_date":     last_date.strftime("%d.%m.%Y"),
+        "days_since":    days_since,
+        "span_days":     span_days,
+        "segment":       segment,
+        "churn_score":   churn_score,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Hedef / KPI — Bu ayki ilerleme (Özellik 3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=60)
+def get_current_month_metrics(user_id: int, store_id: int | None = None) -> dict:
+    """Bu ayki gelir, yeni müşteri sayısı ve retention oranını döndürür."""
+    df = _fetch_orders(user_id, store_id)
+    if df.empty:
+        return {"revenue": 0.0, "new_customers": 0, "retention_rate": 0.0, "orders": 0}
+
+    now    = pd.Timestamp.now()
+    period = now.to_period("M")
+    this_m = df[df["order_date"].dt.to_period("M") == period]
+
+    revenue   = round(float(this_m["total_amount"].sum()), 2)
+    orders    = int(len(this_m))
+
+    # Yeni müşteri: bu ay ilk kez alışveriş yapan
+    first_buy = df.groupby("customer_identifier")["order_date"].min().dt.to_period("M")
+    new_custs = int((first_buy == period).sum())
+
+    # Retention: bu ay sipariş veren müşterilerden geçen ay da veren kaçı
+    prev_period   = (now - pd.DateOffset(months=1)).to_period("M")
+    prev_buyers   = set(df[df["order_date"].dt.to_period("M") == prev_period]["customer_identifier"])
+    this_buyers   = set(this_m["customer_identifier"])
+    retained      = len(prev_buyers & this_buyers)
+    ret_rate      = round(retained / len(prev_buyers) * 100, 1) if prev_buyers else 0.0
+
+    return {
+        "revenue":        revenue,
+        "new_customers":  new_custs,
+        "retention_rate": ret_rate,
+        "orders":         orders,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ürün × Müşteri Analizi (Özellik 4)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=60)
+def get_product_analysis(user_id: int, store_id: int | None = None) -> dict:
+    """
+    Ürün bazlı müşteri davranışı:
+    - Her ürünü satın alan müşterilerin tekrar alım oranı
+    - En yüksek LTV üreticisi ürünler
+    """
+    df = _fetch_orders(user_id, store_id)
+    if df.empty or "product_name" not in df.columns:
+        return {"retention": pd.DataFrame(), "ltv": pd.DataFrame()}
+
+    df = df.dropna(subset=["product_name"]).copy()
+    df = df[df["product_name"].str.strip() != ""]
+    if df.empty:
+        return {"retention": pd.DataFrame(), "ltv": pd.DataFrame()}
+
+    order_counts = df.groupby("customer_identifier")["id"].count()
+
+    rows = []
+    for product, grp in df.groupby("product_name"):
+        buyers = grp["customer_identifier"].unique()
+        repeat = int(sum(1 for b in buyers if order_counts.get(b, 1) > 1))
+        rows.append({
+            "product_name":   str(product),
+            "buyer_count":    len(buyers),
+            "repeat_buyers":  repeat,
+            "retention_rate": round(repeat / len(buyers) * 100, 1) if len(buyers) else 0.0,
+            "total_revenue":  round(float(grp["total_amount"].sum()), 2),
+            "avg_revenue_per_buyer": round(float(grp["total_amount"].sum()) / len(buyers), 2),
+        })
+
+    df_ret = (
+        pd.DataFrame(rows)
+        .sort_values("buyer_count", ascending=False)
+        .head(20)
+        .reset_index(drop=True)
+    )
+
+    df_ltv = (
+        pd.DataFrame(rows)
+        .sort_values("avg_revenue_per_buyer", ascending=False)
+        .head(15)
+        .reset_index(drop=True)
+    )
+
+    return {"retention": df_ret, "ltv": df_ltv}
