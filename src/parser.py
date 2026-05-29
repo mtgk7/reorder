@@ -255,7 +255,7 @@ def import_to_db(
                     (user_id, store_id, order_number, customer_identifier, order_date,
                      total_amount, status, product_name, quantity, import_batch)
                 VALUES (?,?,?,?,?,?,?,?,?,?)
-                ON CONFLICT (user_id, order_number, customer_identifier) DO NOTHING
+                ON CONFLICT DO NOTHING
                 """,
                 (
                     user_id,
@@ -383,7 +383,7 @@ def generate_sample_orders(
                 "customer_identifier": cust,
                 "order_date": order_date.strftime("%Y-%m-%d"),
                 "total_amount": amount,
-                "order_number": f"TY-{int(rng.integers(10_000_000, 99_999_999))}",
+                "order_number": f"TY-{seed % 10000:04d}-{int(rng.integers(1_000_000, 9_999_999))}",
                 "product_name": rng.choice(products),
                 "quantity": int(rng.choice([1, 1, 1, 2, 3])),
                 "status": rng.choice(

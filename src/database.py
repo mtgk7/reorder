@@ -218,9 +218,34 @@ def _init_postgres(db_url: str) -> None:
     cur.execute("CREATE INDEX IF NOT EXISTS idx_session_tokens  ON session_tokens(token)")
 
     _migrate_postgres(cur)
+    _migrate_orders_unique_pg(cur)
 
     conn.commit()
     conn.close()
+
+
+def _migrate_orders_unique_pg(cur) -> None:
+    """orders tablosunun UNIQUE constraint'ine store_id ekler (idempotent)."""
+    try:
+        # Mevcut constraint'i bul ve sil
+        cur.execute("""
+            SELECT constraint_name FROM information_schema.table_constraints
+            WHERE table_name = 'orders' AND constraint_type = 'UNIQUE'
+            AND constraint_name LIKE '%order_number%customer%'
+        """)
+        rows = cur.fetchall() if hasattr(cur, 'fetchall') else []
+        for row in (rows or []):
+            name = list(row.values())[0] if hasattr(row, 'values') else row[0]
+            cur.execute(f"ALTER TABLE orders DROP CONSTRAINT IF EXISTS \"{name}\"")
+    except Exception:
+        pass
+    try:
+        cur.execute("""
+            ALTER TABLE orders ADD CONSTRAINT orders_user_store_order_cust_unique
+            UNIQUE (user_id, store_id, order_number, customer_identifier)
+        """)
+    except Exception:
+        pass  # Constraint zaten varsa atla
 
 
 def _migrate_postgres(cur) -> None:

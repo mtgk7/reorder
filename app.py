@@ -54,7 +54,7 @@ from src.analytics import (
 # _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
 # Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
-_SCHEMA_VER = "v5"  # goals tablosu + churn score
+_SCHEMA_VER = "v6"  # orders unique constraint store_id eklendi
 
 
 @st.cache_resource
