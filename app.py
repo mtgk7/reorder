@@ -1573,6 +1573,8 @@ def show_dashboard() -> None:
 def show_upload() -> None:
     user = st.session_state.user
     store_id = st.session_state.get("active_store_id")
+    stores = st.session_state.get("stores", [])
+    store_name = next((s["store_name"] for s in stores if s["id"] == store_id), user["store_name"])
     _header("📁", "Veri Yükle", "Trendyol sipariş raporunuzu içe aktarın")
 
     tab_file, tab_api, tab_sample, tab_manage = st.tabs(
