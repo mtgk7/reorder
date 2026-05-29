@@ -210,22 +210,57 @@ st.markdown(
         fill: #E2E8F0 !important;
     }
 
+    /* ── Sidebar expander (Mağaza Ekle / Yönet) ── */
+    [data-testid="stSidebar"] [data-testid="stExpander"] {
+        background-color: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255,255,255,0.12) !important;
+        border-radius: 10px !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary,
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary * {
+        color: #E2E8F0 !important;
+        background: transparent !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary svg {
+        fill: #E2E8F0 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] > div {
+        background-color: transparent !important;
+    }
+    /* Expander içi tüm label ve yazılar */
+    [data-testid="stSidebar"] [data-testid="stExpander"] label,
+    [data-testid="stSidebar"] [data-testid="stExpander"] p,
+    [data-testid="stSidebar"] [data-testid="stExpander"] span:not([class*="indicator"]) {
+        color: #E2E8F0 !important;
+    }
+    /* "Press Enter to apply" hint yazısı */
+    [data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="InputInstructions"],
+    [data-testid="stSidebar"] [data-testid="stExpander"] small {
+        color: rgba(226,232,240,0.4) !important;
+    }
+
     /* ── Sidebar text input (mağaza adı, diğer inputlar) ── */
     [data-testid="stSidebar"] [data-testid="stTextInput"] > div {
-        background-color: rgba(255,255,255,0.1) !important;
-        border: 1px solid rgba(255,255,255,0.2) !important;
+        background-color: rgba(255,255,255,0.08) !important;
+        border: 1px solid rgba(255,255,255,0.18) !important;
         border-radius: 8px !important;
     }
     [data-testid="stSidebar"] [data-testid="stTextInput"] input {
         background-color: transparent !important;
         color: #E2E8F0 !important;
+        caret-color: #F27A1A !important;
     }
     [data-testid="stSidebar"] [data-testid="stTextInput"] input::placeholder {
-        color: rgba(226,232,240,0.45) !important;
+        color: rgba(226,232,240,0.35) !important;
     }
     [data-testid="stSidebar"] [data-testid="stTextInput"] > div:focus-within {
-        border-color: rgba(242,122,26,0.6) !important;
-        box-shadow: 0 0 0 2px rgba(242,122,26,0.15) !important;
+        border-color: rgba(242,122,26,0.7) !important;
+        box-shadow: 0 0 0 2px rgba(242,122,26,0.18) !important;
+    }
+    /* Sidebar caption ve yardım metinleri */
+    [data-testid="stSidebar"] .stCaption,
+    [data-testid="stSidebar"] [data-testid="stCaption"] {
+        color: rgba(226,232,240,0.5) !important;
     }
 
     /* ── Sidebar nav düğmeleri ── */
