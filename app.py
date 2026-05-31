@@ -966,11 +966,10 @@ def show_auth() -> None:
             min-width: 100% !important;
             flex:      1 1 100% !important;
         }
-        /* Tanıtım iframe'ini mobilde kompakt göster */
-        [data-testid="stHorizontalBlock"]
-            > [data-testid="stColumn"]:first-child iframe {
-            height: 360px !important;
-        }
+        /* NOT: Carousel yüksekliği `_components.html(height=...)` ile belirlenir.
+           Streamlit, component container'ını bu değere zorladığı için CSS ile
+           shrink etmek boşluk bırakıyordu; bunun yerine height düşürüldü (500)
+           ve iframe içeriği kabı tam doldurur → mobilde boşluk kalmaz. */
 
         /* Glassmorphic kart mobil ayarı */
         [data-testid="stHorizontalBlock"]
@@ -1317,7 +1316,7 @@ setInterval(function(){goTo(cur+1);},4200);
             _carousel_html = _carousel_html.replace(
                 "__IMG_" + _k.upper() + "__", _CAROUSEL_IMGS.get(_k, "")
             )
-        _components.html(_carousel_html, height=650, scrolling=False)
+        _components.html(_carousel_html, height=500, scrolling=False)
 
     with col_c:
         st.markdown(
