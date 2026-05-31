@@ -1,0 +1,99 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1280px;height:720px;overflow:hidden;
+  font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:
+    radial-gradient(900px 600px at 88% -10%, rgba(242,133,0,.16), transparent 60%),
+    radial-gradient(700px 500px at 0% 110%, rgba(19,78,94,.55), transparent 55%),
+    linear-gradient(135deg,#08202c 0%,#0c3243 46%,#10485a 100%);
+  color:#e8f4fa;}
+.wrap{width:100%;height:100%;padding:58px 64px;display:flex;flex-direction:column;}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px;}
+.title-row{display:flex;flex-direction:column;gap:8px;}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(242,133,0,.12);
+  border:1px solid rgba(242,133,0,.42);border-radius:30px;padding:6px 16px;width:max-content;
+  font-size:15px;font-weight:700;color:#F6A23C;letter-spacing:.08em;}
+.h1{font-size:38px;font-weight:800;letter-spacing:-.01em;
+  background:linear-gradient(120deg,#ffffff 0%,#ffd9a8 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo{display:flex;align-items:center;gap:12px;opacity:.92;}
+.logo .mark{font-size:34px;filter:drop-shadow(0 0 14px rgba(242,133,0,.6));}
+.logo .name{font-size:23px;font-weight:800;color:#e8f4fa;}
+.cards{flex:1;display:flex;gap:20px;min-height:0;}
+.card{flex:1;position:relative;display:flex;flex-direction:column;gap:14px;
+  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:26px 22px 22px;overflow:hidden;
+  box-shadow:0 16px 40px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.07);}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;}
+.card.c1::before{background:linear-gradient(90deg,#10B981,#34d399);}
+.card.c2::before{background:linear-gradient(90deg,#3B82F6,#60A5FA);}
+.card.c3::before{background:linear-gradient(90deg,#F59E0B,#FBBF24);}
+.card.c4::before{background:linear-gradient(90deg,#EF4444,#F87171);}
+.top{display:flex;align-items:center;justify-content:space-between;}
+.icon{font-size:38px;}
+.pill{font-size:12px;font-weight:800;letter-spacing:.05em;padding:5px 11px;border-radius:20px;}
+.c1 .pill{background:rgba(16,185,129,.18);color:#34d399;border:1px solid rgba(16,185,129,.4);}
+.c2 .pill{background:rgba(59,130,246,.18);color:#60A5FA;border:1px solid rgba(59,130,246,.4);}
+.c3 .pill{background:rgba(245,158,11,.18);color:#FBBF24;border:1px solid rgba(245,158,11,.4);}
+.c4 .pill{background:rgba(239,68,68,.18);color:#F87171;border:1px solid rgba(239,68,68,.4);}
+.name{font-size:24px;font-weight:800;color:#fff;}
+.desc{font-size:14.5px;line-height:1.45;color:rgba(180,210,230,.6);min-height:62px;}
+.stats{display:flex;gap:20px;padding:14px 0;border-top:1px solid rgba(255,255,255,.08);
+  border-bottom:1px solid rgba(255,255,255,.08);}
+.stat .sv{font-size:26px;font-weight:800;color:#e8f4fa;line-height:1;}
+.stat .sl{font-size:12px;color:rgba(180,210,230,.5);margin-top:5px;letter-spacing:.04em;}
+.churn{margin-top:2px;}
+.churn-top{display:flex;justify-content:space-between;font-size:13px;color:rgba(180,210,230,.55);margin-bottom:7px;}
+.bar{height:7px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:5px;}
+.c1 .bar i{background:#10B981;}.c2 .bar i{background:#60A5FA;}
+.c3 .bar i{background:#FBBF24;}.c4 .bar i{background:#F87171;}
+.action{margin-top:auto;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;
+  color:#F6A23C;background:rgba(242,133,0,.1);border:1px solid rgba(242,133,0,.25);
+  border-radius:12px;padding:11px 14px;}
+</style></head><body>
+<div class="wrap">
+  <div class="head">
+    <div class="title-row">
+      <div class="badge">MÜŞTERİ SEGMENTASYONU</div>
+      <div class="h1">RFM Müşteri Segmentleri</div>
+    </div>
+    <div class="logo"><span class="mark">🔄</span><span class="name">ReOrder</span></div>
+  </div>
+  <div class="cards">
+    <div class="card c1">
+      <div class="top"><span class="icon">💎</span><span class="pill">DÜŞÜK RİSK</span></div>
+      <div class="name">Sadık Müşteri</div>
+      <div class="desc">Düzenli alışveriş yapan, en yüksek değerli çekirdek grup.</div>
+      <div class="stats"><div class="stat"><div class="sv">248</div><div class="sl">MÜŞTERİ</div></div><div class="stat"><div class="sv">₺1.240</div><div class="sl">ORT. LTV</div></div></div>
+      <div class="churn"><div class="churn-top"><span>Churn riski</span><span>%8</span></div><div class="bar"><i style="width:8%"></i></div></div>
+      <div class="action">→ Sadakat ödülü kampanyası</div>
+    </div>
+    <div class="card c2">
+      <div class="top"><span class="icon">📈</span><span class="pill">ORTA RİSK</span></div>
+      <div class="name">Gelişen Müşteri</div>
+      <div class="desc">Alışveriş sıklığı ve harcaması artan potansiyel grup.</div>
+      <div class="stats"><div class="stat"><div class="sv">531</div><div class="sl">MÜŞTERİ</div></div><div class="stat"><div class="sv">₺680</div><div class="sl">ORT. LTV</div></div></div>
+      <div class="churn"><div class="churn-top"><span>Churn riski</span><span>%28</span></div><div class="bar"><i style="width:28%"></i></div></div>
+      <div class="action">→ Çapraz satış önerileri</div>
+    </div>
+    <div class="card c3">
+      <div class="top"><span class="icon">✨</span><span class="pill">İZLENİYOR</span></div>
+      <div class="name">Yeni Müşteri</div>
+      <div class="desc">İlk siparişini yeni veren, kazanılmış taze müşteriler.</div>
+      <div class="stats"><div class="stat"><div class="sv">387</div><div class="sl">MÜŞTERİ</div></div><div class="stat"><div class="sv">₺320</div><div class="sl">ORT. LTV</div></div></div>
+      <div class="churn"><div class="churn-top"><span>Churn riski</span><span>%42</span></div><div class="bar"><i style="width:42%"></i></div></div>
+      <div class="action">→ Hoş geldin akışı</div>
+    </div>
+    <div class="card c4">
+      <div class="top"><span class="icon">⚠️</span><span class="pill">YÜKSEK RİSK</span></div>
+      <div class="name">Risk Altında</div>
+      <div class="desc">Uzun süredir sipariş vermeyen, kaybedilme adayı grup.</div>
+      <div class="stats"><div class="stat"><div class="sv">614</div><div class="sl">MÜŞTERİ</div></div><div class="stat"><div class="sv">₺410</div><div class="sl">ORT. LTV</div></div></div>
+      <div class="churn"><div class="churn-top"><span>Churn riski</span><span>%74</span></div><div class="bar"><i style="width:74%"></i></div></div>
+      <div class="action">→ Geri kazanım kampanyası</div>
+    </div>
+  </div>
+</div>
+</body></html>
