@@ -64,6 +64,48 @@ def _init_db_once(_ver: str = _SCHEMA_VER):
 
 _init_db_once(_SCHEMA_VER)
 
+# Carousel PNG'lerini yükleme anında WebP'ye çevirip base64 olarak göm.
+# Tam boy (1280px) WebP q90 ~267KB (eski ham PNG 4.65MB) — görseller panelde küçülmesin diye
+# çözünürlük düşürülmez, sadece WebP sıkıştırması uygulanır.
+_CAROUSEL_MAX_W = 1280  # tam boy korunur (kaynak zaten 1280) — downscale yok
+_CAROUSEL_QUALITY = 90
+
+@st.cache_data
+def _load_carousel_images():
+    import base64
+    import os
+    import io
+    slides = {}
+    asset_dir = os.path.join(os.path.dirname(__file__), 'assets')
+    files = [('slide_dashboard.png', 's0'), ('slide_cohort.png', 's1'),
+             ('slide_segments.png', 's2'), ('slide_pdf.png', 's3')]
+    try:
+        from PIL import Image
+    except ImportError:
+        Image = None
+    for fname, key in files:
+        fpath = os.path.join(asset_dir, fname)
+        if not os.path.exists(fpath):
+            continue
+        if Image is not None:
+            try:
+                im = Image.open(fpath).convert('RGB')
+                if im.width > _CAROUSEL_MAX_W:
+                    ratio = _CAROUSEL_MAX_W / im.width
+                    im = im.resize((_CAROUSEL_MAX_W, round(im.height * ratio)),
+                                   Image.LANCZOS)
+                buf = io.BytesIO()
+                im.save(buf, format='WEBP', quality=_CAROUSEL_QUALITY, method=6)
+                slides[key] = 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()
+                continue
+            except Exception:
+                pass  # PIL/WebP başarısız olursa ham PNG'ye düş
+        with open(fpath, 'rb') as f:
+            slides[key] = 'data:image/png;base64,' + base64.b64encode(f.read()).decode()
+    return slides
+
+_CAROUSEL_IMGS = _load_carousel_images()
+
 st.set_page_config(
     page_title="ReOrder — Trendyol Retention",
     page_icon="🔄",
@@ -1102,11 +1144,11 @@ def show_auth() -> None:
     """, unsafe_allow_html=True)
 
     # ── Kolon layout — sol: fragman, orta: login kartı, sağ: minimal boşluk ──
-    col_l, col_c, col_r = st.columns([1.5, 1.2, 0.05])
+    col_l, col_c, col_r = st.columns([1.85, 1.1, 0.05])
 
     with col_l:
         import streamlit.components.v1 as _components
-        _components.html("""<!DOCTYPE html><html><head><meta charset="utf-8">
+        _carousel_css = """<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{
@@ -1114,31 +1156,33 @@ html,body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   color:#e8f4fa;height:100%;overflow:hidden;
 }
-.sc{display:flex;flex-direction:column;gap:.75rem;padding:1.4rem .6rem 1rem .3rem;height:100vh;}
+.sc{display:flex;flex-direction:column;gap:.6rem;padding:1.1rem .2rem .8rem .15rem;height:100vh;}
 /* Badge */
 .badge{display:inline-flex;align-items:center;gap:.3rem;background:rgba(16,185,129,.13);
   border:1px solid rgba(16,185,129,.35);border-radius:20px;padding:.18rem .65rem;
   font-size:.68rem;color:#10B981;font-weight:700;letter-spacing:.07em;margin-bottom:.3rem;}
 /* Headline */
-.hl-wrap{min-height:3.8rem;}
-#hl{font-size:1.45rem;font-weight:800;line-height:1.22;
+.hl-wrap{min-height:2.2rem;}
+#hl{font-size:1.2rem;font-weight:800;line-height:1.15;white-space:nowrap;
   background:linear-gradient(130deg,#e8f4fa 0%,#F28500 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   background-clip:text;transition:opacity .4s;}
-#sl{color:rgba(180,210,230,.52);font-size:.78rem;margin-top:.25rem;transition:opacity .4s;}
+#sl{color:rgba(180,210,230,.52);font-size:.72rem;margin-top:.15rem;transition:opacity .4s;}
 /* Carousel */
 .carousel{flex:1;position:relative;min-height:0;}
 .slide{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;display:flex;flex-direction:column;gap:.4rem;}
 .slide.on{opacity:1;}
 /* Slide 1 - Dashboard */
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
 .kpi-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
-  border-left:3px solid #F28500;border-radius:8px;padding:.45rem .6rem;}
-.kv{font-size:.95rem;font-weight:800;color:#F28500;}
-.kl{font-size:.58rem;color:rgba(180,210,230,.42);text-transform:uppercase;letter-spacing:.05em;}
+  border-left:3px solid #F28500;border-radius:8px;padding:.55rem .65rem;}
+.kv{font-size:1.05rem;font-weight:800;color:#F28500;line-height:1.1;}
+.kl{font-size:.56rem;color:rgba(180,210,230,.42);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.12rem;}
+.kd{font-size:.55rem;color:#10B981;margin-top:.12rem;font-weight:600;}
+.chart-lbl{font-size:.55rem;color:rgba(180,210,230,.32);text-transform:uppercase;letter-spacing:.07em;margin:.1rem 0;}
 .chart-wrap{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
-  border-radius:8px;padding:.4rem .5rem .3rem;display:flex;align-items:flex-end;gap:3px;height:80px;overflow:hidden;}
-.bar{flex:1;border-radius:2px 2px 0 0;background:rgba(242,133,0,.55);}
+  border-radius:8px;padding:.5rem .55rem .35rem;display:flex;align-items:flex-end;gap:3px;flex:1;min-height:0;overflow:hidden;}
+.bar{flex:1;border-radius:2px 2px 0 0;background:rgba(242,133,0,.55);transition:height .8s cubic-bezier(.4,0,.2,1);}
 @media(max-width:600px){
   .sc{gap:.5rem;padding:1rem .5rem .6rem .3rem;}
   #hl{font-size:1.15rem;}
@@ -1148,33 +1192,50 @@ html,body{
   .chart-wrap{height:55px;}
   .c-grid{gap:.15rem;}.cc{font-size:.55rem;padding:.18rem .03rem;}
   .c-mo{font-size:.55rem;width:40px;}
-  .seg{padding:.3rem .45rem;}.sn{font-size:.65rem;}.sb{font-size:.58rem;}
+  .seg{padding:.35rem .5rem;gap:.12rem;}.seg-name{font-size:.68rem;}.seg-badge{font-size:.5rem;}
+  .seg-desc{font-size:.52rem;}.seg-st,.seg-act{font-size:.52rem;}
   .real-pdf{width:150px;}
   .feat-strip{padding:.35rem .4rem;}.fi{font-size:.55rem;}.fi em{font-size:.75rem;}
   .dots{gap:.28rem;}
 }
 /* Slide 2 - Cohort */
-.c-lbl{font-size:.6rem;color:rgba(180,210,230,.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.2rem;}
-.c-grid{display:flex;flex-direction:column;gap:.2rem;}
-.c-row{display:flex;align-items:center;gap:.15rem;}
-.c-mo{font-size:.58rem;color:rgba(180,210,230,.38);width:46px;flex-shrink:0;}
-.cc{flex:1;text-align:center;font-size:.6rem;font-weight:700;padding:.22rem .05rem;border-radius:3px;}
+.c-lbl{font-size:.6rem;color:rgba(180,210,230,.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.15rem;}
+.c-hdr{display:flex;align-items:center;gap:.15rem;margin-bottom:.12rem;}
+.c-hdr-mo{font-size:.5rem;color:rgba(180,210,230,.2);width:48px;flex-shrink:0;}
+.c-hdr-lbl{flex:1;text-align:center;font-size:.5rem;color:rgba(180,210,230,.28);font-weight:600;letter-spacing:.03em;}
+.c-grid{display:flex;flex-direction:column;gap:.28rem;flex:1;}
+.c-row{display:flex;align-items:center;gap:.15rem;flex:1;}
+.c-mo{font-size:.6rem;color:rgba(180,210,230,.55);width:48px;flex-shrink:0;font-weight:600;}
+.cc{flex:1;text-align:center;font-size:.65rem;font-weight:700;border-radius:4px;display:flex;align-items:center;justify-content:center;}
 .cg{background:#10B981;color:#fff;}.cy{background:#F59E0B;color:#1a1a1a;}
 .co{background:#F97316;color:#fff;}.cr{background:#EF4444;color:#fff;}
-.cd{background:rgba(255,255,255,.05);color:rgba(255,255,255,.18);}
-/* Slide 3 - Segments */
-.seg-list{display:flex;flex-direction:column;gap:.35rem;}
-.seg{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:.38rem .6rem;}
-.sb{font-size:.62rem;font-weight:700;padding:.12rem .45rem;border-radius:20px;}
-.sg{background:rgba(16,185,129,.2);color:#10B981;border:1px solid rgba(16,185,129,.3);}
-.sb2{background:rgba(59,130,246,.2);color:#60A5FA;border:1px solid rgba(59,130,246,.3);}
-.sy{background:rgba(251,191,36,.2);color:#FBB824;border:1px solid rgba(251,191,36,.3);}
-.sr{background:rgba(239,68,68,.2);color:#F87171;border:1px solid rgba(239,68,68,.3);}
-.sn{font-size:.72rem;font-weight:600;flex:1;}
-.sc2{font-size:.62rem;color:rgba(180,210,230,.4);}
-.chb{width:44px;height:3px;background:rgba(255,255,255,.08);border-radius:2px;}
-.chbf{height:3px;border-radius:2px;}
+.cd{background:rgba(255,255,255,.05);color:rgba(255,255,255,.15);}
+.c-avg{margin-top:.35rem;background:rgba(242,133,0,.08);border:1px solid rgba(242,133,0,.18);border-radius:7px;padding:.32rem .6rem;display:flex;justify-content:space-between;align-items:center;}
+.c-avg-lbl{font-size:.6rem;color:rgba(180,210,230,.45);}
+.c-avg-val{font-size:.82rem;font-weight:800;color:#F28500;}
+/* Slide 3 - Segments (rich cards) */
+.seg-list{display:flex;flex-direction:column;gap:.3rem;flex:1;}
+.seg{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;
+  padding:.5rem .65rem;flex:1;display:flex;flex-direction:column;gap:.18rem;position:relative;overflow:hidden;}
+.seg::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px;}
+.seg.sg::before{background:#10B981;}.seg.sb2::before{background:#60A5FA;}
+.seg.sy::before{background:#FBB824;}.seg.sr::before{background:#F87171;}
+.seg-top{display:flex;align-items:center;gap:.38rem;}
+.seg-icon{font-size:.95rem;flex-shrink:0;}
+.seg-name{font-size:.78rem;font-weight:700;flex:1;color:#e8f4fa;}
+.seg-badge{font-size:.55rem;font-weight:700;padding:.09rem .4rem;border-radius:12px;}
+.sg .seg-badge{background:rgba(16,185,129,.2);color:#10B981;border:1px solid rgba(16,185,129,.3);}
+.sb2 .seg-badge{background:rgba(59,130,246,.2);color:#60A5FA;border:1px solid rgba(59,130,246,.3);}
+.sy .seg-badge{background:rgba(251,191,36,.2);color:#FBB824;border:1px solid rgba(251,191,36,.3);}
+.sr .seg-badge{background:rgba(239,68,68,.2);color:#F87171;border:1px solid rgba(239,68,68,.3);}
+.seg-desc{font-size:.58rem;color:rgba(180,210,230,.4);padding-left:1.33rem;}
+.seg-stats{display:flex;align-items:center;gap:.55rem;padding-left:1.33rem;}
+.seg-st{font-size:.58rem;color:rgba(180,210,230,.45);}
+.seg-st strong{font-weight:700;color:rgba(180,210,230,.85);}
+.seg-bar-row{display:flex;align-items:center;gap:.45rem;padding-left:1.33rem;margin-top:.04rem;}
+.seg-bg{flex:1;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
+.seg-fill{height:100%;border-radius:2px;}
+.seg-act{font-size:.56rem;color:rgba(180,210,230,.3);font-style:italic;flex-shrink:0;}
 /* Slide 4 - PDF gerçekçi sayfa görünümü */
 .pdf-wrap{display:flex;gap:7px;justify-content:center;align-items:flex-start;padding:4px 0;}
 .real-pdf{background:#fff;border-radius:4px;box-shadow:0 8px 28px rgba(0,0,0,.7),0 3px 10px rgba(0,0,0,.45);overflow:hidden;flex-shrink:0;width:185px;}
@@ -1195,37 +1256,20 @@ html,body{
   display:flex;flex-direction:column;align-items:center;gap:.12rem;transition:color .3s;}
 .fi em{font-size:.85rem;font-style:normal;}
 .fi.on{color:#F28500;}
-</style></head><body>
-<div class="sc">
+</style></head><body>"""
+        _carousel_body = """<div class="sc">
   <div>
     <div class="badge">&#9679; CANLI PLATFORM</div>
     <div class="hl-wrap">
-      <div id="hl">Mağazanızın<br>Nabzını Tutun</div>
+      <div id="hl">Mağazanızın Nabzını Tutun</div>
       <div id="sl">Tüm metrikleri tek bakışta görün</div>
     </div>
   </div>
   <div class="carousel">
-    <div class="slide on" id="s0">
-      <div class="kpi-grid">
-        <div class="kpi-card"><div class="kv" id="v1">0</div><div class="kl">Sipariş</div></div>
-        <div class="kpi-card"><div class="kv" id="v2">%0</div><div class="kl">Tekrar Oranı</div></div>
-        <div class="kpi-card"><div class="kv" id="v3">₺0</div><div class="kl">Toplam Gelir</div></div>
-        <div class="kpi-card"><div class="kv" id="v4">₺0</div><div class="kl">Ort. LTV</div></div>
-      </div>
-      <div class="chart-wrap" id="chart"></div>
-    </div>
-    <div class="slide" id="s1">
-      <div class="c-lbl">Cohort (Müşteri Grubu) Retention Matrisi</div>
-      <div class="c-grid" id="cgrid"></div>
-    </div>
-    <div class="slide" id="s2">
-      <div class="c-lbl">RFM Müşteri Segmentleri</div>
-      <div class="seg-list" id="slist"></div>
-    </div>
-    <div class="slide" id="s3">
-      <div class="c-lbl">PDF Rapor — 3 Sayfalık Analitik</div>
-      <div class="pdf-wrap" id="pdfwrap"></div>
-    </div>
+    <div class="slide on" id="s0"><img src="__IMG_S0__" alt="Dashboard" style="width:100%;height:100%;object-fit:contain;"></div>
+    <div class="slide" id="s1"><img src="__IMG_S1__" alt="Cohort Retention" style="width:100%;height:100%;object-fit:contain;"></div>
+    <div class="slide" id="s2"><img src="__IMG_S2__" alt="RFM Segmentler" style="width:100%;height:100%;object-fit:contain;"></div>
+    <div class="slide" id="s3"><img src="__IMG_S3__" alt="PDF Rapor" style="width:100%;height:100%;object-fit:contain;"></div>
   </div>
   <div class="dots" id="dots"></div>
   <div class="feat-strip">
@@ -1237,134 +1281,14 @@ html,body{
 </div>
 <script>
 var slides=[
-  {h:"Mağazanızın<br>Nabzını Tutun",s:"Tüm metrikleri tek bakışta görün"},
-  {h:"Hangi Müşteriler<br>Geri Dönüyor?",s:"Cohort (müşteri grubu) analizi ile retention'ı anlayın"},
-  {h:"Riski Olan<br>Müşteriyi Önceden Bilin",s:"RFM segmentasyon ile churn önleyin"},
-  {h:"Profesyonel Rapor<br>Tek Tıkla",s:"3 sayfalık PDF analitik — saniyeler içinde"}
+  {h:"Mağazanızın Nabzını Tutun",s:"Tüm metrikleri tek bakışta görün"},
+  {h:"Hangi Müşteriler Geri Dönüyor?",s:"Cohort (müşteri grubu) analizi ile retention'ı anlayın"},
+  {h:"Riski Olan Müşteriyi Önceden Bilin",s:"RFM segmentasyon ile churn önleyin"},
+  {h:"Profesyonel Rapor, Tek Tıkla",s:"3 sayfalık PDF analitik — saniyeler içinde"}
 ];
-// Bars
-var bh=[22,30,34,43,47,39,50,38,55,45,40,51]; // max 55px, container 80px
-var ch=document.getElementById("chart");
-bh.forEach(function(h){var b=document.createElement("div");b.className="bar";b.style.height=h+"px";ch.appendChild(b);});
-// Cohort
-var cdata=[
-  {m:"2025-10",cs:["cg","cy","cd","cd","cd"],vs:["%100","%14","-","-","-"]},
-  {m:"2025-11",cs:["cg","cy","cr","cd","cd"],vs:["%100","%22","%11","-","-"]},
-  {m:"2025-12",cs:["cg","cy","co","cr","cd"],vs:["%100","%25","%38","%25","-"]},
-  {m:"2026-01",cs:["cg","cr","cr","cd","cd"],vs:["%100","%18","%18","-","-"]},
-  {m:"2026-02",cs:["cg","co","cd","cd","cd"],vs:["%100","%43","-","-","-"]}
-];
-var cg=document.getElementById("cgrid");
-cdata.forEach(function(r){
-  var row=document.createElement("div");row.className="c-row";
-  var mo=document.createElement("span");mo.className="c-mo";mo.textContent=r.m;row.appendChild(mo);
-  r.cs.forEach(function(c,i){var cell=document.createElement("span");cell.className="cc "+c;cell.textContent=r.vs[i];row.appendChild(cell);});
-  cg.appendChild(row);
-});
-// Segments
-var segs=[
-  {cls:"sg",label:"Sadık Müşteri",count:"2 kişi",churn:8,color:"#10B981"},
-  {cls:"sb2",label:"Gelişen Müşteri",count:"18 kişi",churn:28,color:"#60A5FA"},
-  {cls:"sy",label:"Yeni Müşteri",count:"14 kişi",churn:42,color:"#FBB824"},
-  {cls:"sr",label:"Risk Altında",count:"22 kişi",churn:74,color:"#F87171"}
-];
-var sl=document.getElementById("slist");
-segs.forEach(function(s){
-  sl.innerHTML+='<div class="seg"><span class="sb '+s.cls+'">'+s.label.split(" ")[0]+'</span>'
-    +'<span class="sn">'+s.label+'</span><span class="sc2">'+s.count+'</span>'
-    +'<div class="chb"><div class="chbf" style="width:'+s.churn+'%;background:'+s.color+'"></div></div></div>';
-});
-// PDF gerçekçi sayfa mockup
-var pw=document.getElementById("pdfwrap");
-(function(){
-var p1='<div class="real-pdf" style="margin-top:0">'
-+'<div class="real-pdf-hdr"><div class="real-pdf-logo">🔄 ReOrder</div><div class="real-pdf-date">Haz 2026</div></div>'
-+'<div class="real-pdf-body"><div class="real-pdf-sec">Özet Metrikler &amp; Trend</div>'
-+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3.5px;margin-bottom:6px;">'
-+'<div style="background:#FFF7F0;border:1px solid #FFD4A8;border-radius:3px;padding:5px 6px;"><div style="font-size:5px;color:#888;text-transform:uppercase;letter-spacing:.04em;">Sipariş</div><div style="font-size:10px;font-weight:900;color:#F27A1A;line-height:1.1;">2.140</div></div>'
-+'<div style="background:#F0FFF9;border:1px solid #A8FFD4;border-radius:3px;padding:5px 6px;"><div style="font-size:5px;color:#888;text-transform:uppercase;letter-spacing:.04em;">Tekrar</div><div style="font-size:10px;font-weight:900;color:#10B981;line-height:1.1;">%42.7</div></div>'
-+'<div style="background:#F5F0FF;border:1px solid #C4A8FF;border-radius:3px;padding:5px 6px;"><div style="font-size:5px;color:#888;text-transform:uppercase;letter-spacing:.04em;">Gelir</div><div style="font-size:10px;font-weight:900;color:#7C3AED;line-height:1.1;">₺283K</div></div>'
-+'<div style="background:#F0F8FF;border:1px solid #A8D4FF;border-radius:3px;padding:5px 6px;"><div style="font-size:5px;color:#888;text-transform:uppercase;letter-spacing:.04em;">Ort LTV</div><div style="font-size:10px;font-weight:900;color:#2563EB;line-height:1.1;">₺680</div></div>'
-+'</div>'
-+'<div style="font-size:5px;color:#aaa;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">Aylık Gelir Trendi</div>'
-+'<div style="display:flex;align-items:flex-end;gap:2px;height:42px;background:#f8f8f8;border-radius:3px;padding:4px;">'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:25%;opacity:.7;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:38%;opacity:.75;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:50%;opacity:.8;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:44%;opacity:.8;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:62%;opacity:.85;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:70%;opacity:.85;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:60%;opacity:.85;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:78%;opacity:.9;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:72%;opacity:.9;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:85%;opacity:.95;"></div>'
-+'<div style="flex:1;background:#F27A1A;border-radius:1px 1px 0 0;height:80%;opacity:.95;"></div>'
-+'<div style="flex:1;background:#ffb347;border-radius:1px 1px 0 0;height:100%;box-shadow:0 0 5px rgba(242,122,26,.6);"></div>'
-+'</div>'
-+'<div style="display:flex;justify-content:space-between;font-size:5px;color:#bbb;margin-top:2px;"><span>Tem 25</span><span>Haz 26</span></div>'
-+'</div>'
-+'<div class="real-pdf-ftr"><div class="real-pdf-ftr-t">Sayfa 1 / 3</div><div class="real-pdf-ftr-t">reorder-panel.streamlit.app</div></div>'
-+'</div>';
-
-var p2='<div class="real-pdf" style="margin-top:18px">'
-+'<div class="real-pdf-hdr"><div class="real-pdf-logo">🔄 ReOrder</div><div class="real-pdf-date">Haz 2026</div></div>'
-+'<div class="real-pdf-body"><div class="real-pdf-sec">Cohort Retention Matrisi</div>'
-+'<div style="display:flex;flex-direction:column;gap:2px;margin-bottom:6px;">'
-+'<div style="display:flex;gap:2px;align-items:center;"><div style="font-size:5px;color:#888;width:32px;">2025-10</div><div style="flex:1;background:#10B981;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;font-weight:700;padding:2px 0;">100%</div><div style="flex:1;background:#F59E0B;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">42%</div><div style="flex:1;background:#F97316;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">28%</div><div style="flex:1;background:#EF4444;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">14%</div><div style="flex:1;background:#EF4444;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">8%</div></div>'
-+'<div style="display:flex;gap:2px;align-items:center;"><div style="font-size:5px;color:#888;width:32px;">2025-11</div><div style="flex:1;background:#10B981;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;font-weight:700;padding:2px 0;">100%</div><div style="flex:1;background:#34d399;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">38%</div><div style="flex:1;background:#F97316;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">25%</div><div style="flex:1;background:#EF4444;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">11%</div><div style="flex:1;background:#f0f0f0;border-radius:1.5px;text-align:center;font-size:5px;color:#ccc;padding:2px 0;">—</div></div>'
-+'<div style="display:flex;gap:2px;align-items:center;"><div style="font-size:5px;color:#888;width:32px;">2025-12</div><div style="flex:1;background:#10B981;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;font-weight:700;padding:2px 0;">100%</div><div style="flex:1;background:#F59E0B;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">44%</div><div style="flex:1;background:#F97316;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">31%</div><div style="flex:1;background:#f0f0f0;border-radius:1.5px;text-align:center;font-size:5px;color:#ccc;padding:2px 0;">—</div><div style="flex:1;background:#f0f0f0;border-radius:1.5px;text-align:center;font-size:5px;color:#ccc;padding:2px 0;">—</div></div>'
-+'<div style="display:flex;gap:2px;align-items:center;"><div style="font-size:5px;color:#888;width:32px;">2026-01</div><div style="flex:1;background:#10B981;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;font-weight:700;padding:2px 0;">100%</div><div style="flex:1;background:#34d399;border-radius:1.5px;text-align:center;font-size:5px;color:#fff;padding:2px 0;">48%</div><div style="flex:1;background:#f0f0f0;border-radius:1.5px;text-align:center;font-size:5px;color:#ccc;padding:2px 0;">—</div><div style="flex:1;background:#f0f0f0;border-radius:1.5px;text-align:center;font-size:5px;color:#ccc;padding:2px 0;">—</div><div style="flex:1;background:#f0f0f0;border-radius:1.5px;text-align:center;font-size:5px;color:#ccc;padding:2px 0;">—</div></div>'
-+'</div>'
-+'<div style="display:flex;gap:4px;align-items:center;margin-bottom:6px;">'
-+'<div style="width:9px;height:9px;border-radius:1.5px;background:#10B981;"></div><div style="font-size:5px;color:#888;">%60+</div>'
-+'<div style="width:9px;height:9px;border-radius:1.5px;background:#F59E0B;"></div><div style="font-size:5px;color:#888;">%40+</div>'
-+'<div style="width:9px;height:9px;border-radius:1.5px;background:#F97316;"></div><div style="font-size:5px;color:#888;">%20+</div>'
-+'<div style="width:9px;height:9px;border-radius:1.5px;background:#EF4444;"></div><div style="font-size:5px;color:#888;">&lt;%20</div>'
-+'</div>'
-+'<div style="background:#FFF7F0;border:1px solid #FFD4A8;border-radius:3px;padding:5px 6px;">'
-+'<div style="font-size:5.5px;font-weight:700;color:#C95A10;">Ort. Retention (6 ay)</div>'
-+'<div style="font-size:13px;font-weight:900;color:#F27A1A;line-height:1.15;">%34.2</div>'
-+'<div style="font-size:5px;color:#F27A1A;">▲ Sektör ortalamasının 1.6× üstünde</div>'
-+'</div></div>'
-+'<div class="real-pdf-ftr"><div class="real-pdf-ftr-t">Sayfa 2 / 3</div><div class="real-pdf-ftr-t">reorder-panel.streamlit.app</div></div>'
-+'</div>';
-
-var p3='<div class="real-pdf" style="margin-top:10px">'
-+'<div class="real-pdf-hdr"><div class="real-pdf-logo">🔄 ReOrder</div><div class="real-pdf-date">Haz 2026</div></div>'
-+'<div class="real-pdf-body"><div class="real-pdf-sec">Segmentler &amp; Top Müşteriler</div>'
-+'<div style="display:flex;flex-direction:column;gap:3.5px;margin-bottom:7px;">'
-+'<div style="display:flex;align-items:center;gap:3px;"><div style="font-size:5.5px;width:46px;color:#555;font-weight:600;">💎 Sadık</div><div style="flex:1;height:8px;background:#f0f0f0;border-radius:2px;overflow:hidden;"><div style="width:82%;height:100%;background:#10B981;border-radius:2px;"></div></div><div style="font-size:5.5px;color:#10B981;font-weight:700;width:20px;text-align:right;">248</div></div>'
-+'<div style="display:flex;align-items:center;gap:3px;"><div style="font-size:5.5px;width:46px;color:#555;font-weight:600;">🚀 Gelişen</div><div style="flex:1;height:8px;background:#f0f0f0;border-radius:2px;overflow:hidden;"><div style="width:62%;height:100%;background:#60A5FA;border-radius:2px;"></div></div><div style="font-size:5.5px;color:#60A5FA;font-weight:700;width:20px;text-align:right;">531</div></div>'
-+'<div style="display:flex;align-items:center;gap:3px;"><div style="font-size:5.5px;width:46px;color:#555;font-weight:600;">⚡ Yeni</div><div style="flex:1;height:8px;background:#f0f0f0;border-radius:2px;overflow:hidden;"><div style="width:45%;height:100%;background:#FBB824;border-radius:2px;"></div></div><div style="font-size:5.5px;color:#FBB824;font-weight:700;width:20px;text-align:right;">387</div></div>'
-+'<div style="display:flex;align-items:center;gap:3px;"><div style="font-size:5.5px;width:46px;color:#555;font-weight:600;">🚨 Risk</div><div style="flex:1;height:8px;background:#f0f0f0;border-radius:2px;overflow:hidden;"><div style="width:28%;height:100%;background:#F87171;border-radius:2px;"></div></div><div style="font-size:5.5px;color:#F87171;font-weight:700;width:20px;text-align:right;">614</div></div>'
-+'</div>'
-+'<div style="font-size:5px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3.5px;">Top Müşteriler (LTV)</div>'
-+'<div style="display:flex;flex-direction:column;gap:3px;">'
-+'<div style="display:flex;align-items:center;justify-content:space-between;padding:3.5px 5px;background:#f8f8f8;border-radius:2.5px;"><div style="display:flex;align-items:center;gap:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#F27A1A;display:flex;align-items:center;justify-content:center;font-size:6px;color:#fff;font-weight:800;">A</div><div style="font-size:6px;color:#333;font-weight:600;">Ayşe K.</div></div><div style="font-size:6.5px;font-weight:800;color:#F27A1A;">₺4.280</div></div>'
-+'<div style="display:flex;align-items:center;justify-content:space-between;padding:3.5px 5px;background:#f8f8f8;border-radius:2.5px;"><div style="display:flex;align-items:center;gap:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#10B981;display:flex;align-items:center;justify-content:center;font-size:6px;color:#fff;font-weight:800;">M</div><div style="font-size:6px;color:#333;font-weight:600;">Mehmet Y.</div></div><div style="font-size:6.5px;font-weight:800;color:#F27A1A;">₺3.950</div></div>'
-+'<div style="display:flex;align-items:center;justify-content:space-between;padding:3.5px 5px;background:#f8f8f8;border-radius:2.5px;"><div style="display:flex;align-items:center;gap:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#60A5FA;display:flex;align-items:center;justify-content:center;font-size:6px;color:#fff;font-weight:800;">Z</div><div style="font-size:6px;color:#333;font-weight:600;">Zeynep A.</div></div><div style="font-size:6.5px;font-weight:800;color:#F27A1A;">₺3.710</div></div>'
-+'</div></div>'
-+'<div class="real-pdf-ftr"><div class="real-pdf-ftr-t">Sayfa 3 / 3</div><div class="real-pdf-ftr-t">reorder-panel.streamlit.app</div></div>'
-+'</div>';
-pw.innerHTML=p1+p2+p3;
-}());
 // Dots
 var dotEl=document.getElementById("dots");
 for(var i=0;i<4;i++){var d=document.createElement("div");d.className="dot"+(i===0?" on":"");dotEl.appendChild(d);}
-// Counter
-function countUp(id,target,pre,suf,ms){
-  var el=document.getElementById(id);var v=0;var step=target/(ms/16);
-  var iv=setInterval(function(){v=Math.min(v+step,target);
-    el.textContent=pre+Math.floor(v).toLocaleString("tr-TR")+suf;
-    if(v>=target)clearInterval(iv);},16);
-}
-function animS0(){
-  countUp("v1",170,"","",1100);
-  setTimeout(function(){document.getElementById("v2").textContent="%42.7";},750);
-  countUp("v3",70077,"₺","",1300);
-  setTimeout(function(){document.getElementById("v4").textContent="₺680";},850);
-}
-animS0();
 // Carousel
 var cur=0;
 var slideEls=document.querySelectorAll(".slide");
@@ -1385,10 +1309,15 @@ function goTo(idx){
     hlEl.innerHTML=slides[cur].h;slEl.textContent=slides[cur].s;
     hlEl.style.opacity="1";slEl.style.opacity="1";
   },350);
-  if(cur===0)animS0();
 }
 setInterval(function(){goTo(cur+1);},4200);
-</script></body></html>""", height=650, scrolling=False)
+</script></body></html>"""
+        _carousel_html = _carousel_css + _carousel_body
+        for _k in ('s0', 's1', 's2', 's3'):
+            _carousel_html = _carousel_html.replace(
+                "__IMG_" + _k.upper() + "__", _CAROUSEL_IMGS.get(_k, "")
+            )
+        _components.html(_carousel_html, height=650, scrolling=False)
 
     with col_c:
         st.markdown(

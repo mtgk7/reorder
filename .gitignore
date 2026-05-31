@@ -43,3 +43,9 @@ desktop.ini
 .pytest_cache/
 htmlcov/
 .coverage
+
+# ── Carousel tasarım/önizleme artefaktları (lokal) ───────────────
+_canva_*.html
+_slide_build/
+zoom_*.png
+.playwright-mcp/
