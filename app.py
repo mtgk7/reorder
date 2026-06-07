@@ -1,6 +1,7 @@
 """
 app.py — ReOrder Streamlit Web Arayüzü (Ana Giriş Noktası)
 Çalıştırmak için: streamlit run app.py
+Güncelleme: 2026-06-07
 """
 from __future__ import annotations
 
