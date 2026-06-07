@@ -31,6 +31,20 @@ def _normalize_url(url: str) -> str:
     return url
 
 
+def _pg_connect(db_url: str):
+    """URL'yi parçalara ayırarak psycopg2 bağlantısı kurar (özel karakter sorunlarını önler)."""
+    import psycopg2
+    from urllib.parse import urlparse, unquote
+    p = urlparse(db_url)
+    return psycopg2.connect(
+        host=p.hostname,
+        port=p.port or 5432,
+        user=unquote(p.username or ""),
+        password=unquote(p.password or ""),
+        dbname=(p.path or "/postgres").lstrip("/"),
+    )
+
+
 # ─── SQL uyumluluk dönüşümü ──────────────────────────────────────────────────
 
 def _to_pg_sql(sql: str) -> str:
@@ -133,8 +147,7 @@ def get_connection():
     """
     db_url = _get_db_url()
     if db_url:
-        import psycopg2
-        conn = psycopg2.connect(_normalize_url(db_url))
+        conn = _pg_connect(_normalize_url(db_url))
         return _PgConnection(conn)
 
     # SQLite (yerel)
@@ -158,8 +171,7 @@ def init_db() -> None:
 
 
 def _init_postgres(db_url: str) -> None:
-    import psycopg2
-    conn = psycopg2.connect(db_url)
+    conn = _pg_connect(db_url)
     cur = conn.cursor()
 
     cur.execute("""
