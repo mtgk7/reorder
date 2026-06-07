@@ -108,9 +108,11 @@ def _load_carousel_images():
 _CAROUSEL_IMGS = _load_carousel_images()
 
 from PIL import Image as _PIL_Image
+from pathlib import Path as _Path
+_favicon = _PIL_Image.open(_Path(__file__).parent / "assets" / "favicon.png")
 st.set_page_config(
     page_title="ReOrder — Trendyol Retention",
-    page_icon=_PIL_Image.open("assets/favicon.png"),
+    page_icon=_favicon,
     layout="wide",
     initial_sidebar_state="auto",   # mobilde kapalı, masaüstünde açık
 )
