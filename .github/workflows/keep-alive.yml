@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping ReOrder
         run: |
-          curl -s -o /dev/null -w "Status: %{http_code}" https://reorder-panel.streamlit.app/
+          curl -s -o /dev/null -w "Status: %{http_code}" https://reorder-81nz.onrender.com/
