@@ -747,17 +747,26 @@ def _send_telegram(text: str) -> bool:
         return False
 
 
-@st.dialog("İletişim Formu", width="large")
+@st.dialog("✉️ İletişim", width="large")
 def _contact_dialog() -> None:
     st.markdown(
         """
-        <div style="margin-bottom:1.2rem;">
-            <div style="font-size:1rem;font-weight:700;color:#0f1a35;margin-bottom:.3rem;">
-                Size nasıl yardımcı olabiliriz?
-            </div>
-            <div style="font-size:.82rem;color:#6b7280;line-height:1.6;">
-                Formu doldurun, ekibimiz <strong>en geç 1 iş günü içinde</strong> size dönüş yapsın.
-                Plan seçimi, entegrasyon veya teknik konularda destek sağlıyoruz.
+        <div style="background:linear-gradient(135deg,#fff9f0,#fff4e6);
+            border:1px solid rgba(242,133,0,.18);border-radius:14px;
+            padding:1.1rem 1.3rem;margin-bottom:1.4rem;
+            display:flex;align-items:center;gap:1rem;">
+            <div style="width:46px;height:46px;border-radius:13px;flex-shrink:0;
+                background:linear-gradient(135deg,#F28500,#C95A10);
+                display:flex;align-items:center;justify-content:center;
+                font-size:1.3rem;box-shadow:0 4px 14px rgba(242,133,0,.3);">✉️</div>
+            <div>
+                <div style="font-size:.95rem;font-weight:800;color:#0f1a35;margin-bottom:.2rem;">
+                    Size nasıl yardımcı olabiliriz?
+                </div>
+                <div style="font-size:.78rem;color:#6b7280;line-height:1.55;">
+                    Formu doldurun — ekibimiz <strong style="color:#D46000;">en geç 1 iş günü içinde</strong>
+                    sizi arayarak dönüş yapsın.
+                </div>
             </div>
         </div>
         """,
@@ -766,30 +775,38 @@ def _contact_dialog() -> None:
     with st.form("contact_form", border=False):
         c1, c2 = st.columns(2)
         with c1:
-            name = st.text_input("Ad Soyad *", placeholder="Ahmet Yılmaz")
+            name = st.text_input("Ad Soyad", placeholder="Ahmet Yılmaz")
         with c2:
             company = st.text_input("Mağaza / Şirket Adı", placeholder="Mağazanızın adı")
         c3, c4 = st.columns(2)
         with c3:
-            email = st.text_input("E-posta *", placeholder="ahmet@magaza.com")
+            email = st.text_input("E-posta", placeholder="ahmet@magaza.com")
         with c4:
             phone = st.text_input("Telefon", placeholder="05XX XXX XX XX")
         subject = st.selectbox(
-            "Konu *",
-            ["Plan seçimi ve fiyatlandırma", "Teknik entegrasyon", "Demo talebi",
-             "Fatura ve ödeme", "Özel kurumsal teklif", "Diğer"],
+            "Konu",
+            ["Plan seçimi ve fiyatlandırma", "Demo talebi", "Teknik entegrasyon",
+             "Özel kurumsal teklif", "Fatura ve ödeme", "Diğer"],
         )
         message = st.text_area(
-            "Mesajınız *",
-            placeholder="Trendyol mağazanız hakkında kısa bilgi verin ve nasıl yardımcı olabileceğimizi belirtin...",
-            height=120,
+            "Mesajınız",
+            placeholder="Trendyol mağazanız hakkında kısa bilgi verin ve size nasıl yardımcı olabileceğimizi belirtin...",
+            height=130,
         )
-        submitted = st.form_submit_button("Mesajı Gönder →", use_container_width=True, type="primary")
+        st.markdown(
+            '<div style="font-size:.72rem;color:#9ca3af;margin-bottom:.3rem;">'
+            '🔒 Bilgileriniz yalnızca sizinle iletişim kurmak amacıyla kullanılır.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        submitted = st.form_submit_button(
+            "Gönder  →", use_container_width=True, type="primary"
+        )
 
     if submitted:
         if not name.strip() or not email.strip() or not message.strip():
             st.error("Ad soyad, e-posta ve mesaj alanları zorunludur.")
-        elif "@" not in email:
+        elif "@" not in email or "." not in email.split("@")[-1]:
             st.error("Geçerli bir e-posta adresi girin.")
         else:
             tg_text = (
@@ -879,7 +896,7 @@ body,html{overflow-x:hidden;}
 [data-testid="stFormSubmitButton"] > button:active{transform:translateY(0) !important;}
 /* Alert */
 [data-testid="stAlert"]{background:rgba(10,37,51,.55) !important;border:1px solid rgba(242,133,0,.25) !important;border-radius:10px !important;color:#dff0f8 !important;}
-/* İletişime Geç butonu */
+/* İletişime Geç butonu (sağ panel) */
 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child button:not([data-testid="stFormSubmitButton"] > button):not([role="tab"]){
     background:rgba(255,255,255,.06) !important;color:rgba(255,255,255,.55) !important;
     border:1.5px solid rgba(255,255,255,.1) !important;border-radius:11px !important;
@@ -889,6 +906,83 @@ body,html{overflow-x:hidden;}
 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child button:not([data-testid="stFormSubmitButton"] > button):not([role="tab"]):hover{
     background:rgba(242,133,0,.1) !important;border-color:rgba(242,133,0,.35) !important;
     color:rgba(255,255,255,.85) !important;
+}
+/* ── İletişim Formu Dialog ── */
+[data-testid="stDialog"] > div > div{
+    background:#ffffff !important;
+    border-radius:20px !important;
+    border:1px solid #e8edf5 !important;
+    box-shadow:0 24px 64px rgba(15,26,53,.14) !important;
+    padding:0 !important;
+    overflow:hidden !important;
+}
+/* Dialog kapat butonu */
+[data-testid="stDialog"] button[aria-label="Close"]{
+    background:rgba(0,0,0,.04) !important;border-radius:8px !important;
+    color:#6b7280 !important;border:none !important;
+    transition:background .15s !important;
+}
+[data-testid="stDialog"] button[aria-label="Close"]:hover{background:rgba(0,0,0,.08) !important;}
+/* Dialog içerik alanı */
+[data-testid="stDialog"] [data-testid="stVerticalBlock"]{padding:2rem 2.2rem 1.8rem !important;}
+/* Dialog label'ları */
+[data-testid="stDialog"] label p{
+    color:#374151 !important;font-size:.79rem !important;
+    font-weight:700 !important;letter-spacing:.01em !important;
+}
+/* Dialog text input */
+[data-testid="stDialog"] [data-testid="stTextInput"] > div{
+    background:#f8faff !important;border:1.5px solid #e2e8f0 !important;
+    border-radius:10px !important;transition:border-color .18s,box-shadow .18s !important;
+}
+[data-testid="stDialog"] [data-testid="stTextInput"] > div:focus-within{
+    border-color:#F28500 !important;box-shadow:0 0 0 3px rgba(242,133,0,.09) !important;
+    background:#fff !important;
+}
+[data-testid="stDialog"] [data-testid="stTextInput"] input{
+    color:#0f1a35 !important;-webkit-text-fill-color:#0f1a35 !important;
+    font-size:.86rem !important;
+}
+[data-testid="stDialog"] [data-testid="stTextInput"] input::placeholder{
+    color:#b0b8c8 !important;-webkit-text-fill-color:#b0b8c8 !important;
+}
+/* Dialog textarea */
+[data-testid="stDialog"] [data-testid="stTextArea"] > div{
+    background:#f8faff !important;border:1.5px solid #e2e8f0 !important;
+    border-radius:10px !important;transition:border-color .18s,box-shadow .18s !important;
+}
+[data-testid="stDialog"] [data-testid="stTextArea"] > div:focus-within{
+    border-color:#F28500 !important;box-shadow:0 0 0 3px rgba(242,133,0,.09) !important;
+    background:#fff !important;
+}
+[data-testid="stDialog"] [data-testid="stTextArea"] textarea{
+    color:#0f1a35 !important;font-size:.86rem !important;
+}
+[data-testid="stDialog"] [data-testid="stTextArea"] textarea::placeholder{color:#b0b8c8 !important;}
+/* Dialog selectbox */
+[data-testid="stDialog"] [data-testid="stSelectbox"] > div > div{
+    background:#f8faff !important;border:1.5px solid #e2e8f0 !important;
+    border-radius:10px !important;color:#0f1a35 !important;
+}
+[data-testid="stDialog"] [data-testid="stSelectbox"] > div > div:focus-within{
+    border-color:#F28500 !important;box-shadow:0 0 0 3px rgba(242,133,0,.09) !important;
+}
+/* Dialog submit butonu */
+[data-testid="stDialog"] [data-testid="stFormSubmitButton"] > button{
+    background:linear-gradient(135deg,#F28500,#D46000) !important;
+    color:#fff !important;border:none !important;border-radius:12px !important;
+    font-weight:800 !important;font-size:.9rem !important;letter-spacing:.03em !important;
+    box-shadow:0 5px 18px rgba(242,133,0,.38) !important;padding:.85rem !important;
+    transition:transform .15s,box-shadow .15s,filter .15s !important;
+}
+[data-testid="stDialog"] [data-testid="stFormSubmitButton"] > button:hover{
+    transform:translateY(-2px) !important;
+    box-shadow:0 9px 28px rgba(242,133,0,.5) !important;
+    filter:brightness(1.05) !important;
+}
+/* Dialog success/error */
+[data-testid="stDialog"] [data-testid="stAlert"]{
+    border-radius:10px !important;font-size:.82rem !important;
 }
 /* Tooltip */
 [data-testid="stTooltipIcon"] svg,[data-testid="stTooltipIcon"] svg *{fill:rgba(242,133,0,.8) !important;}
