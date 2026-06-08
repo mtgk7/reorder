@@ -930,10 +930,16 @@ body,html{overflow-x:hidden;}
 [data-testid="stDialog"] [data-testid="stSelectbox"]{margin-bottom:0 !important;}
 [data-testid="stDialog"] label{margin-bottom:.1rem !important;}
 [data-testid="stDialog"] [data-testid="stHorizontalBlock"]{gap:.6rem !important;margin-bottom:0 !important;}
-/* Input alan yüksekliği 3cm */
-[data-testid="stDialog"] [data-testid="stTextInput"] > div{height:3cm !important;display:flex !important;align-items:center !important;}
-[data-testid="stDialog"] [data-testid="stTextInput"] input{height:100% !important;font-size:.88rem !important;}
-[data-testid="stDialog"] [data-testid="stSelectbox"] > div > div{height:3cm !important;display:flex !important;align-items:center !important;}
+/* Input padding — py-2 eşdeğeri */
+[data-testid="stDialog"] [data-testid="stTextInput"] > div{height:auto !important;}
+[data-testid="stDialog"] [data-testid="stTextInput"] input{
+    padding-top:.5rem !important;padding-bottom:.5rem !important;
+    font-size:.86rem !important;line-height:1.4 !important;
+}
+[data-testid="stDialog"] [data-testid="stSelectbox"] > div > div{
+    height:auto !important;min-height:0 !important;
+    padding-top:.5rem !important;padding-bottom:.5rem !important;
+}
 /* Dialog label'ları */
 [data-testid="stDialog"] label p{
     color:#374151 !important;font-size:.79rem !important;
