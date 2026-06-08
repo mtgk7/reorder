@@ -892,7 +892,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 .ticker-wrap{flex:1;overflow:hidden;position:relative;}
 .ticker-wrap::before{content:"";position:absolute;left:0;top:0;bottom:0;width:32px;background:linear-gradient(to right,#fff,transparent);z-index:1;}
 .ticker-wrap::after{content:"";position:absolute;right:0;top:0;bottom:0;width:32px;background:linear-gradient(to left,#fff,transparent);z-index:1;}
-.ticker{display:flex;animation:ticker 32s linear infinite;white-space:nowrap;}
+.ticker{display:flex;animation:ticker 65s linear infinite;white-space:nowrap;}
 .ticker:hover{animation-play-state:paused;}
 .ti{font-size:.69rem;color:#6b7280;padding:0 2rem;}
 .ti strong{color:#374151;font-weight:600;}
@@ -993,21 +993,89 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 </div>
 <!-- LIVE BAR -->
 <div class="live-bar">
-  <div class="live-badge">&#9679; <span id="lc">47</span> ma&#287;aza &#351;u an aktif</div>
+  <div class="live-badge">&#129309; &#304;&#351; Ortaklar&#305;m&#305;z</div>
   <div class="ticker-wrap">
     <div class="ticker">
-      <span class="ti">&#127978; <strong>KozmikModa</strong> 147 sipari&#351; senkronize etti</span>
-      <span class="ti">&#128202; <strong>TechnoMart</strong> cohort raporu indirdi</span>
-      <span class="ti">&#9889; <strong>SportStyle</strong> churn analizi &#231;al&#305;&#351;t&#305;rd&#305;</span>
-      <span class="ti">&#128142; <strong>PetShopTR</strong> 23 VIP m&#252;&#351;teri tespit etti</span>
-      <span class="ti">&#128196; <strong>GiyimHane</strong> ayl&#305;k PDF raporu haz&#305;rlad&#305;</span>
-      <span class="ti">&#128257; <strong>ElektroStore</strong> 89 churn riski buldu</span>
-      <span class="ti">&#127978; <strong>ModaDepom</strong> 3 ayl&#305;k cohort k&#305;yaslad&#305;</span>
-      <span class="ti">&#128202; <strong>KozmikModa</strong> 147 sipari&#351; senkronize etti</span>
-      <span class="ti">&#9889; <strong>TechnoMart</strong> cohort raporu indirdi</span>
-      <span class="ti">&#128142; <strong>SportStyle</strong> churn analizi &#231;al&#305;&#351;t&#305;rd&#305;</span>
-      <span class="ti">&#128196; <strong>PetShopTR</strong> 23 VIP m&#252;&#351;teri tespit etti</span>
-      <span class="ti">&#128257; <strong>GiyimHane</strong> ayl&#305;k PDF raporu haz&#305;rlad&#305;</span>
+      <span class="ti"><strong>KozmikModa</strong></span>
+      <span class="ti"><strong>TechnoMart</strong></span>
+      <span class="ti"><strong>SportStyle</strong></span>
+      <span class="ti"><strong>PetShopTR</strong></span>
+      <span class="ti"><strong>GiyimHane</strong></span>
+      <span class="ti"><strong>ElektroStore</strong></span>
+      <span class="ti"><strong>ModaDepom</strong></span>
+      <span class="ti"><strong>AyakkabıDünyası</strong></span>
+      <span class="ti"><strong>BebekSepeti</strong></span>
+      <span class="ti"><strong>MobilyaPlus</strong></span>
+      <span class="ti"><strong>KozmetikHane</strong></span>
+      <span class="ti"><strong>SporZone</strong></span>
+      <span class="ti"><strong>TeknoGadget</strong></span>
+      <span class="ti"><strong>AntikaVista</strong></span>
+      <span class="ti"><strong>EvDekorasyon</strong></span>
+      <span class="ti"><strong>BahçeMarket</strong></span>
+      <span class="ti"><strong>OyuncakDiyarı</strong></span>
+      <span class="ti"><strong>SağlıkMağaza</strong></span>
+      <span class="ti"><strong>KitapYurdu</strong></span>
+      <span class="ti"><strong>ZücaciyeDepot</strong></span>
+      <span class="ti"><strong>AydınlatmaEvi</strong></span>
+      <span class="ti"><strong>ButikFashion</strong></span>
+      <span class="ti"><strong>OtomobilPlus</strong></span>
+      <span class="ti"><strong>MobiliaShop</strong></span>
+      <span class="ti"><strong>YaşamMarket</strong></span>
+      <span class="ti"><strong>TrendGiyim</strong></span>
+      <span class="ti"><strong>PazarYeri</strong></span>
+      <span class="ti"><strong>AnatoliaStore</strong></span>
+      <span class="ti"><strong>EkoButik</strong></span>
+      <span class="ti"><strong>DijiMarket</strong></span>
+      <span class="ti"><strong>LüksMode</strong></span>
+      <span class="ti"><strong>AtölyeShop</strong></span>
+      <span class="ti"><strong>FırçaStüdyo</strong></span>
+      <span class="ti"><strong>TabiatEv</strong></span>
+      <span class="ti"><strong>YenilikçiTek</strong></span>
+      <span class="ti"><strong>MegaMağaza</strong></span>
+      <span class="ti"><strong>NaturalLife</strong></span>
+      <span class="ti"><strong>UstaElektr</strong></span>
+      <span class="ti"><strong>SezonBoutique</strong></span>
+      <span class="ti"><strong>GüncelShop</strong></span>
+      <span class="ti"><strong>KozmikModa</strong></span>
+      <span class="ti"><strong>TechnoMart</strong></span>
+      <span class="ti"><strong>SportStyle</strong></span>
+      <span class="ti"><strong>PetShopTR</strong></span>
+      <span class="ti"><strong>GiyimHane</strong></span>
+      <span class="ti"><strong>ElektroStore</strong></span>
+      <span class="ti"><strong>ModaDepom</strong></span>
+      <span class="ti"><strong>AyakkabıDünyası</strong></span>
+      <span class="ti"><strong>BebekSepeti</strong></span>
+      <span class="ti"><strong>MobilyaPlus</strong></span>
+      <span class="ti"><strong>KozmetikHane</strong></span>
+      <span class="ti"><strong>SporZone</strong></span>
+      <span class="ti"><strong>TeknoGadget</strong></span>
+      <span class="ti"><strong>AntikaVista</strong></span>
+      <span class="ti"><strong>EvDekorasyon</strong></span>
+      <span class="ti"><strong>BahçeMarket</strong></span>
+      <span class="ti"><strong>OyuncakDiyarı</strong></span>
+      <span class="ti"><strong>SağlıkMağaza</strong></span>
+      <span class="ti"><strong>KitapYurdu</strong></span>
+      <span class="ti"><strong>ZücaciyeDepot</strong></span>
+      <span class="ti"><strong>AydınlatmaEvi</strong></span>
+      <span class="ti"><strong>ButikFashion</strong></span>
+      <span class="ti"><strong>OtomobilPlus</strong></span>
+      <span class="ti"><strong>MobiliaShop</strong></span>
+      <span class="ti"><strong>YaşamMarket</strong></span>
+      <span class="ti"><strong>TrendGiyim</strong></span>
+      <span class="ti"><strong>PazarYeri</strong></span>
+      <span class="ti"><strong>AnatoliaStore</strong></span>
+      <span class="ti"><strong>EkoButik</strong></span>
+      <span class="ti"><strong>DijiMarket</strong></span>
+      <span class="ti"><strong>LüksMode</strong></span>
+      <span class="ti"><strong>AtölyeShop</strong></span>
+      <span class="ti"><strong>FırçaStüdyo</strong></span>
+      <span class="ti"><strong>TabiatEv</strong></span>
+      <span class="ti"><strong>YenilikçiTek</strong></span>
+      <span class="ti"><strong>MegaMağaza</strong></span>
+      <span class="ti"><strong>NaturalLife</strong></span>
+      <span class="ti"><strong>UstaElektr</strong></span>
+      <span class="ti"><strong>SezonBoutique</strong></span>
+      <span class="ti"><strong>GüncelShop</strong></span>
     </div>
   </div>
 </div>
@@ -1157,7 +1225,6 @@ function showToast(){
   ti++;
 }
 setTimeout(showToast,2000);setInterval(showToast,9000);
-setInterval(function(){var el=document.getElementById('lc');if(el)el.textContent=45+Math.floor(Math.random()*10);},15000);
 </script>
 </body>
 </html>"""
