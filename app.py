@@ -1530,6 +1530,11 @@ _PLAN_FEATURES = {
     "Enterprise": ["Sınırsız Mağaza", "Tüm Pro Özellikler", "E-posta Kampanya", "API Erişimi", "Özel Hesap Yöneticisi"],
 }
 
+_ONBOARDING_BG = """
+<div id="ob-bg" style="position:fixed;top:0;left:0;width:100vw;height:100vh;
+background:linear-gradient(145deg,#0a2533,#0d3a4b,#134e5e,#0a2e3d);z-index:-1;pointer-events:none;"></div>
+"""
+
 _ONBOARDING_CSS = """
 <style>
 [data-testid="stSidebar"]{display:none!important;}
@@ -1537,12 +1542,8 @@ _ONBOARDING_CSS = """
 header{display:none!important;}
 #MainMenu{display:none!important;}
 footer{display:none!important;}
-html,body,[data-testid="stApp"],
-[data-testid="stAppViewContainer"],
-section[data-testid="stMain"],
-.main,.block-container{
-    background:linear-gradient(145deg,#0a2533,#0d3a4b,#134e5e,#0a2e3d)!important;
-    min-height:100vh;
+[data-testid="stAppViewContainer"],[data-testid="stApp"],body{
+    background:transparent!important;
 }
 section[data-testid="stMain"]>div:first-child{padding-top:0!important;}
 .ob-head{text-align:center;padding:2.8rem 1rem 1.6rem;color:#fff;}
@@ -1623,7 +1624,7 @@ section[data-testid="stMain"]>div:first-child{padding-top:0!important;}
 
 def show_plan_selection() -> None:
     """Yeni kayıt sonrası plan seçim ekranı."""
-    st.markdown(_ONBOARDING_CSS, unsafe_allow_html=True)
+    st.markdown(_ONBOARDING_BG + _ONBOARDING_CSS, unsafe_allow_html=True)
 
     user = st.session_state.user
     store_name = user.get("store_name", "") if user else ""
@@ -1700,7 +1701,7 @@ def show_plan_selection() -> None:
 
 def show_payment() -> None:
     """Ödeme formu ekranı."""
-    st.markdown(_ONBOARDING_CSS, unsafe_allow_html=True)
+    st.markdown(_ONBOARDING_BG + _ONBOARDING_CSS, unsafe_allow_html=True)
     plan = st.session_state.selected_plan or {}
     plan_name = plan.get("name", "")
     price = plan.get("price", 0)
