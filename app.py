@@ -923,7 +923,7 @@ body,html{overflow-x:hidden;}
 }
 [data-testid="stDialog"] button[aria-label="Close"]:hover{background:rgba(0,0,0,.08) !important;}
 /* Dialog içerik alanı */
-[data-testid="stDialog"] [data-testid="stVerticalBlock"]{padding:1rem 1.6rem 1rem !important;gap:0.3rem !important;}
+[data-testid="stDialog"] [data-testid="stVerticalBlock"]{padding:1rem 1.6rem 1rem !important;gap:3cm !important;}
 [data-testid="stDialog"] [data-testid="stVerticalBlock"] > div{margin-bottom:0 !important;padding-bottom:0 !important;}
 [data-testid="stDialog"] [data-testid="stTextInput"],
 [data-testid="stDialog"] [data-testid="stTextArea"],
