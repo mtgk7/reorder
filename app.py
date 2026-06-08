@@ -747,7 +747,7 @@ def _send_telegram(text: str) -> bool:
         return False
 
 
-@st.dialog("✉️ İletişim")
+@st.dialog("✉️ İletişim", width="large")
 def _contact_dialog() -> None:
     st.markdown(
         """
@@ -923,7 +923,13 @@ body,html{overflow-x:hidden;}
 }
 [data-testid="stDialog"] button[aria-label="Close"]:hover{background:rgba(0,0,0,.08) !important;}
 /* Dialog içerik alanı */
-[data-testid="stDialog"] [data-testid="stVerticalBlock"]{padding:1.2rem 1.4rem 1.2rem !important;}
+[data-testid="stDialog"] [data-testid="stVerticalBlock"]{padding:1rem 1.6rem 1rem !important;gap:0.3rem !important;}
+[data-testid="stDialog"] [data-testid="stVerticalBlock"] > div{margin-bottom:0 !important;padding-bottom:0 !important;}
+[data-testid="stDialog"] [data-testid="stTextInput"],
+[data-testid="stDialog"] [data-testid="stTextArea"],
+[data-testid="stDialog"] [data-testid="stSelectbox"]{margin-bottom:0 !important;}
+[data-testid="stDialog"] label{margin-bottom:.15rem !important;}
+[data-testid="stDialog"] [data-testid="stHorizontalBlock"]{gap:.6rem !important;margin-bottom:0 !important;}
 /* Dialog label'ları */
 [data-testid="stDialog"] label p{
     color:#374151 !important;font-size:.79rem !important;
