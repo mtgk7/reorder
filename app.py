@@ -16,7 +16,7 @@ import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime
 
-from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store, save_goals, load_goals, link_null_orders
+from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store, save_goals, load_goals, link_null_orders, save_user_plan
 from src.auth import (
     login_user, register_user, update_store_name, change_password,
     create_session_token, verify_session_token, delete_session_token,
@@ -1517,6 +1517,61 @@ function goRegister(){
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Plan kısıtlamaları
+# ─────────────────────────────────────────────────────────────────────────────
+_PLAN_LIMITS = {
+    "Starter": {
+        "max_stores":    1,
+        "segments":      False,
+        "campaigns":     False,
+        "pdf_report":    False,
+        "trendyol_api":  False,
+        "analytics_tabs": ["cohort"],   # LTV, Retention, Ürün kilitli
+    },
+    "Pro": {
+        "max_stores":    3,
+        "segments":      True,
+        "campaigns":     True,
+        "pdf_report":    True,
+        "trendyol_api":  False,
+        "analytics_tabs": ["cohort", "ltv", "retention", "product"],
+    },
+    "Enterprise": {
+        "max_stores":    None,          # sınırsız
+        "segments":      True,
+        "campaigns":     True,
+        "pdf_report":    True,
+        "trendyol_api":  True,
+        "analytics_tabs": ["cohort", "ltv", "retention", "product"],
+    },
+}
+
+_PLAN_BADGE_COLOR = {"Starter": "#6B7280", "Pro": "#F27A1A", "Enterprise": "#8B5CF6"}
+_PLAN_UPGRADE     = {"Starter": "Pro", "Pro": "Enterprise", "Enterprise": None}
+
+
+def _plan_limits() -> dict:
+    """Aktif kullanıcının plan limitlerini döndürür."""
+    plan = st.session_state.get("user", {}).get("plan", "Starter")
+    return _PLAN_LIMITS.get(plan, _PLAN_LIMITS["Starter"])
+
+
+def _plan_gate(feature: str) -> bool:
+    """Feature erişimi varsa True, yoksa False + upgrade mesajı gösterir."""
+    limits = _plan_limits()
+    if limits.get(feature, False):
+        return True
+    plan = st.session_state.get("user", {}).get("plan", "Starter")
+    upgrade_to = _PLAN_UPGRADE.get(plan)
+    if upgrade_to:
+        st.warning(
+            f"Bu özellik **{upgrade_to}** ve üzeri planlarda kullanılabilir. "
+            f"Planınızı yükseltmek için **Ayarlar → Plan Yönetimi** sayfasını ziyaret edin."
+        )
+    return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Plan seçim & ödeme ekranları
 # ─────────────────────────────────────────────────────────────────────────────
 _PLAN_PRICES = {
@@ -1761,6 +1816,11 @@ def show_payment() -> None:
             if not all([cardholder.strip(), card_no.strip(), expiry.strip(), cvv.strip()]):
                 st.error("Lütfen tüm kart bilgilerini doldurun.")
             else:
+                period = st.session_state.get("plan_period", "m")
+                user_id = st.session_state.user["id"]
+                save_user_plan(user_id, plan_name, period)
+                st.session_state.user["plan"] = plan_name
+                st.session_state.user["plan_period"] = period
                 st.session_state.new_user = False
                 st.session_state.selected_plan = None
                 st.success(f"✅ {plan_name} planınız aktifleştirildi! Yönlendiriliyorsunuz…")
@@ -1794,12 +1854,27 @@ def show_sidebar() -> None:
         # ReOrder başlığı — tıklanınca Genel Bakış açılır
         if st.button("🔄 ReOrder", key="sidebar_logo_btn", use_container_width=True):
             _go("dashboard")
+        _u_plan = user.get("plan", "Starter")
+        _badge_col = _PLAN_BADGE_COLOR.get(_u_plan, "#6B7280")
         st.markdown(
             f"""
             <div style="padding:.1rem .2rem 1.1rem; border-bottom:1px solid rgba(255,255,255,.1); text-align:center;">
                 <div style="font-size:.72rem; opacity:.5; margin-top:.2rem;">{user['email']}</div>
+                <div style="margin-top:.5rem;">
+                    <span style="
+                        display:inline-block;
+                        background:{_badge_col}22;
+                        border:1px solid {_badge_col}88;
+                        color:{_badge_col};
+                        border-radius:20px;
+                        font-size:.68rem;
+                        font-weight:700;
+                        padding:.18rem .65rem;
+                        letter-spacing:.05em;
+                    ">{_u_plan.upper()}</span>
+                </div>
                 <div style="
-                    margin-top:.65rem;
+                    margin-top:.55rem;
                     font-size:.8rem;
                     font-style:italic;
                     font-weight:700;
@@ -1891,16 +1966,26 @@ def show_sidebar() -> None:
 
         # ── Yeni mağaza ekle ─────────────────────────────────────────────────
         with st.expander("➕ Mağaza Ekle / Yönet"):
-            new_store_name = st.text_input("Yeni Mağaza Adı", placeholder="Mağaza adı", key="new_store_input")
-            if st.button("Ekle", key="add_store_btn", use_container_width=True):
-                if new_store_name.strip():
-                    new_id = create_store(user["id"], new_store_name.strip())
-                    st.session_state.stores = get_stores(user["id"])
-                    st.session_state.active_store_id = new_id
-                    st.success(f"'{new_store_name}' eklendi!")
-                    st.rerun()
-                else:
-                    st.error("Mağaza adı boş olamaz.")
+            _max_stores = _plan_limits()["max_stores"]
+            _store_count = len(stores) if stores else 0
+            _at_limit = _max_stores is not None and _store_count >= _max_stores
+            if _at_limit:
+                _upgrade_to = _PLAN_UPGRADE.get(user.get("plan", "Starter"))
+                st.warning(
+                    f"Planınız en fazla **{_max_stores} mağaza** destekler. "
+                    + (f"Daha fazlası için **{_upgrade_to}** planına geçin — **Ayarlar → Plan Yönetimi**." if _upgrade_to else "")
+                )
+            else:
+                new_store_name = st.text_input("Yeni Mağaza Adı", placeholder="Mağaza adı", key="new_store_input")
+                if st.button("Ekle", key="add_store_btn", use_container_width=True):
+                    if new_store_name.strip():
+                        new_id = create_store(user["id"], new_store_name.strip())
+                        st.session_state.stores = get_stores(user["id"])
+                        st.session_state.active_store_id = new_id
+                        st.success(f"'{new_store_name}' eklendi!")
+                        st.rerun()
+                    else:
+                        st.error("Mağaza adı boş olamaz.")
 
             if stores and len(stores) > 1:
                 st.markdown("---")
@@ -2711,200 +2796,208 @@ def show_analytics() -> None:
             fig2.update_layout(height=220, margin=dict(l=0, r=0, t=10, b=0))
             st.plotly_chart(fig2, use_container_width=True)
 
+    _analytics_tabs = _plan_limits()["analytics_tabs"]
+
     # ── LTV ──────────────────────────────────────────────────────────────────
     with tab_ltv:
-        ltv_df = get_ltv_distribution(user["id"], store_id)
-        top10 = get_top_customers(user["id"], store_id=store_id)
-
-        if ltv_df.empty:
-            st.info("LTV verisi yok.")
+        if "ltv" not in _analytics_tabs:
+            _plan_gate("pdf_report")
         else:
-            c1, c2 = st.columns(2)
+            ltv_df = get_ltv_distribution(user["id"], store_id)
+            top10 = get_top_customers(user["id"], store_id=store_id)
 
-            with c1:
-                _section("LTV Dağılımı (Histogram)")
-                fig = px.histogram(
-                    ltv_df,
-                    x="ltv",
-                    nbins=30,
-                    labels={"ltv": "Müşteri LTV (₺)"},
-                    color_discrete_sequence=["#F27A1A"],
-                    template="plotly_white",
-                )
-                fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0),
-                                  yaxis_title="Müşteri Sayısı")
-                st.plotly_chart(fig, use_container_width=True)
+            if ltv_df.empty:
+                st.info("LTV verisi yok.")
+            else:
+                c1, c2 = st.columns(2)
 
-            with c2:
-                _section("En İyi 10 Müşteri")
-                if not top10.empty:
-                    fig2 = px.bar(
-                        top10.head(10),
+                with c1:
+                    _section("LTV Dağılımı (Histogram)")
+                    fig = px.histogram(
+                        ltv_df,
                         x="ltv",
-                        y="musteri",
-                        orientation="h",
-                        labels={"ltv": "LTV (₺)", "musteri": ""},
-                        color_discrete_sequence=["#3B82F6"],
+                        nbins=30,
+                        labels={"ltv": "Müşteri LTV (₺)"},
+                        color_discrete_sequence=["#F27A1A"],
                         template="plotly_white",
                     )
-                    fig2.update_layout(
-                        height=280, margin=dict(l=0, r=0, t=10, b=0),
-                        yaxis=dict(autorange="reversed"),
-                    )
-                    st.plotly_chart(fig2, use_container_width=True)
+                    fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0),
+                                      yaxis_title="Müşteri Sayısı")
+                    st.plotly_chart(fig, use_container_width=True)
 
-            # Pareto analizi
-            _section("Pareto Analizi (80/20 Kuralı)")
-            ltv_sorted = ltv_df.sort_values("ltv", ascending=False).reset_index(drop=True)
-            total_rev = ltv_sorted["ltv"].sum()
-            ltv_sorted["cumulative_pct"] = ltv_sorted["ltv"].cumsum() / total_rev * 100
-            ltv_sorted["customer_pct"] = (ltv_sorted.index + 1) / len(ltv_sorted) * 100
+                with c2:
+                    _section("En İyi 10 Müşteri")
+                    if not top10.empty:
+                        fig2 = px.bar(
+                            top10.head(10),
+                            x="ltv",
+                            y="musteri",
+                            orientation="h",
+                            labels={"ltv": "LTV (₺)", "musteri": ""},
+                            color_discrete_sequence=["#3B82F6"],
+                            template="plotly_white",
+                        )
+                        fig2.update_layout(
+                            height=280, margin=dict(l=0, r=0, t=10, b=0),
+                            yaxis=dict(autorange="reversed"),
+                        )
+                        st.plotly_chart(fig2, use_container_width=True)
 
-            fig3 = go.Figure()
-            fig3.add_trace(go.Scatter(
-                x=ltv_sorted["customer_pct"],
-                y=ltv_sorted["cumulative_pct"],
-                fill="tozeroy",
-                line=dict(color="#F27A1A", width=2),
-                name="Kümülatif Gelir",
-            ))
-            fig3.add_hline(y=80, line_dash="dash", line_color="#6B7280", annotation_text="80%")
-            fig3.update_layout(
-                height=260,
-                margin=dict(l=0, r=0, t=10, b=0),
-                xaxis_title="Müşteri % (LTV'ye göre sıralı)",
-                yaxis_title="Kümülatif Gelir %",
-                template="plotly_white",
-            )
-            st.plotly_chart(fig3, use_container_width=True)
+                # Pareto analizi
+                _section("Pareto Analizi (80/20 Kuralı)")
+                ltv_sorted = ltv_df.sort_values("ltv", ascending=False).reset_index(drop=True)
+                total_rev = ltv_sorted["ltv"].sum()
+                ltv_sorted["cumulative_pct"] = ltv_sorted["ltv"].cumsum() / total_rev * 100
+                ltv_sorted["customer_pct"] = (ltv_sorted.index + 1) / len(ltv_sorted) * 100
+
+                fig3 = go.Figure()
+                fig3.add_trace(go.Scatter(
+                    x=ltv_sorted["customer_pct"],
+                    y=ltv_sorted["cumulative_pct"],
+                    fill="tozeroy",
+                    line=dict(color="#F27A1A", width=2),
+                    name="Kümülatif Gelir",
+                ))
+                fig3.add_hline(y=80, line_dash="dash", line_color="#6B7280", annotation_text="80%")
+                fig3.update_layout(
+                    height=260,
+                    margin=dict(l=0, r=0, t=10, b=0),
+                    xaxis_title="Müşteri % (LTV'ye göre sıralı)",
+                    yaxis_title="Kümülatif Gelir %",
+                    template="plotly_white",
+                )
+                st.plotly_chart(fig3, use_container_width=True)
 
     # ── Retention Trendi ─────────────────────────────────────────────────────
     with tab_retention:
-        _section("Aylık Retention Oranı Trendi")
-        nvr = get_new_vs_returning(user["id"], store_id)
-        trend = get_monthly_trend(user["id"], store_id)
-
-        if nvr.empty or trend.empty:
-            st.info("Yeterli veri yok.")
+        if "retention" not in _analytics_tabs:
+            _plan_gate("pdf_report")
         else:
-            # Retention = geri_donen / (yeni + geri_donen)
-            merged = nvr.merge(trend[["month_str", "orders"]], on="month_str", how="left")
-            if "yeni_musteri" in merged.columns and "geri_donen" in merged.columns:
-                merged["total_customers"] = merged.get("yeni_musteri", 0) + merged.get("geri_donen", 0)
-                merged["retention_rate"] = (
-                    merged.get("geri_donen", 0) / merged["total_customers"].replace(0, np.nan) * 100
-                ).round(1)
+            _section("Aylık Retention Oranı Trendi")
+            nvr = get_new_vs_returning(user["id"], store_id)
+            trend = get_monthly_trend(user["id"], store_id)
 
-                fig = px.line(
-                    merged,
-                    x="month_str",
-                    y="retention_rate",
-                    markers=True,
-                    labels={"month_str": "Ay", "retention_rate": "Retention Oranı (%)"},
-                    color_discrete_sequence=["#10B981"],
-                    template="plotly_white",
-                )
-                fig.update_traces(line=dict(width=2.5))
-                fig.update_layout(
-                    height=300, margin=dict(l=0, r=0, t=10, b=0),
-                    yaxis=dict(range=[0, 100], ticksuffix="%"),
-                )
-                st.plotly_chart(fig, use_container_width=True)
+            if nvr.empty or trend.empty:
+                st.info("Yeterli veri yok.")
+            else:
+                # Retention = geri_donen / (yeni + geri_donen)
+                merged = nvr.merge(trend[["month_str", "orders"]], on="month_str", how="left")
+                if "yeni_musteri" in merged.columns and "geri_donen" in merged.columns:
+                    merged["total_customers"] = merged.get("yeni_musteri", 0) + merged.get("geri_donen", 0)
+                    merged["retention_rate"] = (
+                        merged.get("geri_donen", 0) / merged["total_customers"].replace(0, np.nan) * 100
+                    ).round(1)
 
-                _section("Aylık Sipariş Hacmi")
-                fig2 = px.bar(
-                    trend,
-                    x="month_str",
-                    y="orders",
-                    labels={"month_str": "Ay", "orders": "Sipariş Sayısı"},
-                    color_discrete_sequence=["#F27A1A"],
-                    template="plotly_white",
-                )
-                fig2.update_layout(height=220, margin=dict(l=0, r=0, t=10, b=0))
-                st.plotly_chart(fig2, use_container_width=True)
+                    fig = px.line(
+                        merged,
+                        x="month_str",
+                        y="retention_rate",
+                        markers=True,
+                        labels={"month_str": "Ay", "retention_rate": "Retention Oranı (%)"},
+                        color_discrete_sequence=["#10B981"],
+                        template="plotly_white",
+                    )
+                    fig.update_traces(line=dict(width=2.5))
+                    fig.update_layout(
+                        height=300, margin=dict(l=0, r=0, t=10, b=0),
+                        yaxis=dict(range=[0, 100], ticksuffix="%"),
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                    _section("Aylık Sipariş Hacmi")
+                    fig2 = px.bar(
+                        trend,
+                        x="month_str",
+                        y="orders",
+                        labels={"month_str": "Ay", "orders": "Sipariş Sayısı"},
+                        color_discrete_sequence=["#F27A1A"],
+                        template="plotly_white",
+                    )
+                    fig2.update_layout(height=220, margin=dict(l=0, r=0, t=10, b=0))
+                    st.plotly_chart(fig2, use_container_width=True)
 
     # ── Ürün Analizi ─────────────────────────────────────────────────────────
     with tab_product:
-        prod = get_product_analysis(user["id"], store_id)
-
-        if prod["retention"].empty:
-            st.info("Ürün analizi için sipariş verilerinde ürün adı sütunu gereklidir.")
+        if "product" not in _analytics_tabs:
+            _plan_gate("pdf_report")
         else:
-            _section("🔁 Ürün Başına Tekrar Alım Oranı")
-            st.markdown(
-                """<div class="info-box" style="font-size:.82rem;">
-                Bir ürünü satın alan müşterilerin yüzde kaçı başka bir sipariş daha verdi?
-                Yüksek oran → müşteri sadakatini tetikleyen ürün.
-                </div>""",
-                unsafe_allow_html=True,
-            )
-
-            ret_df = prod["retention"].copy()
-            ret_df["product_label"] = ret_df["product_name"].apply(
-                lambda x: x[:32] + "…" if len(str(x)) > 32 else x
-            )
-
-            c1, c2 = st.columns(2)
-            with c1:
-                _section("Alıcı Sayısına Göre")
-                fig_ret = go.Figure(go.Bar(
-                    x=ret_df["retention_rate"],
-                    y=ret_df["product_label"],
-                    orientation="h",
-                    marker=dict(
-                        color=ret_df["retention_rate"],
-                        colorscale=[[0, "#FEE2E2"], [0.5, "#F27A1A"], [1, "#10B981"]],
-                        showscale=False,
-                    ),
-                    text=ret_df["retention_rate"].apply(lambda v: f"%{v:.0f}"),
-                    textposition="outside",
-                    customdata=ret_df["buyer_count"],
-                    hovertemplate="<b>%{y}</b><br>Tekrar: %{x}%<br>Alıcı: %{customdata}<extra></extra>",
-                ))
-                fig_ret.update_layout(
-                    height=max(280, len(ret_df) * 30 + 60),
-                    margin=dict(l=0, r=50, t=8, b=0),
-                    xaxis=dict(title="Tekrar Alım %", ticksuffix="%", range=[0, 110]),
-                    yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
-                    template="plotly_white",
+            prod = get_product_analysis(user["id"], store_id)
+            if prod["retention"].empty:
+                st.info("Ürün analizi için sipariş verilerinde ürün adı sütunu gereklidir.")
+            else:
+                _section("🔁 Ürün Başına Tekrar Alım Oranı")
+                st.markdown(
+                    """<div class="info-box" style="font-size:.82rem;">
+                    Bir ürünü satın alan müşterilerin yüzde kaçı başka bir sipariş daha verdi?
+                    Yüksek oran → müşteri sadakatini tetikleyen ürün.
+                    </div>""",
+                    unsafe_allow_html=True,
                 )
-                st.plotly_chart(fig_ret, use_container_width=True)
-
-            with c2:
-                _section("Müşteri Başı Ortalama Gelir")
-                ltv_df = prod["ltv"].copy()
-                ltv_df["product_label"] = ltv_df["product_name"].apply(
+                ret_df = prod["retention"].copy()
+                ret_df["product_label"] = ret_df["product_name"].apply(
                     lambda x: x[:32] + "…" if len(str(x)) > 32 else x
                 )
-                fig_ltv = go.Figure(go.Bar(
-                    x=ltv_df["avg_revenue_per_buyer"],
-                    y=ltv_df["product_label"],
-                    orientation="h",
-                    marker=dict(color="#3B82F6"),
-                    text=ltv_df["avg_revenue_per_buyer"].apply(lambda v: f"₺{v:,.0f}"),
-                    textposition="outside",
-                    hovertemplate="<b>%{y}</b><br>Ort. Gelir: ₺%{x:,.2f}<extra></extra>",
-                ))
-                fig_ltv.update_layout(
-                    height=max(280, len(ltv_df) * 30 + 60),
-                    margin=dict(l=0, r=70, t=8, b=0),
-                    xaxis=dict(title="Müşteri Başı Gelir (₺)", tickprefix="₺"),
-                    yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
-                    template="plotly_white",
-                )
-                st.plotly_chart(fig_ltv, use_container_width=True)
-
-            _section("📋 Ürün Detay Tablosu")
-            tbl = ret_df[["product_name", "buyer_count", "repeat_buyers", "retention_rate", "total_revenue"]].copy()
-            tbl.columns = ["Ürün", "Alıcı", "Tekrar Alıcı", "Tekrar Oranı (%)", "Toplam Gelir (₺)"]
-            tbl["Toplam Gelir (₺)"] = tbl["Toplam Gelir (₺)"].apply(_fmt_tl)
-            st.dataframe(tbl, use_container_width=True, hide_index=True)
+                c1, c2 = st.columns(2)
+                with c1:
+                    _section("Alıcı Sayısına Göre")
+                    fig_ret = go.Figure(go.Bar(
+                        x=ret_df["retention_rate"],
+                        y=ret_df["product_label"],
+                        orientation="h",
+                        marker=dict(
+                            color=ret_df["retention_rate"],
+                            colorscale=[[0, "#FEE2E2"], [0.5, "#F27A1A"], [1, "#10B981"]],
+                            showscale=False,
+                        ),
+                        text=ret_df["retention_rate"].apply(lambda v: f"%{v:.0f}"),
+                        textposition="outside",
+                        customdata=ret_df["buyer_count"],
+                        hovertemplate="<b>%{y}</b><br>Tekrar: %{x}%<br>Alıcı: %{customdata}<extra></extra>",
+                    ))
+                    fig_ret.update_layout(
+                        height=max(280, len(ret_df) * 30 + 60),
+                        margin=dict(l=0, r=50, t=8, b=0),
+                        xaxis=dict(title="Tekrar Alım %", ticksuffix="%", range=[0, 110]),
+                        yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
+                        template="plotly_white",
+                    )
+                    st.plotly_chart(fig_ret, use_container_width=True)
+                with c2:
+                    _section("Müşteri Başı Ortalama Gelir")
+                    ltv_df2 = prod["ltv"].copy()
+                    ltv_df2["product_label"] = ltv_df2["product_name"].apply(
+                        lambda x: x[:32] + "…" if len(str(x)) > 32 else x
+                    )
+                    fig_ltv2 = go.Figure(go.Bar(
+                        x=ltv_df2["avg_revenue_per_buyer"],
+                        y=ltv_df2["product_label"],
+                        orientation="h",
+                        marker=dict(color="#3B82F6"),
+                        text=ltv_df2["avg_revenue_per_buyer"].apply(lambda v: f"₺{v:,.0f}"),
+                        textposition="outside",
+                        hovertemplate="<b>%{y}</b><br>Ort. Gelir: ₺%{x:,.2f}<extra></extra>",
+                    ))
+                    fig_ltv2.update_layout(
+                        height=max(280, len(ltv_df2) * 30 + 60),
+                        margin=dict(l=0, r=70, t=8, b=0),
+                        xaxis=dict(title="Müşteri Başı Gelir (₺)", tickprefix="₺"),
+                        yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
+                        template="plotly_white",
+                    )
+                    st.plotly_chart(fig_ltv2, use_container_width=True)
+                _section("📋 Ürün Detay Tablosu")
+                tbl = ret_df[["product_name", "buyer_count", "repeat_buyers", "retention_rate", "total_revenue"]].copy()
+                tbl.columns = ["Ürün", "Alıcı", "Tekrar Alıcı", "Tekrar Oranı (%)", "Toplam Gelir (₺)"]
+                tbl["Toplam Gelir (₺)"] = tbl["Toplam Gelir (₺)"].apply(_fmt_tl)
+                st.dataframe(tbl, use_container_width=True, hide_index=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Sayfa: Müşteri Segmentleri
 # ─────────────────────────────────────────────────────────────────────────────
 def show_segments() -> None:
+    if not _plan_gate("segments"):
+        return
     user = st.session_state.user
     store_id = st.session_state.get("active_store_id")
     _header("👥", "Müşteri Segmentleri", "RFM tabanlı otomatik segmentasyon")
@@ -3111,6 +3204,8 @@ def show_segments() -> None:
 # Sayfa: E-posta Kampanyaları
 # ─────────────────────────────────────────────────────────────────────────────
 def show_campaigns() -> None:
+    if not _plan_gate("campaigns"):
+        return
     user = st.session_state.user
     store_id = st.session_state.get("active_store_id")
     _header("📧", "E-posta Kampanyaları", "Segment bazlı müşteri iletişimi")
@@ -3395,7 +3490,7 @@ def show_settings() -> None:
     store_id = st.session_state.get("active_store_id")
     _header("⚙️", "Ayarlar", "Hesap ve mağaza bilgilerinizi yönetin")
 
-    tab_account, tab_goals, tab_api = st.tabs(["👤 Hesap Bilgileri", "🎯 Hedefler", "🔌 Trendyol API (Pro)"])
+    tab_account, tab_goals, tab_api, tab_plan = st.tabs(["👤 Hesap Bilgileri", "🎯 Hedefler", "🔌 Trendyol API (Enterprise)", "💎 Plan Yönetimi"])
 
     with tab_goals:
         _section("🎯 Aylık Hedefler")
@@ -3451,7 +3546,33 @@ def show_settings() -> None:
                     else:
                         st.error(res["error"])
 
+    with tab_plan:
+        _cur_plan = user.get("plan", "Starter")
+        _cur_period = user.get("plan_period", "m")
+        _badge_col2 = _PLAN_BADGE_COLOR.get(_cur_plan, "#6B7280")
+        st.markdown(
+            f"""<div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
+            <span style="font-size:1.4rem;font-weight:700;">Mevcut Planınız:</span>
+            <span style="background:{_badge_col2};color:#fff;padding:6px 18px;border-radius:999px;font-weight:700;font-size:1rem;letter-spacing:.06em;">
+                {_cur_plan.upper()}
+            </span>
+            <span style="color:#9CA3AF;font-size:.85rem;">{'Yıllık' if _cur_period == 'y' else 'Aylık'} ödeme</span>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+        _upgrade_plan = _PLAN_UPGRADE.get(_cur_plan)
+        if _upgrade_plan:
+            st.markdown(f"**{_upgrade_plan}** planına yükselterek daha fazla özelliğe erişin.")
+            if st.button(f"⬆️ {_upgrade_plan} Planına Geç", use_container_width=True, type="primary"):
+                st.session_state.selected_plan = _upgrade_plan
+                st.session_state.new_user = True
+                st.rerun()
+        else:
+            st.success("En yüksek planda bulunuyorsunuz. Tüm özellikler açık!")
+
     with tab_api:
+        if not _plan_gate("trendyol_api"):
+            st.stop()
         creds_s = load_credentials(user["id"], store_id)
         st.markdown(
             """<div class="info-box">

@@ -119,7 +119,7 @@ def login_user(email: str, password: str) -> dict:
 
     conn = get_connection()
     row = conn.execute(
-        "SELECT id, email, password_hash, store_name FROM users WHERE email = ?",
+        "SELECT id, email, password_hash, store_name, plan, plan_period FROM users WHERE email = ?",
         (email,),
     ).fetchone()
     conn.close()
@@ -133,6 +133,8 @@ def login_user(email: str, password: str) -> dict:
             "id": row["id"],
             "email": row["email"],
             "store_name": row["store_name"],
+            "plan": row["plan"] or "Starter",
+            "plan_period": row["plan_period"] or "m",
         },
     }
 
@@ -184,7 +186,7 @@ def verify_session_token(token: str) -> dict | None:
     conn = get_connection()
     row = conn.execute(
         """
-        SELECT u.id, u.email, u.store_name
+        SELECT u.id, u.email, u.store_name, u.plan, u.plan_period
         FROM   session_tokens st
         JOIN   users u ON u.id = st.user_id
         WHERE  st.token = ?
@@ -195,7 +197,13 @@ def verify_session_token(token: str) -> dict | None:
     conn.close()
     if not row:
         return None
-    return {"id": row["id"], "email": row["email"], "store_name": row["store_name"]}
+    return {
+        "id": row["id"],
+        "email": row["email"],
+        "store_name": row["store_name"],
+        "plan": row["plan"] or "Starter",
+        "plan_period": row["plan_period"] or "m",
+    }
 
 
 def delete_session_token(token: str) -> None:

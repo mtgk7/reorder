@@ -310,6 +310,13 @@ def _migrate_postgres(cur) -> None:
         ) WHERE store_id IS NULL
     """)
 
+    # ── Plan sistemi ──────────────────────────────────────────────────────────
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Pro'")
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_period TEXT DEFAULT 'm'")
+    # Mevcut kullanıcılar Pro planıyla başlasın (kırılmayı önler)
+    cur.execute("UPDATE users SET plan = 'Pro' WHERE plan IS NULL")
+    cur.execute("UPDATE users SET plan_period = 'm' WHERE plan_period IS NULL")
+
     # ── Hedef / KPI Takibi ────────────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS goals (
@@ -467,6 +474,15 @@ def _migrate_sqlite(cur) -> None:
         ) WHERE store_id IS NULL
     """)
 
+    # ── Plan sistemi ──────────────────────────────────────────────────────────
+    for col_def in [("plan", "TEXT DEFAULT 'Pro'"), ("plan_period", "TEXT DEFAULT 'm'")]:
+        try:
+            cur.execute(f"ALTER TABLE users ADD COLUMN {col_def[0]} {col_def[1]}")
+        except Exception:
+            pass
+    cur.execute("UPDATE users SET plan = 'Pro' WHERE plan IS NULL")
+    cur.execute("UPDATE users SET plan_period = 'm' WHERE plan_period IS NULL")
+
     # ── Hedef / KPI Takibi ────────────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS goals (
@@ -496,6 +512,19 @@ def _migrate_sqlite(cur) -> None:
     cur.execute(
         "CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id)"
     )
+
+
+# ─── Plan yönetimi ───────────────────────────────────────────────────────────
+
+def save_user_plan(user_id: int, plan: str, plan_period: str) -> None:
+    """Kullanıcının planını ve dönemini kaydeder."""
+    conn = get_connection()
+    conn.execute(
+        "UPDATE users SET plan = ?, plan_period = ? WHERE id = ?",
+        (plan, plan_period, user_id),
+    )
+    conn.commit()
+    conn.close()
 
 
 # ─── Yardımcı fonksiyonlar ───────────────────────────────────────────────────
