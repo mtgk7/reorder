@@ -1340,7 +1340,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="pf"><div class="pok">&#10003;</div>Cohort Analizi</div>
       <div class="pf"><div class="pno">&#10005;</div><span class="dim">PDF Rapor</span></div>
       <div class="pf"><div class="pno">&#10005;</div><span class="dim">Kampanyalar</span></div>
-      <button class="pcta cout">Ba&#351;la</button>
+      <button class="pcta cout" onclick="goRegister()">Ba&#351;la</button>
     </div>
     <div class="plan pop">
       <div class="pr">EN POP&#220;LER</div>
@@ -1353,7 +1353,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="pf"><div class="pok">&#10003;</div>Cohort + RFM</div>
       <div class="pf"><div class="pok">&#10003;</div>PDF Rapor</div>
       <div class="pf"><div class="pno">&#10005;</div><span class="dim">Kampanyalar</span></div>
-      <button class="pcta cmain">&#350;imdi Ba&#351;la &#8594;</button>
+      <button class="pcta cmain" onclick="goRegister()">&#350;imdi Ba&#351;la &#8594;</button>
     </div>
     <div class="plan">
       <div class="pn">Enterprise</div>
@@ -1365,7 +1365,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="pf"><div class="pok">&#10003;</div>E-posta Kampanya</div>
       <div class="pf"><div class="pok">&#10003;</div>&#214;ncelikli Destek</div>
       <div class="pf"><div class="pok">&#10003;</div>API Eri&#351;imi</div>
-      <button class="pcta cout">Ba&#351;la</button>
+      <button class="pcta cout" onclick="goRegister()">Ba&#351;la</button>
     </div>
   </div>
 </div>
@@ -1393,6 +1393,10 @@ function sp(period,btn){
     else el.classList.add('h');
   });
 }
+function goRegister(){
+    var url=window.parent.location.href.split('?')[0];
+    window.parent.location.href=url+'?action=register';
+}
 </script>
 </body>
 </html>"""
@@ -1418,6 +1422,20 @@ function sp(period,btn){
         )
 
         tab_giris, tab_kayit = st.tabs(["🔐 Giriş Yap", "✨ Hesap Oluştur"])
+
+        if st.query_params.get("action") == "register":
+            st.markdown("""
+            <script>
+            (function(){
+                function tryClick(n){
+                    var tabs=window.parent.document.querySelectorAll('[role="tab"]');
+                    if(tabs&&tabs.length>1){tabs[1].click();}
+                    else if(n>0){setTimeout(function(){tryClick(n-1);},200);}
+                }
+                setTimeout(function(){tryClick(15);},250);
+            })();
+            </script>
+            """, unsafe_allow_html=True)
 
         with tab_giris:
             with st.form("login_form"):
