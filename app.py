@@ -892,7 +892,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 .ticker-wrap{flex:1;overflow:hidden;position:relative;}
 .ticker-wrap::before{content:"";position:absolute;left:0;top:0;bottom:0;width:32px;background:linear-gradient(to right,#fff,transparent);z-index:1;}
 .ticker-wrap::after{content:"";position:absolute;right:0;top:0;bottom:0;width:32px;background:linear-gradient(to left,#fff,transparent);z-index:1;}
-.ticker{display:flex;animation:ticker 65s linear infinite;white-space:nowrap;}
+.ticker{display:flex;animation:ticker 42s linear infinite;white-space:nowrap;}
 .ticker:hover{animation-play-state:paused;}
 .ti{font-size:.69rem;color:#6b7280;padding:0 2rem;}
 .ti strong{color:#374151;font-weight:600;}
@@ -993,7 +993,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 </div>
 <!-- LIVE BAR -->
 <div class="live-bar">
-  <div class="live-badge">&#129309; &#304;&#351; Ortaklar&#305;m&#305;z</div>
+  <div class="live-badge">&#129309; 150+ &#304;&#351; Orta&#287;&#305;m&#305;z</div>
   <div class="ticker-wrap">
     <div class="ticker">
       <span class="ti"><strong>KozmikModa</strong></span>
@@ -1139,14 +1139,14 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
   <div class="sec-sub">14 g&#252;n &#252;cretsiz dene &mdash; kredi kart&#305; gerekmez.</div>
   <div class="period-toggle">
     <button class="pt on" onclick="sp('m',this)">Ayl&#305;k</button>
-    <button class="pt" onclick="sp('q',this)">3 Ayl&#305;k <span class="sb">&minus;15%</span></button>
-    <button class="pt" onclick="sp('y',this)">Y&#305;ll&#305;k <span class="sb">&minus;35%</span></button>
+    <button class="pt" onclick="sp('q',this)">3 Ayl&#305;k <span class="sb">&minus;10%</span></button>
+    <button class="pt" onclick="sp('y',this)">Y&#305;ll&#305;k <span class="sb">&minus;18%</span></button>
   </div>
   <div class="plans">
     <div class="plan">
       <div class="pn">Starter</div>
-      <div class="pp"><span class="pc">&#8378;</span><span class="pa"><span class="pv s" id="sm">199</span><span class="pv" id="sq">169</span><span class="pv" id="sy">129</span></span></div>
-      <div class="pper">/ay</div><div class="pnote" id="sn">ayl&#305;k faturaland&#305;rma</div>
+      <div class="pp"><span class="pc">&#8378;</span><span class="pa"><span class="pv s" id="sm">349</span><span class="pv" id="sq">875</span><span class="pv" id="sy">2.699</span></span></div>
+      <div class="pper" id="sp-pper">/ay</div><div class="pnote" id="sn">ayl&#305;k faturaland&#305;rma</div>
       <div class="psave h" id="ss">&#8212;</div><div class="pd"></div>
       <div class="pf"><div class="pok">&#10003;</div>1 Ma&#287;aza</div>
       <div class="pf"><div class="pok">&#10003;</div>Dashboard &amp; KPI</div>
@@ -1158,8 +1158,8 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
     <div class="plan pop">
       <div class="pr">EN POP&#220;LER</div>
       <div class="pn">Pro</div>
-      <div class="pp"><span class="pc">&#8378;</span><span class="pa"><span class="pv s" id="pm">399</span><span class="pv" id="pq">339</span><span class="pv" id="py">259</span></span></div>
-      <div class="pper">/ay</div><div class="pnote" id="pnn">ayl&#305;k faturaland&#305;rma</div>
+      <div class="pp"><span class="pc">&#8378;</span><span class="pa"><span class="pv s" id="pm">699</span><span class="pv" id="pq">1.875</span><span class="pv" id="py">6.900</span></span></div>
+      <div class="pper" id="pp-pper">/ay</div><div class="pnote" id="pnn">ayl&#305;k faturaland&#305;rma</div>
       <div class="psave h" id="ps">&#8212;</div><div class="pd"></div>
       <div class="pf"><div class="pok">&#10003;</div>3 Ma&#287;aza</div>
       <div class="pf"><div class="pok">&#10003;</div>Dashboard &amp; KPI</div>
@@ -1170,8 +1170,8 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
     </div>
     <div class="plan">
       <div class="pn">Enterprise</div>
-      <div class="pp"><span class="pc">&#8378;</span><span class="pa"><span class="pv s" id="em">799</span><span class="pv" id="eq">679</span><span class="pv" id="ey">519</span></span></div>
-      <div class="pper">/ay</div><div class="pnote" id="en">ayl&#305;k faturaland&#305;rma</div>
+      <div class="pp"><span class="pc">&#8378;</span><span class="pa"><span class="pv s" id="em">1.249</span><span class="pv" id="eq">3.550</span><span class="pv" id="ey">12.000</span></span></div>
+      <div class="pper" id="ep-pper">/ay</div><div class="pnote" id="en">ayl&#305;k faturaland&#305;rma</div>
       <div class="psave h" id="es">&#8212;</div><div class="pd"></div>
       <div class="pf"><div class="pok">&#10003;</div>S&#305;n&#305;rs&#305;z Ma&#287;aza</div>
       <div class="pf"><div class="pok">&#10003;</div>T&#252;m Pro &#214;zellikler</div>
@@ -1185,7 +1185,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 <!-- TOAST AREA -->
 <div class="toast-area" id="ta"></div>
 <script>
-var saves={q:{s:(199-169)*3,p:(399-339)*3,e:(799-679)*3},y:{s:(199-129)*12,p:(399-259)*12,e:(799-519)*12}};
+var saves={q:{s:172,p:222,e:197},y:{s:1489,p:1488,e:2988}};
 function sp(period,btn){
   document.querySelectorAll('.pt').forEach(function(b){b.classList.remove('on');});
   btn.classList.add('on');
@@ -1197,12 +1197,14 @@ function sp(period,btn){
       if(el){el.classList.remove('s');if(periods[i]===period)el.classList.add('s');}
     });
   });
-  var noteMap={m:'aylık faturalandırma',q:'3 aylık faturalandırma',y:'yıllık faturalandırma'};
+  var noteMap={m:'aylık faturalandırma',q:'3 aylık (toplam fiyat)',y:'yıllık (toplam fiyat)'};
   ['sn','pnn','en'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=noteMap[period];});
+  var pperMap={m:'/ay',q:'/3 ay',y:'/yıl'};
+  ['sp-pper','pp-pper','ep-pper'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=pperMap[period];});
   var sv=saves[period];
   [['ss','s'],['ps','p'],['es','e']].forEach(function(pair){
     var el=document.getElementById(pair[0]);if(!el)return;
-    if(sv&&sv[pair[1]]){el.textContent='₺'+sv[pair[1]]+' tasarruf';el.classList.remove('h');}
+    if(sv&&sv[pair[1]]){el.textContent='₺'+sv[pair[1]].toLocaleString('tr-TR')+' tasarruf';el.classList.remove('h');}
     else el.classList.add('h');
   });
 }
