@@ -3494,7 +3494,7 @@ def main() -> None:
         show_auth()
         return
 
-    if st.session_state.get("new_user"):
+    if st.session_state.get("new_user") or st.query_params.get("_demo") == "plan":
         if st.session_state.get("selected_plan"):
             show_payment()
         else:
