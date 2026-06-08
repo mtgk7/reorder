@@ -850,7 +850,7 @@ body,html{overflow-x:hidden;}
     <span style="background:#fff0e0;border:1px solid rgba(242,133,0,.3);border-radius:20px;padding:.15rem .6rem;font-size:.64rem;font-weight:700;color:#d46000;">+34% Retention</span>
     <span style="background:#f0fdf4;border:1px solid rgba(16,185,129,.3);border-radius:20px;padding:.15rem .6rem;font-size:.64rem;font-weight:700;color:#059669;">-41% Churn</span>
     <span style="background:#eff6ff;border:1px solid rgba(59,130,246,.2);border-radius:20px;padding:.15rem .6rem;font-size:.64rem;font-weight:700;color:#1d4ed8;">3.2x LTV</span>
-    <span style="background:#f0fdfa;border:1px solid rgba(20,184,166,.2);border-radius:20px;padding:.15rem .6rem;font-size:.64rem;font-weight:700;color:#0f766e;">500+ Ma&#287;aza</span>
+    <span style="background:#f0fdfa;border:1px solid rgba(20,184,166,.2);border-radius:20px;padding:.15rem .6rem;font-size:.64rem;font-weight:700;color:#0f766e;">150+ Ma&#287;aza</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -988,7 +988,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
     <div class="stat"><div class="sv">+<em>34</em>%</div><div class="sl">Retention Art&#305;&#351;&#305;</div></div>
     <div class="stat"><div class="sv"><em>3.2</em>x</div><div class="sl">LTV Kazan&#305;m&#305;</div></div>
     <div class="stat"><div class="sv">&minus;<em>41</em>%</div><div class="sl">Churn Azalmas&#305;</div></div>
-    <div class="stat"><div class="sv"><em>500</em>+</div><div class="sl">Aktif Ma&#287;aza</div></div>
+    <div class="stat"><div class="sv"><em>150</em>+</div><div class="sl">Aktif Ma&#287;aza</div></div>
   </div>
 </div>
 <!-- LIVE BAR -->
@@ -1127,7 +1127,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
     <div class="soc-av-more">+496</div>
   </div>
   <div class="soc-text">
-    <strong>500+ Trendyol ma&#287;azas&#305;</strong> ReOrder ile retention'&#305;n&#305; art&#305;rd&#305;.
+    <strong>150+ Trendyol ma&#287;azas&#305;</strong> ReOrder ile retention'&#305;n&#305; art&#305;rd&#305;.
     <div style="font-size:.65rem;color:#9ca3af;margin-top:.12rem;">Ortalama 34% daha fazla geri d&#246;nen m&#252;&#351;teri</div>
   </div>
   <div class="soc-rating"><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><div class="rating-val">4.9</div></div>
