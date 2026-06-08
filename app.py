@@ -964,13 +964,6 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 .cout:hover{background:#f3f4f6;}
 .cmain{background:linear-gradient(135deg,#F28500,#D46000);color:#fff;box-shadow:0 3px 12px rgba(242,133,0,.4);}
 .cmain:hover{box-shadow:0 6px 20px rgba(242,133,0,.5);}
-.toast-area{position:fixed;bottom:1.2rem;left:1.2rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none;}
-.toast{background:#fff;border:1px solid #e8edf5;border-radius:11px;padding:.6rem .85rem;box-shadow:0 4px 18px rgba(0,0,0,.1);display:flex;align-items:center;gap:.55rem;font-size:.71rem;color:#374151;max-width:255px;animation:tIn .4s ease,tOut .4s ease 4.2s forwards;}
-.tic{font-size:.95rem;flex-shrink:0;}
-.ttx strong{font-weight:700;color:#0f1a35;}
-.ttm{font-size:.6rem;color:#9ca3af;margin-top:.1rem;}
-@keyframes tIn{from{opacity:0;transform:translateX(-18px);}to{opacity:1;transform:translateX(0);}}
-@keyframes tOut{from{opacity:1;}to{opacity:0;transform:translateY(6px);}}
 .pv{display:none;}.pv.s{display:inline;}
 </style>
 </head>
@@ -1182,8 +1175,6 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
     </div>
   </div>
 </div>
-<!-- TOAST AREA -->
-<div class="toast-area" id="ta"></div>
 <script>
 var saves={q:{s:172,p:222,e:197},y:{s:1489,p:1488,e:2988}};
 function sp(period,btn){
@@ -1208,25 +1199,6 @@ function sp(period,btn){
     else el.classList.add('h');
   });
 }
-var toasts=[
-  {i:'&#127978;',t:'<strong>KozmikModa</strong> 147 sipariş senkronize etti',m:'Az önce'},
-  {i:'&#128202;',t:'<strong>TechnoMart</strong> cohort raporu indirdi',m:'2 dk önce'},
-  {i:'&#9889;',t:'<strong>SportStyle</strong> churn analizi çalıştırdı',m:'5 dk önce'},
-  {i:'&#128142;',t:'<strong>PetShopTR</strong> 23 VIP müşteri tespit etti',m:'9 dk önce'},
-  {i:'&#128196;',t:'<strong>GiyimHane</strong> PDF raporu hazırladı',m:'14 dk önce'},
-  {i:'&#128257;',t:'<strong>ElektroStore</strong> 89 churn riski buldu',m:'18 dk önce'},
-];
-var ti=0;
-function showToast(){
-  var area=document.getElementById('ta');if(!area)return;
-  var t=toasts[ti%toasts.length];
-  var d=document.createElement('div');d.className='toast';
-  d.innerHTML='<span class="tic">'+t.i+'</span><div class="ttx">'+t.t+'<div class="ttm">'+t.m+'</div></div>';
-  area.appendChild(d);
-  setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d);},5000);
-  ti++;
-}
-setTimeout(showToast,2000);setInterval(showToast,9000);
 </script>
 </body>
 </html>"""
