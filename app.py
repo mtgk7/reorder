@@ -55,7 +55,7 @@ from src.analytics import (
 # _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
 # Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
-_SCHEMA_VER = "v6"  # orders unique constraint store_id eklendi
+_SCHEMA_VER = "v7"  # plan sistemi: users.plan/plan_period kolonları
 
 
 @st.cache_resource

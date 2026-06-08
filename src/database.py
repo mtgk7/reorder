@@ -292,6 +292,22 @@ def _migrate_postgres(cur) -> None:
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_stores_user ON stores(user_id)")
 
+    # campaigns tablosunu store_id eklenmeden ÖNCE oluştur
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS campaigns (
+            id             SERIAL PRIMARY KEY,
+            user_id        INTEGER NOT NULL,
+            store_id       INTEGER REFERENCES stores(id),
+            segment        TEXT NOT NULL,
+            subject        TEXT,
+            sent_to        TEXT,
+            customer_count INTEGER DEFAULT 0,
+            sent_at        TIMESTAMPTZ DEFAULT NOW(),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id)")
+
     # orders ve campaigns tablolarına store_id ekle
     cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES stores(id)")
     cur.execute("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES stores(id)")
@@ -329,24 +345,6 @@ def _migrate_postgres(cur) -> None:
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS campaigns (
-            id             SERIAL PRIMARY KEY,
-            user_id        INTEGER NOT NULL,
-            store_id       INTEGER REFERENCES stores(id),
-            segment        TEXT NOT NULL,
-            subject        TEXT,
-            sent_to        TEXT,
-            customer_count INTEGER DEFAULT 0,
-            sent_at        TIMESTAMPTZ DEFAULT NOW(),
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    """)
-    cur.execute(
-        "CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id)"
-    )
-
 
 def _init_sqlite() -> None:
     os.makedirs(_DB_PATH.parent, exist_ok=True)
