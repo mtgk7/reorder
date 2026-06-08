@@ -1129,7 +1129,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 <div class="pricing">
   <div class="sec-tag">Fiyatland&#305;rma</div>
   <div class="sec-title">Ma&#287;azan&#305;za uygun plan</div>
-  <div class="sec-sub">14 g&#252;n &#252;cretsiz dene &mdash; kredi kart&#305; gerekmez.</div>
+  <div class="sec-sub">Ma&#287;azan&#305;z&#305;n büyüklü&#287;üne göre plan seçin.</div>
   <div class="period-toggle">
     <button class="pt on" onclick="sp('m',this)">Ayl&#305;k</button>
     <button class="pt" onclick="sp('q',this)">3 Ayl&#305;k <span class="sb">&minus;10%</span></button>
@@ -1146,7 +1146,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="pf"><div class="pok">&#10003;</div>Cohort Analizi</div>
       <div class="pf"><div class="pno">&#10005;</div><span class="dim">PDF Rapor</span></div>
       <div class="pf"><div class="pno">&#10005;</div><span class="dim">Kampanyalar</span></div>
-      <button class="pcta cout">&#220;cretsiz Ba&#351;la</button>
+      <button class="pcta cout">Ba&#351;la</button>
     </div>
     <div class="plan pop">
       <div class="pr">EN POP&#220;LER</div>
@@ -1217,7 +1217,7 @@ function sp(period,btn){
                 <div style="font-size:1.2rem;font-weight:800;color:#fff;letter-spacing:-.01em;">
                     Hesab&#305;na Giri&#351; Yap</div>
                 <div style="font-size:.76rem;color:rgba(255,255,255,.32);margin-top:.22rem;">
-                    ya da 14 g&#252;n &#252;cretsiz ba&#351;la</div>
+                    Hesab&#305;n&#305; olu&#351;tur ve hemen kullan</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1268,23 +1268,6 @@ function sp(period,btn){
                     else:
                         st.error(res["error"])
 
-        st.markdown(
-            """
-            <div style="margin-top:.9rem;background:rgba(242,133,0,.08);
-                border:1px solid rgba(242,133,0,.22);border-radius:12px;
-                padding:.85rem 1rem;text-align:center;position:relative;z-index:1;">
-                <div style="font-size:.67rem;font-weight:800;color:#F28500;
-                    text-transform:uppercase;letter-spacing:.1em;margin-bottom:.28rem;">
-                    &#127873; 14 G&#252;n &#220;cretsiz Deneme</div>
-                <div style="font-size:.7rem;color:rgba(255,255,255,.3);line-height:1.55;">
-                    Kredi kart&#305; gerekmez &nbsp;&#183;&nbsp;
-                    &#304;stedi&#287;in zaman iptal &nbsp;&#183;&nbsp;
-                    T&#252;m &#246;zelliklere tam eri&#351;im
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
     # ── Footer ─────────────────────────────────────────────────────────────────
     st.markdown(
