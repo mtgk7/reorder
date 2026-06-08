@@ -772,16 +772,10 @@ def _contact_dialog() -> None:
         unsafe_allow_html=True,
     )
     with st.form("contact_form", border=False):
-        c1, c2 = st.columns(2)
-        with c1:
-            name = st.text_input("Ad Soyad", placeholder="Ahmet Yılmaz")
-        with c2:
-            company = st.text_input("Mağaza / Şirket Adı", placeholder="Mağazanızın adı")
-        c3, c4 = st.columns(2)
-        with c3:
-            email = st.text_input("E-posta", placeholder="ahmet@magaza.com")
-        with c4:
-            phone = st.text_input("Telefon", placeholder="05XX XXX XX XX")
+        name    = st.text_input("Ad Soyad", placeholder="Ahmet Yılmaz")
+        company = st.text_input("Mağaza / Şirket Adı", placeholder="Mağazanızın adı")
+        email   = st.text_input("E-posta", placeholder="ahmet@magaza.com")
+        phone   = st.text_input("Telefon", placeholder="05XX XXX XX XX")
         subject = st.selectbox(
             "Konu",
             ["Plan seçimi ve fiyatlandırma", "Demo talebi", "Teknik entegrasyon",
@@ -791,12 +785,6 @@ def _contact_dialog() -> None:
             "Mesajınız",
             placeholder="Trendyol mağazanız hakkında kısa bilgi verin...",
             height=90,
-        )
-        st.markdown(
-            '<div style="font-size:.72rem;color:#9ca3af;margin-bottom:.3rem;">'
-            '🔒 Bilgileriniz yalnızca sizinle iletişim kurmak amacıyla kullanılır.'
-            '</div>',
-            unsafe_allow_html=True,
         )
         submitted = st.form_submit_button(
             "Gönder  →", use_container_width=True, type="primary"
@@ -922,82 +910,79 @@ body,html{overflow-x:hidden;}
     transition:background .15s !important;
 }
 [data-testid="stDialog"] button[aria-label="Close"]:hover{background:rgba(0,0,0,.08) !important;}
-/* Dialog içerik alanı */
-[data-testid="stDialog"] [data-testid="stVerticalBlock"]{padding:1rem 1.6rem 1rem !important;gap:.5rem !important;}
-[data-testid="stDialog"] [data-testid="stVerticalBlock"] > div{margin-bottom:0 !important;padding-bottom:0 !important;}
-[data-testid="stDialog"] [data-testid="stTextInput"],
-[data-testid="stDialog"] [data-testid="stTextArea"],
-[data-testid="stDialog"] [data-testid="stSelectbox"]{margin-bottom:0 !important;}
-[data-testid="stDialog"] label{margin-bottom:.1rem !important;}
-[data-testid="stDialog"] [data-testid="stHorizontalBlock"]{gap:.6rem !important;margin-bottom:0 !important;}
-/* Input padding — py-2 eşdeğeri */
-[data-testid="stDialog"] [data-testid="stTextInput"] > div{height:auto !important;}
-[data-testid="stDialog"] [data-testid="stTextInput"] input{
-    padding-top:.5rem !important;padding-bottom:.5rem !important;
-    font-size:.86rem !important;line-height:1.4 !important;
+/* ── Dialog genel ── */
+[data-testid="stDialog"] [data-testid="stVerticalBlock"]{
+    padding:.8rem 1.2rem .8rem !important;gap:.35rem !important;
 }
-[data-testid="stDialog"] [data-testid="stSelectbox"] > div > div{
-    height:auto !important;min-height:0 !important;
-    padding-top:.5rem !important;padding-bottom:.5rem !important;
+[data-testid="stDialog"] [data-testid="stVerticalBlock"] > div{
+    margin-bottom:0 !important;padding-bottom:0 !important;
 }
-/* Dialog label'ları */
+[data-testid="stDialog"] [data-testid="stHorizontalBlock"]{
+    gap:.5rem !important;margin-bottom:0 !important;
+}
+/* Labels */
 [data-testid="stDialog"] label p{
-    color:#374151 !important;font-size:.79rem !important;
-    font-weight:700 !important;letter-spacing:.01em !important;
+    color:#374151 !important;font-size:.76rem !important;
+    font-weight:700 !important;margin-bottom:.18rem !important;
 }
-/* Dialog text input */
+/* Text input wrapper */
 [data-testid="stDialog"] [data-testid="stTextInput"] > div{
     background:#f8faff !important;border:1.5px solid #e2e8f0 !important;
-    border-radius:10px !important;transition:border-color .18s,box-shadow .18s !important;
+    border-radius:9px !important;min-height:0 !important;height:auto !important;
+    padding:0 !important;transition:border-color .18s,box-shadow .18s !important;
+    overflow:hidden !important;
 }
 [data-testid="stDialog"] [data-testid="stTextInput"] > div:focus-within{
     border-color:#F28500 !important;box-shadow:0 0 0 3px rgba(242,133,0,.09) !important;
     background:#fff !important;
 }
+/* Input element */
 [data-testid="stDialog"] [data-testid="stTextInput"] input{
+    padding:.42rem .75rem !important;height:38px !important;
     color:#0f1a35 !important;-webkit-text-fill-color:#0f1a35 !important;
-    font-size:.86rem !important;
+    font-size:.84rem !important;background:transparent !important;
 }
 [data-testid="stDialog"] [data-testid="stTextInput"] input::placeholder{
     color:#b0b8c8 !important;-webkit-text-fill-color:#b0b8c8 !important;
 }
-/* Dialog textarea */
+/* Textarea */
 [data-testid="stDialog"] [data-testid="stTextArea"] > div{
     background:#f8faff !important;border:1.5px solid #e2e8f0 !important;
-    border-radius:10px !important;transition:border-color .18s,box-shadow .18s !important;
+    border-radius:9px !important;padding:0 !important;
+    transition:border-color .18s,box-shadow .18s !important;
 }
 [data-testid="stDialog"] [data-testid="stTextArea"] > div:focus-within{
     border-color:#F28500 !important;box-shadow:0 0 0 3px rgba(242,133,0,.09) !important;
     background:#fff !important;
 }
 [data-testid="stDialog"] [data-testid="stTextArea"] textarea{
-    color:#0f1a35 !important;font-size:.86rem !important;
+    padding:.42rem .75rem !important;color:#0f1a35 !important;font-size:.84rem !important;
 }
 [data-testid="stDialog"] [data-testid="stTextArea"] textarea::placeholder{color:#b0b8c8 !important;}
-/* Dialog selectbox */
+/* Selectbox */
 [data-testid="stDialog"] [data-testid="stSelectbox"] > div > div{
     background:#f8faff !important;border:1.5px solid #e2e8f0 !important;
-    border-radius:10px !important;color:#0f1a35 !important;
+    border-radius:9px !important;color:#0f1a35 !important;
+    min-height:0 !important;height:38px !important;padding:.42rem .75rem !important;
 }
 [data-testid="stDialog"] [data-testid="stSelectbox"] > div > div:focus-within{
     border-color:#F28500 !important;box-shadow:0 0 0 3px rgba(242,133,0,.09) !important;
 }
-/* Dialog submit butonu */
+/* Submit butonu */
 [data-testid="stDialog"] [data-testid="stFormSubmitButton"] > button{
     background:linear-gradient(135deg,#F28500,#D46000) !important;
-    color:#fff !important;border:none !important;border-radius:12px !important;
-    font-weight:800 !important;font-size:.9rem !important;letter-spacing:.03em !important;
-    box-shadow:0 5px 18px rgba(242,133,0,.38) !important;padding:.85rem !important;
-    transition:transform .15s,box-shadow .15s,filter .15s !important;
+    color:#fff !important;border:none !important;border-radius:9px !important;
+    font-weight:800 !important;font-size:.86rem !important;
+    box-shadow:0 4px 14px rgba(242,133,0,.38) !important;
+    padding:.55rem 1rem !important;
+    transition:transform .15s,box-shadow .15s !important;
 }
 [data-testid="stDialog"] [data-testid="stFormSubmitButton"] > button:hover{
-    transform:translateY(-2px) !important;
-    box-shadow:0 9px 28px rgba(242,133,0,.5) !important;
-    filter:brightness(1.05) !important;
+    transform:translateY(-1px) !important;box-shadow:0 7px 22px rgba(242,133,0,.5) !important;
 }
-/* Dialog success/error */
+/* Alert */
 [data-testid="stDialog"] [data-testid="stAlert"]{
-    border-radius:10px !important;font-size:.82rem !important;
+    border-radius:9px !important;font-size:.8rem !important;padding:.5rem .75rem !important;
 }
 /* Tooltip */
 [data-testid="stTooltipIcon"] svg,[data-testid="stTooltipIcon"] svg *{fill:rgba(242,133,0,.8) !important;}
