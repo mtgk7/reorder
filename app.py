@@ -638,6 +638,9 @@ def _init_state() -> None:
         "upload_result": None,
         "active_store_id": None,
         "stores": [],
+        "new_user": False,
+        "selected_plan": None,
+        "plan_period": "m",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -1474,6 +1477,7 @@ function goRegister(){
                     res = register_user(email2, pw1, store)
                     if res["success"]:
                         st.session_state.user = res["user"]
+                        st.session_state.new_user = True
                         try:
                             tok = create_session_token(res["user"]["id"])
                             st.query_params["_rt"] = tok
@@ -1510,6 +1514,258 @@ function goRegister(){
         '</div>',
         unsafe_allow_html=True,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plan seçim & ödeme ekranları
+# ─────────────────────────────────────────────────────────────────────────────
+_PLAN_PRICES = {
+    "m": {"Starter": (349, "/ay"), "Pro": (699, "/ay"), "Enterprise": (1249, "/ay")},
+    "q": {"Starter": (875, "/3 ay"), "Pro": (1875, "/3 ay"), "Enterprise": (3550, "/3 ay")},
+    "y": {"Starter": (2699, "/yıl"), "Pro": (6900, "/yıl"), "Enterprise": (12000, "/yıl")},
+}
+_PLAN_FEATURES = {
+    "Starter":    ["1 Mağaza", "Dashboard & KPI", "Cohort Analizi", "E-posta Desteği"],
+    "Pro":        ["3 Mağaza", "Dashboard & KPI", "Cohort + RFM", "PDF Rapor", "Öncelikli Destek"],
+    "Enterprise": ["Sınırsız Mağaza", "Tüm Pro Özellikler", "E-posta Kampanya", "API Erişimi", "Özel Hesap Yöneticisi"],
+}
+
+_ONBOARDING_CSS = """
+<style>
+[data-testid="stSidebar"]{display:none!important;}
+[data-testid="stHeader"]{display:none!important;}
+header{display:none!important;}
+#MainMenu{display:none!important;}
+footer{display:none!important;}
+[data-testid="stApp"]{
+    background:linear-gradient(145deg,#0a2533,#0d3a4b,#134e5e,#0a2e3d)!important;
+    min-height:100vh;
+}
+section[data-testid="stMain"]>div:first-child{padding-top:0!important;}
+.ob-head{text-align:center;padding:2.8rem 1rem 1.6rem;color:#fff;}
+.ob-head h1{font-size:2rem;font-weight:900;margin:0 0 .4rem;}
+.ob-head p{color:rgba(255,255,255,.55);font-size:.95rem;margin:0;}
+.period-btn button{border-radius:20px!important;font-size:.82rem!important;font-weight:600!important;}
+.plan-card{
+    background:rgba(255,255,255,.05);
+    border:1.5px solid rgba(255,255,255,.12);
+    border-radius:16px;padding:1.6rem 1.4rem 1rem;
+    min-height:360px;display:flex;flex-direction:column;
+}
+.plan-card-pop{
+    background:rgba(242,133,0,.07);
+    border:2px solid #F28500;
+    box-shadow:0 8px 32px rgba(242,133,0,.2);
+}
+.plan-badge{
+    background:linear-gradient(90deg,#F28500,#D46000);
+    color:#fff;font-size:.72rem;font-weight:700;
+    letter-spacing:.06em;padding:.28rem .75rem;border-radius:20px;
+    display:inline-block;margin-bottom:.9rem;
+}
+.plan-name{font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:.3rem;}
+.plan-price{font-size:2.4rem;font-weight:900;color:#fff;line-height:1;}
+.plan-price span{font-size:.95rem;color:rgba(255,255,255,.5);font-weight:400;}
+.plan-period-note{font-size:.75rem;color:rgba(255,255,255,.35);margin:.18rem 0 1rem;}
+.plan-feat{font-size:.82rem;color:rgba(255,255,255,.75);padding:.22rem 0;
+    display:flex;align-items:center;gap:.45rem;}
+.plan-feat::before{content:"✓";color:#4ade80;font-weight:700;flex-shrink:0;}
+.plan-spacer{flex:1;}
+/* ödeme formu */
+.pay-wrap{
+    max-width:480px;margin:0 auto;padding:2rem 1rem;
+}
+.pay-summary{
+    background:rgba(242,133,0,.12);border:1.5px solid rgba(242,133,0,.35);
+    border-radius:12px;padding:1rem 1.4rem;display:flex;
+    justify-content:space-between;align-items:center;margin-bottom:1.6rem;
+}
+.pay-summary-name{color:#fff;font-size:1rem;font-weight:700;}
+.pay-summary-price{color:#F28500;font-size:1.3rem;font-weight:900;}
+.pay-card-vis{
+    background:linear-gradient(135deg,#1a3a4a,#0d2535);
+    border:1px solid rgba(255,255,255,.1);border-radius:14px;
+    padding:1.6rem;margin-bottom:1.4rem;
+    box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+.pay-card-chip{
+    width:34px;height:26px;background:linear-gradient(135deg,#d4a843,#a07830);
+    border-radius:5px;margin-bottom:1rem;
+}
+.pay-card-number{
+    font-size:1.3rem;letter-spacing:.18em;color:#fff;font-weight:600;
+    font-family:monospace;margin-bottom:.9rem;
+}
+.pay-card-footer{display:flex;justify-content:space-between;color:rgba(255,255,255,.6);font-size:.78rem;}
+.pay-secure{text-align:center;color:rgba(255,255,255,.35);font-size:.78rem;margin-top:.8rem;}
+[data-testid="stTextInput"] label{color:rgba(255,255,255,.65)!important;font-size:.85rem!important;}
+[data-testid="stTextInput"] input{
+    background:rgba(255,255,255,.07)!important;
+    border:1.5px solid rgba(255,255,255,.15)!important;
+    color:#fff!important;border-radius:10px!important;
+}
+[data-testid="stTextInput"] input:focus{
+    border-color:#F28500!important;
+    box-shadow:0 0 0 2px rgba(242,133,0,.2)!important;
+}
+.stForm [data-testid="stFormSubmitButton"] button{
+    background:linear-gradient(135deg,#F28500,#D46000)!important;
+    color:#fff!important;font-weight:700!important;
+    border-radius:12px!important;font-size:1rem!important;
+}
+</style>
+"""
+
+
+def show_plan_selection() -> None:
+    """Yeni kayıt sonrası plan seçim ekranı."""
+    st.markdown(_ONBOARDING_CSS, unsafe_allow_html=True)
+
+    user = st.session_state.user
+    store_name = user.get("store_name", "") if user else ""
+    st.markdown(
+        f'<div class="ob-head"><h1>Hoş Geldin{", " + store_name if store_name else ""}! 🎉</h1>'
+        '<p>Mağazanız için en uygun planı seçin. İstediğiniz zaman değiştirebilirsiniz.</p></div>',
+        unsafe_allow_html=True,
+    )
+
+    period = st.session_state.plan_period
+    period_labels = {"m": "Aylık", "q": "3 Aylık  −10%", "y": "Yıllık  −18%"}
+    period_note = {"m": "aylık faturalandırma", "q": "3 aylık toplam fiyat", "y": "yıllık toplam fiyat"}
+
+    _, tc1, tc2, tc3, _ = st.columns([2, 1.5, 1.5, 1.5, 2])
+    with tc1:
+        st.markdown('<div class="period-btn">', unsafe_allow_html=True)
+        if st.button("Aylık", use_container_width=True,
+                     type="primary" if period == "m" else "secondary", key="pb_m"):
+            st.session_state.plan_period = "m"; st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+    with tc2:
+        st.markdown('<div class="period-btn">', unsafe_allow_html=True)
+        if st.button("3 Aylık −10%", use_container_width=True,
+                     type="primary" if period == "q" else "secondary", key="pb_q"):
+            st.session_state.plan_period = "q"; st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+    with tc3:
+        st.markdown('<div class="period-btn">', unsafe_allow_html=True)
+        if st.button("Yıllık −18%", use_container_width=True,
+                     type="primary" if period == "y" else "secondary", key="pb_y"):
+            st.session_state.plan_period = "y"; st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:.6rem'></div>", unsafe_allow_html=True)
+
+    _, c1, c2, c3, _ = st.columns([0.4, 3, 3.2, 3, 0.4])
+    plans = [("Starter", c1, False), ("Pro", c2, True), ("Enterprise", c3, False)]
+    for plan_name, col, popular in plans:
+        price, unit = _PLAN_PRICES[period][plan_name]
+        feats = _PLAN_FEATURES[plan_name]
+        feats_html = "".join(f'<div class="plan-feat">{f}</div>' for f in feats)
+        badge = '<div class="plan-badge">EN POPÜLER</div>' if popular else ""
+        card_cls = "plan-card plan-card-pop" if popular else "plan-card"
+        with col:
+            st.markdown(
+                f'<div class="{card_cls}">'
+                f'{badge}'
+                f'<div class="plan-name">{plan_name}</div>'
+                f'<div class="plan-price">₺{price:,}<span> {unit}</span></div>'
+                f'<div class="plan-period-note">{period_note[period]}</div>'
+                f'{feats_html}'
+                f'<div class="plan-spacer"></div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            btn_label = f"✨ {plan_name} Planını Seç" if popular else f"{plan_name} Planını Seç"
+            if st.button(btn_label, use_container_width=True,
+                         type="primary" if popular else "secondary",
+                         key=f"sel_{plan_name}"):
+                st.session_state.selected_plan = {
+                    "name": plan_name,
+                    "price": price,
+                    "unit": unit,
+                    "period": period,
+                }
+                st.rerun()
+
+    st.markdown(
+        '<div style="text-align:center;margin-top:2rem;color:rgba(255,255,255,.3);font-size:.78rem;">'
+        '🔒 Güvenli ödeme · SSL şifreli · İstediğiniz zaman iptal</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def show_payment() -> None:
+    """Ödeme formu ekranı."""
+    st.markdown(_ONBOARDING_CSS, unsafe_allow_html=True)
+    plan = st.session_state.selected_plan or {}
+    plan_name = plan.get("name", "")
+    price = plan.get("price", 0)
+    unit = plan.get("unit", "/ay")
+
+    st.markdown(
+        '<div class="ob-head"><h1>💳 Ödeme Bilgileri</h1>'
+        '<p>Kartınızı güvenli biçimde kaydedin ve planınızı aktifleştirin.</p></div>',
+        unsafe_allow_html=True,
+    )
+
+    _, col_main, _ = st.columns([1, 3, 1])
+    with col_main:
+        st.markdown(
+            f'<div class="pay-summary">'
+            f'<div class="pay-summary-name">📦 {plan_name} Planı</div>'
+            f'<div class="pay-summary-price">₺{price:,}<span style="font-size:.85rem;color:rgba(255,255,255,.5)">{unit}</span></div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            '<div class="pay-card-vis">'
+            '<div class="pay-card-chip"></div>'
+            '<div class="pay-card-number">•••• •••• •••• ••••</div>'
+            '<div class="pay-card-footer"><span>KART SAHİBİ</span><span>AA/YY</span></div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        with st.form("payment_form"):
+            cardholder = st.text_input("Kart Sahibinin Adı", placeholder="Ad Soyad")
+            card_no = st.text_input("Kart Numarası", placeholder="0000 0000 0000 0000", max_chars=19)
+            col_exp, col_cvv = st.columns(2)
+            with col_exp:
+                expiry = st.text_input("Son Kullanma Tarihi", placeholder="AA/YY", max_chars=5)
+            with col_cvv:
+                cvv = st.text_input("CVV", placeholder="•••", max_chars=4, type="password")
+
+            submitted = st.form_submit_button(
+                f"🔒  ₺{price:,}{unit} Öde ve Başla",
+                use_container_width=True,
+            )
+
+        if submitted:
+            if not all([cardholder.strip(), card_no.strip(), expiry.strip(), cvv.strip()]):
+                st.error("Lütfen tüm kart bilgilerini doldurun.")
+            else:
+                st.session_state.new_user = False
+                st.session_state.selected_plan = None
+                st.success(f"✅ {plan_name} planınız aktifleştirildi! Yönlendiriliyorsunuz…")
+                import time; time.sleep(1.2)
+                st.rerun()
+
+        st.markdown(
+            '<div style="text-align:center;margin-top:.6rem">'
+            '<button style="background:none;border:none;color:rgba(255,255,255,.4);'
+            'cursor:pointer;font-size:.82rem;text-decoration:underline" '
+            'onclick="void(0)">← Plan Değiştir</button></div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("← Plan Değiştir", key="back_to_plans"):
+            st.session_state.selected_plan = None
+            st.rerun()
+
+        st.markdown(
+            '<div class="pay-secure">🔒 256-bit SSL şifreli · Kart bilgileriniz güvende</div>',
+            unsafe_allow_html=True,
+        )
 
 
 def show_sidebar() -> None:
@@ -3236,6 +3492,13 @@ def show_settings() -> None:
 def main() -> None:
     if st.session_state.user is None:
         show_auth()
+        return
+
+    if st.session_state.get("new_user"):
+        if st.session_state.get("selected_plan"):
+            show_payment()
+        else:
+            show_plan_selection()
         return
 
     show_sidebar()
