@@ -726,25 +726,32 @@ def _go(page: str) -> None:
 # Giriş / Kayıt
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _send_telegram(text: str) -> bool:
-    """Telegram bot üzerinden bildirim gönderir."""
+def _send_telegram(text: str) -> tuple[bool, str]:
+    """Telegram bot üzerinden bildirim gönderir. (ok, hata_mesajı) döner."""
     import os, requests as _req
     try:
         token = os.getenv("TELEGRAM_BOT_TOKEN") or st.secrets.get("TELEGRAM_BOT_TOKEN", "")
         chat_id = os.getenv("TELEGRAM_CHAT_ID") or st.secrets.get("TELEGRAM_CHAT_ID", "")
     except Exception:
-        token, chat_id = os.getenv("TELEGRAM_BOT_TOKEN", ""), os.getenv("TELEGRAM_CHAT_ID", "")
-    if not token or not chat_id:
-        return False
+        token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+        chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+    token = (token or "").strip()
+    chat_id = (chat_id or "").strip()
+    if not token:
+        return False, "TELEGRAM_BOT_TOKEN tanımlı değil"
+    if not chat_id:
+        return False, "TELEGRAM_CHAT_ID tanımlı değil"
     try:
         r = _req.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
-            timeout=6,
+            timeout=8,
         )
-        return r.ok
-    except Exception:
-        return False
+        if r.ok:
+            return True, ""
+        return False, f"Telegram API hatası: {r.status_code} — {r.text[:200]}"
+    except Exception as e:
+        return False, str(e)
 
 
 @st.dialog("✉️ İletişim")
@@ -805,8 +812,11 @@ def _contact_dialog() -> None:
                 f"📌 <b>Konu:</b> {subject}\n\n"
                 f"💬 <b>Mesaj:</b>\n{message}"
             )
-            _send_telegram(tg_text)
-            st.success("✅ Mesajınız alındı! En geç 1 iş günü içinde size dönüş yapacağız.")
+            ok, err = _send_telegram(tg_text)
+            if ok:
+                st.success("✅ Mesajınız alındı! En geç 1 iş günü içinde size dönüş yapacağız.")
+            else:
+                st.error(f"⚠️ Bildirim gönderilemedi: {err}")
 
 
 def show_auth() -> None:  # noqa: C901
