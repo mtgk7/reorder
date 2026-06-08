@@ -16,10 +16,11 @@ import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime
 
-from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store, save_goals, load_goals, link_null_orders, save_user_plan
+from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store, save_goals, load_goals, link_null_orders, save_user_plan, create_reset_token, verify_reset_token, use_reset_token
 from src.auth import (
     login_user, register_user, update_store_name, change_password,
     create_session_token, verify_session_token, delete_session_token,
+    send_reset_email, reset_password_with_token,
 )
 from src.parser import parse_trendyol_file, import_to_db, generate_sample_orders
 from src.report import generate_report
@@ -641,10 +642,18 @@ def _init_state() -> None:
         "new_user": False,
         "selected_plan": None,
         "plan_period": "m",
+        "show_forgot": False,
+        "reset_token": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
+    # ── Şifre sıfırlama: URL'de reset_token varsa state'e al ─────────────────
+    if not st.session_state.get("reset_token") and not st.session_state.user:
+        rt = st.query_params.get("reset_token")
+        if rt:
+            st.session_state.reset_token = rt
 
     # ── Oturum kalıcılığı: URL parametresinden otomatik giriş ───────────────
     if st.session_state.user is None:
@@ -820,6 +829,73 @@ def _contact_dialog() -> None:
                 st.success("✅ Mesajınız alındı! En geç 1 iş günü içinde size dönüş yapacağız.")
             else:
                 st.error(f"⚠️ Bildirim gönderilemedi: {err}")
+
+
+def show_reset_password() -> None:
+    """Şifre sıfırlama sayfası — ?reset_token=xxx URL parametresiyle açılır."""
+    st.markdown("""
+<style>
+[data-testid="stSidebar"]{display:none !important;}
+[data-testid="stHeader"]{background:transparent !important;}
+.block-container{max-width:480px !important;padding:3rem 1.5rem !important;margin:0 auto !important;}
+</style>
+""", unsafe_allow_html=True)
+
+    token = st.session_state.get("reset_token", "")
+
+    # Token DB kontrolü
+    user = verify_reset_token(token)
+
+    st.markdown(
+        """<div style="text-align:center;margin-bottom:1.5rem;">
+        <div style="font-size:2rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;">🔄 ReOrder</div>
+        <div style="font-size:.8rem;color:#9ca3af;margin-top:.2rem;">Yeni Şifre Belirle</div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+    if not user:
+        st.error("❌ Bu bağlantı geçersiz veya süresi dolmuş (1 saat). Lütfen yeni bir sıfırlama talebi oluşturun.")
+        if st.button("← Giriş Sayfasına Dön", use_container_width=True):
+            st.session_state.reset_token = None
+            try:
+                st.query_params.clear()
+            except Exception:
+                pass
+            st.rerun()
+        return
+
+    st.markdown(
+        f"<p style='color:#374151;font-size:.88rem;margin-bottom:1rem;'>"
+        f"<b>{user['email']}</b> hesabı için yeni şifrenizi belirleyin.</p>",
+        unsafe_allow_html=True,
+    )
+
+    with st.form("reset_pw_form"):
+        new_pw  = st.text_input("Yeni Şifre", type="password",
+                                help="En az 8 karakter, 1 rakam içermeli")
+        new_pw2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
+        sub = st.form_submit_button("🔑 Şifremi Güncelle", use_container_width=True,
+                                    type="primary")
+
+    if sub:
+        if new_pw != new_pw2:
+            st.error("Şifreler eşleşmiyor.")
+        else:
+            res = reset_password_with_token(token, new_pw)
+            if res["success"]:
+                st.success("✅ Şifreniz başarıyla güncellendi! Şimdi giriş yapabilirsiniz.")
+                st.session_state.reset_token = None
+                try:
+                    st.query_params.clear()
+                except Exception:
+                    pass
+                st.balloons()
+                import time as _time
+                _time.sleep(2)
+                st.rerun()
+            else:
+                st.error(res["error"])
 
 
 def show_auth() -> None:  # noqa: C901
@@ -1444,22 +1520,74 @@ function goRegister(){
         """, height=0)
 
         with tab_giris:
-            with st.form("login_form"):
-                email = st.text_input("E-posta", placeholder="ornek@magaza.com")
-                password = st.text_input("Şifre", type="password")
-                submitted = st.form_submit_button("Giriş Yap", use_container_width=True)
-            if submitted:
-                res = login_user(email, password)
-                if res["success"]:
-                    st.session_state.user = res["user"]
-                    try:
-                        tok = create_session_token(res["user"]["id"])
-                        st.query_params["_rt"] = tok
-                    except Exception:
-                        pass
+            if not st.session_state.get("show_forgot"):
+                # ── Normal giriş formu ────────────────────────────────────────
+                with st.form("login_form"):
+                    email = st.text_input("E-posta", placeholder="ornek@magaza.com")
+                    password = st.text_input("Şifre", type="password")
+                    submitted = st.form_submit_button("Giriş Yap", use_container_width=True)
+                if submitted:
+                    res = login_user(email, password)
+                    if res["success"]:
+                        st.session_state.user = res["user"]
+                        try:
+                            tok = create_session_token(res["user"]["id"])
+                            st.query_params["_rt"] = tok
+                        except Exception:
+                            pass
+                        st.rerun()
+                    else:
+                        st.error(res["error"])
+                # Şifremi unuttum linki
+                st.markdown(
+                    "<div style='text-align:center;margin-top:.3rem;'>",
+                    unsafe_allow_html=True,
+                )
+                if st.button("🔑 Şifremi Unuttum?", key="go_forgot",
+                             use_container_width=True):
+                    st.session_state.show_forgot = True
                     st.rerun()
-                else:
-                    st.error(res["error"])
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            else:
+                # ── Şifremi unuttum formu ─────────────────────────────────────
+                st.markdown(
+                    "<p style='color:rgba(180,210,230,.7);font-size:.82rem;margin-bottom:.5rem;'>"
+                    "E-posta adresinize şifre sıfırlama bağlantısı göndereceğiz.</p>",
+                    unsafe_allow_html=True,
+                )
+                with st.form("forgot_form"):
+                    forgot_email = st.text_input("E-posta", placeholder="ornek@magaza.com")
+                    sub_forgot = st.form_submit_button("📧 Sıfırlama Bağlantısı Gönder",
+                                                       use_container_width=True)
+                if sub_forgot:
+                    if not forgot_email.strip():
+                        st.error("E-posta adresini girin.")
+                    else:
+                        token = create_reset_token(forgot_email.strip().lower())
+                        if token:
+                            res = send_reset_email(forgot_email.strip().lower(), token)
+                            if res["success"]:
+                                st.success("✅ Sıfırlama bağlantısı e-postanıza gönderildi. "
+                                           "Gelen kutunuzu kontrol edin (spam klasörünü de).")
+                            elif res.get("error") == "no_smtp":
+                                # SMTP yapılandırılmamış — geliştirici/admin modu
+                                import os as _os
+                                app_url = _os.environ.get("APP_URL",
+                                    "https://reorder-81nz.onrender.com").rstrip("/")
+                                st.warning(
+                                    "⚠️ SMTP yapılandırılmamış. "
+                                    "Yönetici olarak aşağıdaki bağlantıyı kullanın:"
+                                )
+                                st.code(f"{app_url}/?reset_token={token}")
+                            else:
+                                st.error(f"E-posta gönderilemedi: {res['error']}")
+                        else:
+                            # Güvenlik: email yoksa da aynı mesajı göster
+                            st.success("✅ Bu e-posta kayıtlıysa sıfırlama bağlantısı gönderildi.")
+                if st.button("← Giriş'e Dön", key="back_to_login"):
+                    st.session_state.show_forgot = False
+                    st.rerun()
 
         with tab_kayit:
             with st.form("register_form"):
@@ -3628,6 +3756,11 @@ def show_settings() -> None:
 # Yönlendirici
 # ─────────────────────────────────────────────────────────────────────────────
 def main() -> None:
+    # Şifre sıfırlama akışı öncelikli
+    if st.session_state.get("reset_token"):
+        show_reset_password()
+        return
+
     if st.session_state.user is None:
         show_auth()
         return

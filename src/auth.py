@@ -216,6 +216,97 @@ def delete_session_token(token: str) -> None:
     conn.close()
 
 
+def send_reset_email(email: str, token: str) -> dict:
+    """Şifre sıfırlama e-postası gönderir. SMTP env vars gereklidir."""
+    import os, smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    smtp_host = os.environ.get("SMTP_HOST", "")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASS", "")
+    smtp_from = os.environ.get("SMTP_FROM_EMAIL", smtp_user)
+    app_url   = os.environ.get("APP_URL", "https://reorder-81nz.onrender.com").rstrip("/")
+
+    if not (smtp_host and smtp_user and smtp_pass):
+        return {"success": False, "error": "no_smtp"}
+
+    reset_link = f"{app_url}/?reset_token={token}"
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "ReOrder — Şifre Sıfırlama"
+    msg["From"]    = f"ReOrder <{smtp_from}>"
+    msg["To"]      = email
+
+    html = f"""
+<!DOCTYPE html><html lang="tr"><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+background:#f0f4fa;margin:0;padding:20px;">
+<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;
+    box-shadow:0 4px 24px rgba(0,0,0,.08);">
+  <div style="background:linear-gradient(135deg,#1a2744,#0f1a35);padding:28px 32px;text-align:center;">
+    <div style="font-size:1.5rem;font-weight:900;color:#fff;">🔄 ReOrder</div>
+    <div style="font-size:.76rem;color:rgba(255,255,255,.45);margin-top:4px;">Şifre Sıfırlama</div>
+  </div>
+  <div style="padding:32px;">
+    <p style="color:#374151;font-size:.93rem;margin:0 0 12px;">Merhaba,</p>
+    <p style="color:#374151;font-size:.9rem;line-height:1.65;margin:0 0 24px;">
+      ReOrder hesabınız (<strong>{email}</strong>) için şifre sıfırlama talebinde bulundunuz.<br>
+      Aşağıdaki butona tıklayarak yeni şifrenizi belirleyebilirsiniz.
+    </p>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="{reset_link}"
+         style="background:linear-gradient(135deg,#F28500,#D46000);color:#fff;text-decoration:none;
+                border-radius:10px;padding:14px 32px;font-weight:800;font-size:.93rem;
+                display:inline-block;box-shadow:0 4px 16px rgba(242,133,0,.4);">
+        🔑 Şifremi Sıfırla
+      </a>
+    </div>
+    <p style="color:#9ca3af;font-size:.77rem;line-height:1.6;margin:0;">
+      Bu bağlantı <strong>1 saat</strong> geçerlidir ve yalnızca bir kez kullanılabilir.<br>
+      Bu talebi siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz.
+    </p>
+  </div>
+  <div style="background:#f8faff;border-top:1px solid #e8edf5;padding:14px 32px;text-align:center;">
+    <p style="color:#9ca3af;font-size:.7rem;margin:0;">ReOrder © 2026 — Trendyol Retention Platformu</p>
+  </div>
+</div>
+</body></html>
+"""
+    msg.attach(MIMEText(html, "html"))
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_from, [email], msg.as_string())
+        return {"success": True}
+    except Exception as exc:
+        return {"success": False, "error": str(exc)}
+
+
+def reset_password_with_token(token: str, new_password: str) -> dict:
+    """Token ile şifreyi sıfırlar; token geçersizse hata döner."""
+    from src.database import verify_reset_token, use_reset_token
+
+    user = verify_reset_token(token)
+    if not user:
+        return {"success": False, "error": "Bağlantı geçersiz veya süresi dolmuş (1 saat)."}
+
+    err = _validate_password(new_password)
+    if err:
+        return {"success": False, "error": err}
+
+    conn = get_connection()
+    conn.execute(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        (hash_password(new_password), user["id"]),
+    )
+    conn.commit()
+    conn.close()
+    use_reset_token(token)
+    return {"success": True, "email": user["email"]}
+
+
 def change_password(user_id: int, old_password: str, new_password: str) -> dict:
     """Şifreyi değiştirir."""
     conn = get_connection()

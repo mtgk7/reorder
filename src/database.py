@@ -329,9 +329,20 @@ def _migrate_postgres(cur) -> None:
     # ── Plan sistemi ──────────────────────────────────────────────────────────
     cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Pro'")
     cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_period TEXT DEFAULT 'm'")
-    # Mevcut kullanıcılar Pro planıyla başlasın (kırılmayı önler)
     cur.execute("UPDATE users SET plan = 'Pro' WHERE plan IS NULL")
     cur.execute("UPDATE users SET plan_period = 'm' WHERE plan_period IS NULL")
+
+    # ── Şifre Sıfırlama Token'ları ────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id         SERIAL PRIMARY KEY,
+            user_id    INTEGER NOT NULL,
+            token      TEXT NOT NULL UNIQUE,
+            expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '1 hour'),
+            used       BOOLEAN DEFAULT FALSE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
 
     # ── Hedef / KPI Takibi ────────────────────────────────────────────────────
     cur.execute("""
@@ -481,6 +492,18 @@ def _migrate_sqlite(cur) -> None:
     cur.execute("UPDATE users SET plan = 'Pro' WHERE plan IS NULL")
     cur.execute("UPDATE users SET plan_period = 'm' WHERE plan_period IS NULL")
 
+    # ── Şifre Sıfırlama Token'ları ────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL,
+            token      TEXT NOT NULL UNIQUE,
+            expires_at DATETIME DEFAULT (datetime('now', '+1 hour')),
+            used       INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
     # ── Hedef / KPI Takibi ────────────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS goals (
@@ -521,6 +544,59 @@ def save_user_plan(user_id: int, plan: str, plan_period: str) -> None:
         "UPDATE users SET plan = ?, plan_period = ? WHERE id = ?",
         (plan, plan_period, user_id),
     )
+    conn.commit()
+    conn.close()
+
+
+# ─── Şifre sıfırlama ─────────────────────────────────────────────────────────
+
+def create_reset_token(email: str) -> str | None:
+    """Email için tek kullanımlık şifre sıfırlama token'ı oluşturur. Email yoksa None döner."""
+    import secrets as _sec
+    email = email.strip().lower()
+    conn = get_connection()
+    row = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    if not row:
+        conn.close()
+        return None
+    user_id = row["id"]
+    conn.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+    token = _sec.token_urlsafe(32)
+    conn.execute(
+        "INSERT INTO password_reset_tokens (user_id, token) VALUES (?, ?)",
+        (user_id, token),
+    )
+    conn.commit()
+    conn.close()
+    return token
+
+
+def verify_reset_token(token: str) -> dict | None:
+    """Token geçerliyse kullanıcı bilgilerini döner, süresi dolmuş/kullanılmış/yoksa None."""
+    if not token:
+        return None
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT u.id, u.email
+        FROM   password_reset_tokens t
+        JOIN   users u ON u.id = t.user_id
+        WHERE  t.token = ?
+          AND  t.used  = FALSE
+          AND  (t.expires_at IS NULL OR t.expires_at > datetime('now'))
+        """,
+        (token,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {"id": row["id"], "email": row["email"]}
+
+
+def use_reset_token(token: str) -> None:
+    """Token'ı kullanılmış olarak işaretler."""
+    conn = get_connection()
+    conn.execute("UPDATE password_reset_tokens SET used = TRUE WHERE token = ?", (token,))
     conn.commit()
     conn.close()
 
