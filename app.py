@@ -1424,7 +1424,7 @@ function goRegister(){
         tab_giris, tab_kayit = st.tabs(["🔐 Giriş Yap", "✨ Hesap Oluştur"])
 
         if st.query_params.get("action") == "register":
-            st.markdown("""
+            _cmp.html("""
             <script>
             (function(){
                 function tryClick(n){
@@ -1432,10 +1432,10 @@ function goRegister(){
                     if(tabs&&tabs.length>1){tabs[1].click();}
                     else if(n>0){setTimeout(function(){tryClick(n-1);},200);}
                 }
-                setTimeout(function(){tryClick(15);},250);
+                setTimeout(function(){tryClick(15);},400);
             })();
             </script>
-            """, unsafe_allow_html=True)
+            """, height=0)
 
         with tab_giris:
             with st.form("login_form"):
