@@ -725,623 +725,458 @@ def _go(page: str) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # Giriş / Kayıt
 # ─────────────────────────────────────────────────────────────────────────────
-def show_auth() -> None:
+def show_auth() -> None:  # noqa: C901
+    import streamlit.components.v1 as _cmp
 
-    # ── Fütüristik Login Page CSS ─────────────────────────────────────────────
+    # ── Page-level CSS ─────────────────────────────────────────────────────────
     st.markdown("""
-    <style>
-    /* ══════════════════════════════════════════════════
-       1. ARKA PLAN — petrol mavisi / koyu camgöbeği
-    ══════════════════════════════════════════════════ */
-    [data-testid="stAppViewContainer"],
-    [data-testid="stMain"],
-    section[data-testid="stMain"] > div:first-child {
-        background: linear-gradient(145deg,
-            #0a2533 0%,
-            #0d3a4b 40%,
-            #134e5e 75%,
-            #0a2e3d 100%) !important;
-        min-height: 100vh !important;
-    }
-    body, html { overflow-x: hidden; }
-    [data-testid="stSidebar"]   { display: none !important; }
-    [data-testid="stHeader"]    { background: transparent !important; }
-    .block-container {
-        padding-top: 1.8rem !important;
-        padding-bottom: 5rem !important;
-        background: transparent !important;
-        max-width: 100% !important;
-    }
-
-    /* Dekoratif arka plan ışımaları */
-    [data-testid="stAppViewContainer"]::before {
-        content:""; position:fixed;
-        top:-15%; left:-5%; width:45%; height:45%;
-        background: radial-gradient(ellipse, rgba(242,133,0,.09) 0%, transparent 65%);
-        pointer-events:none; z-index:0;
-    }
-    [data-testid="stAppViewContainer"]::after {
-        content:""; position:fixed;
-        bottom:-10%; right:-5%; width:40%; height:40%;
-        background: radial-gradient(ellipse, rgba(19,78,94,.35) 0%, transparent 65%);
-        pointer-events:none; z-index:0;
-    }
-
-    /* ══════════════════════════════════════════════════
-       2. GLASSMORPHIC KART (orta kolon)
-    ══════════════════════════════════════════════════ */
-    [data-testid="stHorizontalBlock"] >
-    [data-testid="stColumn"]:nth-child(2) >
-    [data-testid="stVerticalBlock"] {
-        background:        rgba(40, 60, 75, 0.65) !important;
-        backdrop-filter:   blur(10px) saturate(120%) !important;
-        -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
-        border-radius:     16px !important;
-        border:            1px solid rgba(242, 133, 0, 0.4) !important;
-        box-shadow:
-            0 0 20px  rgba(242, 133, 0, 0.20),
-            0 8px 32px rgba(0, 0, 0, 0.45) !important;
-        padding: 2rem 1.8rem !important;
-        position: relative; z-index: 1;
-    }
-
-    /* ══════════════════════════════════════════════════
-       3. SEKMELER — aktif: turuncu dolgu; pasif: silik gri
-    ══════════════════════════════════════════════════ */
-    [data-testid="stTabs"] [role="tablist"] {
-        border-bottom: 1px solid rgba(242,133,0,.25) !important;
-        gap: 6px !important;
-        padding-bottom: 0 !important;
-    }
-    /* Tüm sekmeler — pasif */
-    [data-testid="stTabs"] [role="tab"] {
-        background:    rgba(255,255,255,.06) !important;
-        color:         rgba(255,255,255,.38) !important;
-        font-weight:   600 !important;
-        font-size:     .85rem !important;
-        border-radius: 8px 8px 0 0 !important;
-        border:        1px solid rgba(255,255,255,.07) !important;
-        border-bottom: none !important;
-        padding:       .45rem 1.2rem !important;
-        transition:    background .2s, color .2s !important;
-    }
-    [data-testid="stTabs"] [role="tab"]:hover {
-        background: rgba(242,133,0,.12) !important;
-        color:      rgba(255,255,255,.7) !important;
-    }
-    /* Aktif sekme — turuncu degrade + beyaz metin */
-    [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
-        background: linear-gradient(135deg, #F28500 0%, #D46000 100%) !important;
-        color:      #ffffff !important;
-        border-color: transparent !important;
-        box-shadow: 0 -2px 10px rgba(242,133,0,.35) !important;
-    }
-    [data-testid="stTabsContent"] { background: transparent !important; }
-
-    /* ══════════════════════════════════════════════════
-       4. INPUT ALANLARI — beyaz zemin, düzenli köşe
-    ══════════════════════════════════════════════════ */
-    [data-testid="stTextInput"] label p {
-        color: rgba(180,210,230,.85) !important;
-        font-size: .83rem !important;
-        font-weight: 500 !important;
-    }
-    /* Tüm wrapper div'ler — beyaz arka plan, yuvarlak köşe */
-    [data-testid="stTextInput"] > div,
-    [data-testid="stTextInput"] > div > div,
-    [data-testid="stTextInput"] > div > div > div {
-        background:    #ffffff !important;
-        border-radius: 9px !important;
-        border:        none !important;
-        overflow:      hidden !important;
-    }
-    /* Outer border — wrapper üzerinde */
-    [data-testid="stTextInput"] > div {
-        border: 1px solid rgba(19,78,94,0.5) !important;
-        transition: border-color .2s, box-shadow .2s !important;
-    }
-    [data-testid="stTextInput"] > div:focus-within {
-        border-color: rgba(242,133,0,.75) !important;
-        box-shadow:   0 0 0 3px rgba(242,133,0,.18),
-                      0 0 8px rgba(242,133,0,.12) !important;
-    }
-    /* Input — beyaz, koyu metin */
-    [data-testid="stTextInput"] input {
-        background:    #ffffff !important;
-        border:        none !important;
-        border-radius: 0 !important;
-        color:         #0d2433 !important;
-        font-size:     .92rem !important;
-    }
-    [data-testid="stTextInput"] input::placeholder {
-        color: rgba(100,130,150,.5) !important;
-    }
-    /* Göz-ikonu butonu — beyaz zemin, siyah ikon */
-    [data-testid="stTextInput"] button,
-    [data-testid="stTextInput"] button:hover,
-    [data-testid="stTextInput"] button:focus {
-        background:    #ffffff !important;
-        border:        none !important;
-        box-shadow:    none !important;
-        color:         #0d2433 !important;
-    }
-    [data-testid="stTextInput"] button svg,
-    [data-testid="stTextInput"] button svg * {
-        fill:   #0d2433 !important;
-        stroke: #0d2433 !important;
-        color:  #0d2433 !important;
-    }
-
-    /* Tooltip (?) ikonu — belirgin görünüm */
-    [data-testid="stTooltipIcon"] svg,
-    [data-testid="stTooltipIcon"] svg * {
-        fill:   rgba(242,133,0,.85) !important;
-        stroke: rgba(242,133,0,.85) !important;
-    }
-    [data-testid="stTooltipIcon"]:hover svg,
-    [data-testid="stTooltipIcon"]:hover svg * {
-        fill:   #F28500 !important;
-        stroke: #F28500 !important;
-    }
-
-    /* ══════════════════════════════════════════════════
-       5. FORM SUBMIT BUTONU — gümüş-gri/mavi degrade, siyah yazı
-    ══════════════════════════════════════════════════ */
-    [data-testid="stFormSubmitButton"] > button {
-        background: linear-gradient(135deg,
-            #8eb8cc 0%,
-            #6a9db8 40%,
-            #7aafc6 100%) !important;
-        color:         #0a1e28 !important;
-        border:        none !important;
-        border-radius: 28px !important;
-        font-weight:   800 !important;
-        font-size:     .95rem !important;
-        letter-spacing:.05em !important;
-        box-shadow:    0 3px 14px rgba(0,0,0,.35),
-                       0 1px 0   rgba(255,255,255,.2) inset !important;
-        transition:    transform .15s, box-shadow .15s, filter .15s !important;
-        padding:       .65rem !important;
-    }
-    [data-testid="stFormSubmitButton"] > button:hover {
-        filter:    brightness(1.08) !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(0,0,0,.4) !important;
-    }
-    [data-testid="stFormSubmitButton"] > button:active {
-        transform: translateY(0) !important;
-        filter:    brightness(.96) !important;
-    }
-
-    /* ── Hata / uyarı kutuları ── */
-    [data-testid="stAlert"] {
-        background:   rgba(10,37,51,.55) !important;
-        border:       1px solid rgba(242,133,0,.25) !important;
-        border-radius: 10px !important;
-        color: #dff0f8 !important;
-    }
-
-    /* ══════════════════════════════════════════════════
-       6. FOOTER — yapışık kapsül
-    ══════════════════════════════════════════════════ */
-    .ro-login-footer {
-        position:   fixed;
-        bottom:     18px;
-        left:       50%;
-        transform:  translateX(-50%);
-        display:    inline-flex;
-        align-items: center;
-        gap:        .6rem;
-        background: rgba(10, 30, 42, 0.72);
-        backdrop-filter: blur(8px);
-        border:     1px solid rgba(255,255,255,.08);
-        border-radius: 40px;
-        padding:    .38rem 1.2rem;
-        font-size:  .71rem;
-        color:      rgba(255,255,255,.45);
-        letter-spacing: .05em;
-        white-space: nowrap;
-        z-index:    9999;
-        pointer-events: none;
-    }
-    .ro-login-footer span { pointer-events: all; }
-    .ro-login-footer a {
-        color: rgba(255,255,255,.45) !important;
-        text-decoration: none !important;
-        pointer-events: all;
-        transition: color .2s;
-    }
-    .ro-login-footer a:hover { color: #F28500 !important; }
-    .ro-sep { opacity: .3; }
-
-    /* ══════════════════════════════════════════════════
-       LOGIN — MOBILE RESPONSIVE (≤ 640px)
-    ══════════════════════════════════════════════════ */
-    @media screen and (max-width: 640px) {
-        /* Sağ boşluk sütununu gizle, sol (tanıtım) ve orta (login) tam genişliğe açılsın */
-        [data-testid="stHorizontalBlock"]
-            > [data-testid="stColumn"]:last-child {
-            display: none !important;
-        }
-        [data-testid="stHorizontalBlock"]
-            > [data-testid="stColumn"]:first-child,
-        [data-testid="stHorizontalBlock"]
-            > [data-testid="stColumn"]:nth-child(2) {
-            min-width: 100% !important;
-            flex:      1 1 100% !important;
-        }
-        /* NOT: Carousel yüksekliği `_components.html(height=...)` ile belirlenir.
-           Streamlit, component container'ını bu değere zorladığı için CSS ile
-           shrink etmek boşluk bırakıyordu; bunun yerine height düşürüldü (500)
-           ve iframe içeriği kabı tam doldurur → mobilde boşluk kalmaz. */
-
-        /* Glassmorphic kart mobil ayarı */
-        [data-testid="stHorizontalBlock"]
-            > [data-testid="stColumn"]:nth-child(2)
-            > [data-testid="stVerticalBlock"] {
-            border-radius: 0      !important;
-            padding:       1.3rem 1.1rem !important;
-            border-left:   none !important;
-            border-right:  none !important;
-            box-shadow:    0 4px 24px rgba(0,0,0,.4) !important;
-        }
-
-        /* Arka plan tüm ekranı kapsasın */
-        [data-testid="stAppViewContainer"],
-        [data-testid="stMain"],
-        section[data-testid="stMain"] > div:first-child {
-            min-height: 100dvh !important;
-        }
-
-        /* Container padding */
-        .block-container {
-            padding-left:   0.4rem !important;
-            padding-right:  0.4rem !important;
-            padding-top:    0.6rem !important;
-            padding-bottom: 4.5rem !important;
-        }
-
-        /* Başlık & slogan küçülsün */
-        h1[style*="font-size:2rem"] { font-size: 1.65rem !important; }
-
-        /* Input alanları rahat dokunma için büyüsün */
-        [data-testid="stTextInput"] input {
-            font-size: 1rem    !important;
-            padding:   .55rem .7rem !important;
-        }
-
-        /* Tab butonları */
-        [data-testid="stTabs"] [role="tab"] {
-            padding:   .35rem .8rem !important;
-            font-size: .82rem       !important;
-        }
-
-        /* Form submit butonu */
-        [data-testid="stFormSubmitButton"] > button {
-            padding:   0.65rem !important;
-            font-size: 0.95rem !important;
-        }
-
-        /* Footer mobil */
-        .ro-login-footer {
-            font-size:  0.62rem !important;
-            padding:    0.28rem 0.85rem !important;
-            gap:        0.3rem  !important;
-            bottom:     8px     !important;
-            max-width:  90vw    !important;
-            text-align: center  !important;
-        }
-    }
-
-    /* ── Çok küçük ekranlar (360px altı) ── */
-    @media screen and (max-width: 360px) {
-        [data-testid="stHorizontalBlock"]
-            > [data-testid="stColumn"]:nth-child(2)
-            > [data-testid="stVerticalBlock"] {
-            padding: 1rem 0.85rem !important;
-        }
-        .ro-login-footer { display: none !important; }
-    }
-
-    /* ══════════════════════════════════════════════════
-       7. PREVIEW PANEL — sol kolon (masaüstü)
-    ══════════════════════════════════════════════════ */
-    .ro-preview {
-        animation: roFadeInLeft .65s ease both;
-        padding: 1.8rem 1.2rem 1.8rem 0.4rem;
-        display: flex; flex-direction: column; gap: 1.1rem;
-        height: 100%; box-sizing: border-box;
-    }
-    @keyframes roFadeInLeft {
-        from { opacity:0; transform:translateX(-22px); }
-        to   { opacity:1; transform:translateX(0);     }
-    }
-
-    .ro-prev-badge {
-        display: inline-flex; align-items: center; gap: .35rem;
-        background: rgba(16,185,129,.13);
-        border: 1px solid rgba(16,185,129,.38);
-        border-radius: 20px; padding: .18rem .65rem;
-        font-size: .7rem; color: #10B981;
-        font-weight: 700; letter-spacing: .07em;
-        margin-bottom: .3rem;
-    }
-    .ro-prev-title {
-        font-size: 1.5rem; font-weight: 800; line-height: 1.22;
-        background: linear-gradient(130deg, #e8f4fa 0%, #F28500 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        background-clip: text; margin: 0 0 .3rem;
-    }
-    .ro-prev-sub {
-        color: rgba(180,210,230,.55); font-size: .82rem; margin: 0;
-    }
-
-    /* KPI strip */
-    .ro-prev-kpis {
-        display: flex; align-items: center; gap: .6rem;
-        background: rgba(255,255,255,.04);
-        border: 1px solid rgba(255,255,255,.07);
-        border-radius: 12px; padding: .75rem .9rem;
-    }
-    .ro-pkpi { flex:1; text-align:center; }
-    .ro-pkpi-val {
-        font-size: 1.25rem; font-weight: 800; color: #F28500; display:block;
-    }
-    .ro-pkpi-lbl {
-        font-size: .65rem; color: rgba(180,210,230,.5);
-        text-transform: uppercase; letter-spacing: .05em;
-    }
-    .ro-pkpi-div { width:1px; height:28px; background:rgba(255,255,255,.09); flex-shrink:0; }
-
-    /* Mini cohort heatmap */
-    .ro-prev-cohort {
-        background: rgba(255,255,255,.03);
-        border: 1px solid rgba(255,255,255,.07);
-        border-radius: 12px; padding: .7rem .9rem;
-    }
-    .ro-pch-label {
-        font-size: .67rem; color: rgba(180,210,230,.45);
-        text-transform: uppercase; letter-spacing: .06em; margin-bottom: .45rem;
-    }
-    .ro-pch-grid { display:flex; flex-direction:column; gap:.22rem; }
-    .ro-pch-row  { display:flex; align-items:center; gap:.22rem; }
-    .ro-pch-cohort {
-        font-size: .62rem; color: rgba(180,210,230,.4); width:50px; flex-shrink:0;
-    }
-    .ro-pch-cell {
-        flex:1; text-align:center; font-size:.62rem; font-weight:700;
-        padding:.2rem .05rem; border-radius:3px;
-    }
-    .pch-g  { background:#10B981; color:#fff; }
-    .pch-y  { background:#F59E0B; color:#1a1a1a; }
-    .pch-o  { background:#F97316; color:#fff; }
-    .pch-r  { background:#EF4444; color:#fff; }
-    .pch-d  { background:rgba(255,255,255,.05); color:rgba(255,255,255,.18); }
-
-    /* Feature list */
-    .ro-prev-feats { display:flex; flex-direction:column; gap:.5rem; }
-    .ro-pfeat {
-        display:flex; align-items:center; gap:.7rem;
-        padding:.45rem .7rem;
-        background: rgba(255,255,255,.03);
-        border: 1px solid rgba(255,255,255,.06);
-        border-left: 2px solid rgba(242,133,0,.45);
-        border-radius: 8px;
-        transition: background .2s, border-left-color .2s;
-        animation: roFadeInLeft .65s ease both;
-    }
-    .ro-pfeat:nth-child(1) { animation-delay:.05s; }
-    .ro-pfeat:nth-child(2) { animation-delay:.12s; }
-    .ro-pfeat:nth-child(3) { animation-delay:.19s; }
-    .ro-pfeat:nth-child(4) { animation-delay:.26s; }
-    .ro-pfeat:hover { background:rgba(242,133,0,.07); border-left-color:#F28500; }
-    .ro-pfeat-icon { font-size:1.05rem; flex-shrink:0; }
-    .ro-pfeat-body { display:flex; flex-direction:column; gap:.08rem; }
-    .ro-pfeat-title { font-size:.78rem; color:rgba(220,240,250,.88); font-weight:700; }
-    .ro-pfeat-desc  { font-size:.68rem; color:rgba(180,210,230,.48); }
-
-    @media screen and (max-width: 640px) {
-        .ro-preview { display: none !important; }
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # ── Kolon layout — sol: fragman, orta: login kartı, sağ: minimal boşluk ──
-    col_l, col_c, col_r = st.columns([1.85, 1.1, 0.05])
-
-    with col_l:
-        import streamlit.components.v1 as _components
-        _carousel_css = """<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{
-  background:linear-gradient(145deg,#0a2533 0%,#0d3a4b 40%,#134e5e 75%,#0a2e3d 100%);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  color:#e8f4fa;height:100%;overflow:hidden;
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+section[data-testid="stMain"] > div:first-child {
+    background: #f0f4fa !important;
+    min-height: 100vh !important;
 }
-.sc{display:flex;flex-direction:column;gap:.6rem;padding:1.1rem .2rem .8rem .15rem;height:100vh;}
-/* Badge */
-.badge{display:inline-flex;align-items:center;gap:.3rem;background:rgba(16,185,129,.13);
-  border:1px solid rgba(16,185,129,.35);border-radius:20px;padding:.18rem .65rem;
-  font-size:.68rem;color:#10B981;font-weight:700;letter-spacing:.07em;margin-bottom:.3rem;}
-/* Headline */
-.hl-wrap{min-height:2.2rem;}
-#hl{font-size:1.2rem;font-weight:800;line-height:1.15;white-space:nowrap;
-  background:linear-gradient(130deg,#e8f4fa 0%,#F28500 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;transition:opacity .4s;}
-#sl{color:rgba(180,210,230,.52);font-size:.72rem;margin-top:.15rem;transition:opacity .4s;}
-/* Carousel */
-.carousel{flex:1;position:relative;min-height:0;}
-.slide{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;display:flex;flex-direction:column;gap:.4rem;}
-.slide.on{opacity:1;}
-/* Slide 1 - Dashboard */
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
-.kpi-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
-  border-left:3px solid #F28500;border-radius:8px;padding:.55rem .65rem;}
-.kv{font-size:1.05rem;font-weight:800;color:#F28500;line-height:1.1;}
-.kl{font-size:.56rem;color:rgba(180,210,230,.42);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.12rem;}
-.kd{font-size:.55rem;color:#10B981;margin-top:.12rem;font-weight:600;}
-.chart-lbl{font-size:.55rem;color:rgba(180,210,230,.32);text-transform:uppercase;letter-spacing:.07em;margin:.1rem 0;}
-.chart-wrap{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
-  border-radius:8px;padding:.5rem .55rem .35rem;display:flex;align-items:flex-end;gap:3px;flex:1;min-height:0;overflow:hidden;}
-.bar{flex:1;border-radius:2px 2px 0 0;background:rgba(242,133,0,.55);transition:height .8s cubic-bezier(.4,0,.2,1);}
-@media(max-width:600px){
-  .sc{gap:.5rem;padding:1rem .5rem .6rem .3rem;}
-  #hl{font-size:1.15rem;}
-  .kpi-grid{grid-template-columns:1fr 1fr;}
-  .kv{font-size:.82rem;}.kl{font-size:.55rem;}
-  .kpi-card{padding:.35rem .45rem;}
-  .chart-wrap{height:55px;}
-  .c-grid{gap:.15rem;}.cc{font-size:.55rem;padding:.18rem .03rem;}
-  .c-mo{font-size:.55rem;width:40px;}
-  .seg{padding:.35rem .5rem;gap:.12rem;}.seg-name{font-size:.68rem;}.seg-badge{font-size:.5rem;}
-  .seg-desc{font-size:.52rem;}.seg-st,.seg-act{font-size:.52rem;}
-  .real-pdf{width:150px;}
-  .feat-strip{padding:.35rem .4rem;}.fi{font-size:.55rem;}.fi em{font-size:.75rem;}
-  .dots{gap:.28rem;}
+body,html{overflow-x:hidden;}
+[data-testid="stSidebar"]{display:none !important;}
+[data-testid="stHeader"]{background:transparent !important;}
+.block-container{padding:0 !important;max-width:100% !important;background:transparent !important;}
+[data-testid="stHorizontalBlock"]{gap:0 !important;align-items:stretch !important;min-height:100vh !important;}
+/* Left col */
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child{background:#f0f4fa !important;}
+/* Right col — dark navy */
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child > [data-testid="stVerticalBlock"]{
+    background:linear-gradient(160deg,#1a2744 0%,#0f1a35 55%,#162040 100%) !important;
+    min-height:100vh !important;
+    padding:2.2rem 2rem 2rem !important;
+    display:flex !important; flex-direction:column !important;
+    align-items:center !important; justify-content:center !important;
+    position:relative !important; overflow:hidden !important;
 }
-/* Slide 2 - Cohort */
-.c-lbl{font-size:.6rem;color:rgba(180,210,230,.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.15rem;}
-.c-hdr{display:flex;align-items:center;gap:.15rem;margin-bottom:.12rem;}
-.c-hdr-mo{font-size:.5rem;color:rgba(180,210,230,.2);width:48px;flex-shrink:0;}
-.c-hdr-lbl{flex:1;text-align:center;font-size:.5rem;color:rgba(180,210,230,.28);font-weight:600;letter-spacing:.03em;}
-.c-grid{display:flex;flex-direction:column;gap:.28rem;flex:1;}
-.c-row{display:flex;align-items:center;gap:.15rem;flex:1;}
-.c-mo{font-size:.6rem;color:rgba(180,210,230,.55);width:48px;flex-shrink:0;font-weight:600;}
-.cc{flex:1;text-align:center;font-size:.65rem;font-weight:700;border-radius:4px;display:flex;align-items:center;justify-content:center;}
-.cg{background:#10B981;color:#fff;}.cy{background:#F59E0B;color:#1a1a1a;}
-.co{background:#F97316;color:#fff;}.cr{background:#EF4444;color:#fff;}
-.cd{background:rgba(255,255,255,.05);color:rgba(255,255,255,.15);}
-.c-avg{margin-top:.35rem;background:rgba(242,133,0,.08);border:1px solid rgba(242,133,0,.18);border-radius:7px;padding:.32rem .6rem;display:flex;justify-content:space-between;align-items:center;}
-.c-avg-lbl{font-size:.6rem;color:rgba(180,210,230,.45);}
-.c-avg-val{font-size:.82rem;font-weight:800;color:#F28500;}
-/* Slide 3 - Segments (rich cards) */
-.seg-list{display:flex;flex-direction:column;gap:.3rem;flex:1;}
-.seg{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;
-  padding:.5rem .65rem;flex:1;display:flex;flex-direction:column;gap:.18rem;position:relative;overflow:hidden;}
-.seg::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px;}
-.seg.sg::before{background:#10B981;}.seg.sb2::before{background:#60A5FA;}
-.seg.sy::before{background:#FBB824;}.seg.sr::before{background:#F87171;}
-.seg-top{display:flex;align-items:center;gap:.38rem;}
-.seg-icon{font-size:.95rem;flex-shrink:0;}
-.seg-name{font-size:.78rem;font-weight:700;flex:1;color:#e8f4fa;}
-.seg-badge{font-size:.55rem;font-weight:700;padding:.09rem .4rem;border-radius:12px;}
-.sg .seg-badge{background:rgba(16,185,129,.2);color:#10B981;border:1px solid rgba(16,185,129,.3);}
-.sb2 .seg-badge{background:rgba(59,130,246,.2);color:#60A5FA;border:1px solid rgba(59,130,246,.3);}
-.sy .seg-badge{background:rgba(251,191,36,.2);color:#FBB824;border:1px solid rgba(251,191,36,.3);}
-.sr .seg-badge{background:rgba(239,68,68,.2);color:#F87171;border:1px solid rgba(239,68,68,.3);}
-.seg-desc{font-size:.58rem;color:rgba(180,210,230,.4);padding-left:1.33rem;}
-.seg-stats{display:flex;align-items:center;gap:.55rem;padding-left:1.33rem;}
-.seg-st{font-size:.58rem;color:rgba(180,210,230,.45);}
-.seg-st strong{font-weight:700;color:rgba(180,210,230,.85);}
-.seg-bar-row{display:flex;align-items:center;gap:.45rem;padding-left:1.33rem;margin-top:.04rem;}
-.seg-bg{flex:1;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
-.seg-fill{height:100%;border-radius:2px;}
-.seg-act{font-size:.56rem;color:rgba(180,210,230,.3);font-style:italic;flex-shrink:0;}
-/* Slide 4 - PDF gerçekçi sayfa görünümü */
-.pdf-wrap{display:flex;gap:7px;justify-content:center;align-items:flex-start;padding:4px 0;}
-.real-pdf{background:#fff;border-radius:4px;box-shadow:0 8px 28px rgba(0,0,0,.7),0 3px 10px rgba(0,0,0,.45);overflow:hidden;flex-shrink:0;width:185px;}
-.real-pdf-hdr{background:linear-gradient(135deg,#F27A1A,#C95A10);padding:7px 10px;display:flex;align-items:center;justify-content:space-between;}
-.real-pdf-logo{font-size:7.5px;font-weight:800;color:#fff;letter-spacing:.03em;}
-.real-pdf-date{font-size:6px;color:rgba(255,255,255,.8);}
-.real-pdf-body{padding:8px 10px;}
-.real-pdf-sec{font-size:6.5px;font-weight:800;color:#1a1a2e;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid #eee;text-transform:uppercase;letter-spacing:.04em;}
-.real-pdf-ftr{background:#f8f8f8;padding:4px 10px;border-top:1px solid #eee;display:flex;justify-content:space-between;}
-.real-pdf-ftr-t{font-size:5.5px;color:#bbb;}
-/* Progress dots */
-.dots{display:flex;gap:.35rem;justify-content:center;}
-.dot{width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.14);transition:all .3s;}
-.dot.on{background:#F28500;width:26px;}
-/* Feature strip */
-.feat-strip{display:flex;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:.45rem .5rem;}
-.fi{flex:1;text-align:center;font-size:.6rem;color:rgba(180,210,230,.38);
-  display:flex;flex-direction:column;align-items:center;gap:.12rem;transition:color .3s;}
-.fi em{font-size:.85rem;font-style:normal;}
-.fi.on{color:#F28500;}
-</style></head><body>"""
-        _carousel_body = """<div class="sc">
-  <div>
-    <div class="badge">&#9679; CANLI PLATFORM</div>
-    <div class="hl-wrap">
-      <div id="hl">Mağazanızın Nabzını Tutun</div>
-      <div id="sl">Tüm metrikleri tek bakışta görün</div>
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child > [data-testid="stVerticalBlock"]::before{
+    content:"";position:absolute;top:-30%;left:-20%;width:80%;height:60%;border-radius:50%;
+    background:radial-gradient(ellipse,rgba(242,133,0,.1) 0%,transparent 65%);pointer-events:none;
+}
+/* Tabs */
+[data-testid="stTabs"] [role="tablist"]{border-bottom:1px solid rgba(242,133,0,.22) !important;gap:5px !important;}
+[data-testid="stTabs"] [role="tab"]{
+    background:rgba(255,255,255,.05) !important;color:rgba(255,255,255,.35) !important;
+    font-weight:600 !important;font-size:.84rem !important;
+    border-radius:8px 8px 0 0 !important;
+    border:1px solid rgba(255,255,255,.07) !important;border-bottom:none !important;
+    padding:.43rem 1.1rem !important;transition:background .18s,color .18s !important;
+}
+[data-testid="stTabs"] [role="tab"]:hover{background:rgba(242,133,0,.1) !important;color:rgba(255,255,255,.65) !important;}
+[data-testid="stTabs"] [role="tab"][aria-selected="true"]{
+    background:linear-gradient(135deg,#F28500,#D46000) !important;color:#fff !important;
+    border-color:transparent !important;box-shadow:0 -2px 10px rgba(242,133,0,.3) !important;
+}
+[data-testid="stTabsContent"]{background:transparent !important;}
+/* Inputs */
+[data-testid="stTextInput"] label p{color:rgba(180,210,230,.72) !important;font-size:.79rem !important;font-weight:600 !important;}
+[data-testid="stTextInput"] > div{
+    background:rgba(255,255,255,.07) !important;border:1.5px solid rgba(255,255,255,.12) !important;
+    border-radius:11px !important;transition:border-color .2s,box-shadow .2s !important;overflow:hidden !important;
+}
+[data-testid="stTextInput"] > div:focus-within{
+    border-color:rgba(242,133,0,.58) !important;box-shadow:0 0 0 3px rgba(242,133,0,.11) !important;
+}
+[data-testid="stTextInput"] > div > div,
+[data-testid="stTextInput"] > div > div > div{background:transparent !important;}
+[data-testid="stTextInput"] input{background:transparent !important;color:#fff !important;font-size:.89rem !important;-webkit-text-fill-color:#fff !important;}
+[data-testid="stTextInput"] input::placeholder{color:rgba(255,255,255,.2) !important;-webkit-text-fill-color:rgba(255,255,255,.2) !important;}
+[data-testid="stTextInput"] button{background:transparent !important;border:none !important;}
+[data-testid="stTextInput"] button svg,[data-testid="stTextInput"] button svg *{fill:rgba(255,255,255,.38) !important;}
+/* Submit button */
+[data-testid="stFormSubmitButton"] > button{
+    background:linear-gradient(135deg,#F28500,#D46000) !important;color:#fff !important;
+    border:none !important;border-radius:11px !important;font-weight:800 !important;
+    font-size:.91rem !important;letter-spacing:.04em !important;text-transform:uppercase !important;
+    box-shadow:0 4px 18px rgba(242,133,0,.44) !important;padding:.8rem !important;
+    transition:transform .15s,box-shadow .15s,filter .15s !important;
+}
+[data-testid="stFormSubmitButton"] > button:hover{transform:translateY(-2px) !important;box-shadow:0 8px 26px rgba(242,133,0,.55) !important;filter:brightness(1.06) !important;}
+[data-testid="stFormSubmitButton"] > button:active{transform:translateY(0) !important;}
+/* Alert */
+[data-testid="stAlert"]{background:rgba(10,37,51,.55) !important;border:1px solid rgba(242,133,0,.25) !important;border-radius:10px !important;color:#dff0f8 !important;}
+/* Tooltip */
+[data-testid="stTooltipIcon"] svg,[data-testid="stTooltipIcon"] svg *{fill:rgba(242,133,0,.8) !important;}
+/* Mobile header — hidden on desktop */
+.ro-mob-hdr{display:none;}
+/* Footer pill */
+.ro-login-footer{
+    position:fixed;bottom:15px;left:50%;transform:translateX(-50%);
+    display:inline-flex;align-items:center;gap:.5rem;
+    background:rgba(10,20,40,.75);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.07);border-radius:40px;
+    padding:.33rem 1.1rem;font-size:.68rem;color:rgba(255,255,255,.35);
+    white-space:nowrap;z-index:9999;pointer-events:none;letter-spacing:.03em;
+}
+.ro-login-footer a{color:rgba(255,255,255,.35) !important;text-decoration:none !important;pointer-events:all;transition:color .2s;}
+.ro-login-footer a:hover{color:#F28500 !important;}
+.ro-sep{opacity:.28;}
+/* ── MOBILE ≤ 768px ── */
+@media (max-width:768px){
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child{display:none !important;}
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child{min-width:100% !important;flex:1 1 100% !important;}
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child > [data-testid="stVerticalBlock"]{padding:1.8rem 1.2rem 2rem !important;justify-content:flex-start !important;}
+    .ro-mob-hdr{display:block !important;}
+    .block-container{padding-left:0 !important;padding-right:0 !important;}
+    .ro-login-footer{font-size:.6rem !important;padding:.28rem .85rem !important;}
+}
+@media (max-width:400px){.ro-login-footer{display:none !important;}}
+</style>
+""", unsafe_allow_html=True)
+
+    # ── Mobile-only top header ─────────────────────────────────────────────────
+    st.markdown("""
+<div class="ro-mob-hdr" style="
+    background:linear-gradient(135deg,#fff9f0,#ffffff,#f0f7ff);
+    padding:1.4rem 1.4rem 1.1rem;border-bottom:1px solid #e8edf5;text-align:center;">
+  <div style="display:flex;align-items:center;justify-content:center;gap:.65rem;margin-bottom:.6rem;">
+    <div style="width:40px;height:40px;border-radius:11px;
+        background:linear-gradient(135deg,#F28500,#C95A10);
+        display:flex;align-items:center;justify-content:center;
+        font-size:1.15rem;box-shadow:0 4px 14px rgba(242,133,0,.35);">&#x1F504;</div>
+    <div>
+      <div style="font-size:1.2rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;">ReOrder</div>
+      <div style="font-size:.63rem;color:#9ca3af;">Trendyol Retention Platformu</div>
     </div>
   </div>
-  <div class="carousel">
-    <div class="slide on" id="s0"><img src="__IMG_S0__" alt="Dashboard" style="width:100%;height:100%;object-fit:contain;"></div>
-    <div class="slide" id="s1"><img src="__IMG_S1__" alt="Cohort Retention" style="width:100%;height:100%;object-fit:contain;"></div>
-    <div class="slide" id="s2"><img src="__IMG_S2__" alt="RFM Segmentler" style="width:100%;height:100%;object-fit:contain;"></div>
-    <div class="slide" id="s3"><img src="__IMG_S3__" alt="PDF Rapor" style="width:100%;height:100%;object-fit:contain;"></div>
+  <div style="font-size:.82rem;font-weight:600;color:#374151;margin-bottom:.7rem;">
+    M&#252;&#351;terini Geri Kazan, Gelirini Art&#305;r
   </div>
-  <div class="dots" id="dots"></div>
-  <div class="feat-strip">
-    <div class="fi on" id="f0"><em>📊</em><span>Dashboard</span></div>
-    <div class="fi" id="f1"><em>🔥</em><span>Cohort</span></div>
-    <div class="fi" id="f2"><em>👥</em><span>Segmentler</span></div>
-    <div class="fi" id="f3"><em>📄</em><span>PDF Rapor</span></div>
+  <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:.4rem;">
+    <span style="background:#fff0e0;border:1px solid rgba(242,133,0,.3);border-radius:20px;padding:.15rem .6rem;font-size:.64rem;font-weight:700;color:#d46000;">+34% Retention</span>
+    <span style="background:#f0fdf4;border:1px solid rgba(16,185,129,.3);border-radius:20px;padding:.15rem .6rem;font-size:.64rem;font-weight:700;color:#059669;">-41% Churn</span>
+    <span style="background:#eff6ff;border:1px solid rgba(59,130,246,.2);border-radius:20px;padding:.15rem .6rem;font-size:.64rem;font-weight:700;color:#1d4ed8;">3.2x LTV</span>
+    <span style="background:#f0fdfa;border:1px solid rgba(20,184,166,.2);border-radius:20px;padding:.15rem .6rem;font-size:.64rem;font-weight:700;color:#0f766e;">500+ Ma&#287;aza</span>
   </div>
 </div>
+""", unsafe_allow_html=True)
+
+    # ── Columns ───────────────────────────────────────────────────────────────
+    col_l, col_c = st.columns([1.7, 1])
+
+    with col_l:
+        _left_html = """<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4fa;color:#0f1a35;overflow-x:hidden;}
+.hero{background:linear-gradient(135deg,#fff9f0 0%,#ffffff 50%,#f0f7ff 100%);border-bottom:1px solid #e8edf5;padding:1.8rem 2rem 1.5rem;position:relative;overflow:hidden;}
+.hero::before{content:"";position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:radial-gradient(ellipse,rgba(242,133,0,.1) 0%,transparent 65%);}
+.logo-row{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem;}
+.logo-icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#F28500,#C95A10);display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 5px 16px rgba(242,133,0,.35);flex-shrink:0;}
+.logo-name{font-size:1.3rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;}
+.logo-tag{font-size:.63rem;color:#9ca3af;margin-top:.1rem;}
+.hero-pill{display:inline-flex;align-items:center;gap:.35rem;background:#fff0e0;border:1px solid rgba(242,133,0,.3);border-radius:20px;padding:.2rem .7rem;font-size:.67rem;font-weight:700;color:#c05c00;letter-spacing:.05em;margin-bottom:.85rem;}
+.hero-pill::before{content:"";width:5px;height:5px;border-radius:50%;background:#F28500;animation:blink 2s infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hero-h1{font-size:1.85rem;font-weight:900;color:#0f1a35;line-height:1.15;letter-spacing:-.03em;margin-bottom:.55rem;}
+.hero-h1 em{font-style:normal;background:linear-gradient(135deg,#F28500,#e55f00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{font-size:.81rem;color:#6b7280;line-height:1.65;margin-bottom:1.25rem;max-width:490px;}
+.stats{display:flex;background:#fff;border:1px solid #e8edf5;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+.stat{flex:1;padding:.7rem .9rem;border-right:1px solid #f0f2f7;transition:background .15s;}
+.stat:last-child{border-right:none;}
+.stat:hover{background:#fafbff;}
+.sv{font-size:1.2rem;font-weight:900;color:#0f1a35;line-height:1;}
+.sv em{color:#F28500;font-style:normal;}
+.sl{font-size:.57rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.07em;margin-top:.18rem;}
+.live-bar{background:#fff;border-bottom:1px solid #e8edf5;padding:.55rem 2rem;display:flex;align-items:center;gap:1.2rem;overflow:hidden;}
+.live-badge{display:inline-flex;align-items:center;gap:.35rem;background:#f0fdf4;border:1px solid rgba(16,185,129,.28);border-radius:20px;padding:.18rem .65rem;font-size:.66rem;font-weight:700;color:#059669;flex-shrink:0;white-space:nowrap;}
+.live-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:#10B981;animation:blink 1.8s infinite;flex-shrink:0;}
+.ticker-wrap{flex:1;overflow:hidden;position:relative;}
+.ticker-wrap::before{content:"";position:absolute;left:0;top:0;bottom:0;width:32px;background:linear-gradient(to right,#fff,transparent);z-index:1;}
+.ticker-wrap::after{content:"";position:absolute;right:0;top:0;bottom:0;width:32px;background:linear-gradient(to left,#fff,transparent);z-index:1;}
+.ticker{display:flex;animation:ticker 32s linear infinite;white-space:nowrap;}
+.ticker:hover{animation-play-state:paused;}
+.ti{font-size:.69rem;color:#6b7280;padding:0 2rem;}
+.ti strong{color:#374151;font-weight:600;}
+@keyframes ticker{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.features{padding:1.5rem 2rem 0;}
+.sec-tag{font-size:.62rem;font-weight:700;color:#F28500;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.35rem;display:flex;align-items:center;gap:.45rem;}
+.sec-tag::before{content:"";display:inline-block;width:16px;height:2px;background:#F28500;border-radius:1px;}
+.sec-title{font-size:1.22rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;margin-bottom:.28rem;}
+.sec-sub{font-size:.79rem;color:#9ca3af;line-height:1.6;margin-bottom:1.1rem;}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+.feat{background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:1rem 1.1rem;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:all .22s;cursor:default;}
+.feat:hover{border-color:rgba(242,133,0,.25);box-shadow:0 6px 20px rgba(0,0,0,.09);transform:translateY(-2px);}
+.feat-top{display:flex;align-items:center;gap:.55rem;margin-bottom:.4rem;}
+.fi{width:35px;height:35px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;}
+.fi-or{background:#fff4e6;border:1px solid rgba(242,133,0,.2);}
+.fi-rd{background:#fff0f0;border:1px solid rgba(239,68,68,.18);}
+.fi-bl{background:#eff6ff;border:1px solid rgba(59,130,246,.2);}
+.fi-gr{background:#f0fdf4;border:1px solid rgba(16,185,129,.2);}
+.fi-pu{background:#faf5ff;border:1px solid rgba(139,92,246,.18);}
+.fi-te{background:#f0fdfa;border:1px solid rgba(20,184,166,.2);}
+.ft{font-size:.81rem;font-weight:700;color:#0f1a35;}
+.fd{font-size:.72rem;color:#6b7280;line-height:1.6;}
+.ftags{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.48rem;}
+.tag{font-size:.58rem;font-weight:600;border-radius:20px;padding:.1rem .48rem;}
+.to{background:#fff4e6;color:#c05c00;border:1px solid rgba(242,133,0,.2);}
+.tb{background:#eff6ff;color:#1d4ed8;border:1px solid rgba(59,130,246,.2);}
+.tg{background:#f0fdf4;color:#065f46;border:1px solid rgba(16,185,129,.2);}
+.tp{background:#faf5ff;color:#6d28d9;border:1px solid rgba(139,92,246,.2);}
+.tt{background:#f0fdfa;color:#0f766e;border:1px solid rgba(20,184,166,.2);}
+.soc-strip{margin:1.2rem 2rem 0;background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.8rem 1.1rem;display:flex;align-items:center;gap:1rem;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.soc-avatars{display:flex;align-items:center;}
+.soc-av{width:30px;height:30px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;margin-left:-8px;flex-shrink:0;}
+.soc-av:first-child{margin-left:0;}
+.soc-av-more{background:#e8edf5;color:#6b7280;font-size:.6rem;font-weight:700;width:30px;height:30px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;margin-left:-8px;}
+.soc-text{flex:1;font-size:.76rem;color:#374151;}
+.soc-text strong{font-weight:700;color:#0f1a35;}
+.soc-rating{display:flex;align-items:center;gap:.25rem;flex-shrink:0;}
+.stars{color:#F28500;font-size:.75rem;}
+.rating-val{font-size:.72rem;font-weight:700;color:#0f1a35;}
+.pricing{padding:1.4rem 2rem 2rem;}
+.period-toggle{display:flex;background:#fff;border:1px solid #e8edf5;border-radius:9px;padding:3px;gap:3px;box-shadow:0 1px 4px rgba(0,0,0,.04);margin-bottom:1.1rem;max-width:fit-content;}
+.pt{padding:.36rem .88rem;border-radius:7px;border:none;background:transparent;color:#9ca3af;font-size:.74rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.32rem;}
+.pt.on{background:#F28500;color:#fff;box-shadow:0 2px 8px rgba(242,133,0,.35);}
+.sb{background:rgba(16,185,129,.1);color:#059669;border:1px solid rgba(16,185,129,.22);border-radius:20px;font-size:.54rem;font-weight:700;padding:.05rem .38rem;}
+.pt.on .sb{background:rgba(255,255,255,.22);color:#fff;border-color:rgba(255,255,255,.28);}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;}
+.plan{background:#fff;border:1.5px solid #e8edf5;border-radius:14px;padding:1.15rem 1.05rem;position:relative;overflow:hidden;transition:all .22s;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.plan:hover{box-shadow:0 6px 20px rgba(0,0,0,.09);transform:translateY(-2px);}
+.plan.pop{background:linear-gradient(135deg,#fff9f0,#fff);border-color:#F28500;box-shadow:0 4px 18px rgba(242,133,0,.14);}
+.plan.pop:hover{box-shadow:0 10px 28px rgba(242,133,0,.2);}
+.pr{position:absolute;top:0;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.51rem;font-weight:800;letter-spacing:.08em;padding:.22rem 1rem;border-radius:0 0 9px 9px;}
+.pn{font-size:.64rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.48rem;}
+.plan.pop .pn{margin-top:1.05rem;}
+.pp{display:flex;align-items:baseline;gap:.12rem;}
+.pc{font-size:.84rem;font-weight:700;color:#6b7280;}
+.pa{font-size:1.75rem;font-weight:900;color:#0f1a35;line-height:1;}
+.plan.pop .pa{color:#F28500;}
+.pper{font-size:.63rem;color:#9ca3af;}
+.pnote{font-size:.6rem;color:#9ca3af;margin-top:.08rem;}
+.psave{font-size:.61rem;font-weight:700;color:#059669;background:#f0fdf4;border:1px solid rgba(16,185,129,.2);border-radius:20px;padding:.09rem .42rem;display:inline-block;margin-top:.28rem;margin-bottom:.65rem;}
+.psave.h{opacity:0;pointer-events:none;}
+.pd{height:1px;background:#f0f2f7;margin:.65rem 0;}
+.pf{display:flex;align-items:center;gap:.42rem;font-size:.71rem;color:#374151;margin-bottom:.32rem;}
+.pok{width:14px;height:14px;border-radius:50%;background:#f0fdf4;border:1px solid rgba(16,185,129,.3);display:flex;align-items:center;justify-content:center;font-size:.48rem;color:#059669;flex-shrink:0;}
+.pno{width:14px;height:14px;border-radius:50%;background:#f9fafb;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:.48rem;color:#d1d5db;flex-shrink:0;}
+.dim{color:#c4c9d4;}
+.pcta{width:100%;padding:.62rem;border-radius:9px;font-size:.81rem;font-weight:700;cursor:pointer;transition:all .15s;border:none;margin-top:.55rem;}
+.cout{background:#f9fafb;color:#374151;border:1.5px solid #e5e7eb;}
+.cout:hover{background:#f3f4f6;}
+.cmain{background:linear-gradient(135deg,#F28500,#D46000);color:#fff;box-shadow:0 3px 12px rgba(242,133,0,.4);}
+.cmain:hover{box-shadow:0 6px 20px rgba(242,133,0,.5);}
+.toast-area{position:fixed;bottom:1.2rem;left:1.2rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none;}
+.toast{background:#fff;border:1px solid #e8edf5;border-radius:11px;padding:.6rem .85rem;box-shadow:0 4px 18px rgba(0,0,0,.1);display:flex;align-items:center;gap:.55rem;font-size:.71rem;color:#374151;max-width:255px;animation:tIn .4s ease,tOut .4s ease 4.2s forwards;}
+.tic{font-size:.95rem;flex-shrink:0;}
+.ttx strong{font-weight:700;color:#0f1a35;}
+.ttm{font-size:.6rem;color:#9ca3af;margin-top:.1rem;}
+@keyframes tIn{from{opacity:0;transform:translateX(-18px);}to{opacity:1;transform:translateX(0);}}
+@keyframes tOut{from{opacity:1;}to{opacity:0;transform:translateY(6px);}}
+.pv{display:none;}.pv.s{display:inline;}
+</style>
+</head>
+<body>
+<!-- HERO -->
+<div class="hero">
+  <div class="logo-row">
+    <div class="logo-icon">&#x1F504;</div>
+    <div><div class="logo-name">ReOrder</div><div class="logo-tag">Trendyol Retention &amp; Analitik Platformu</div></div>
+  </div>
+  <div class="hero-pill">Trendyol Ma&#287;azalar&#305; &#304;&#231;in Geli&#351;tirildi</div>
+  <h1 class="hero-h1">M&#252;&#351;terini Geri Kazan.<br><em>Gelirini Art&#305;r.</em></h1>
+  <p class="hero-sub">Cohort retention, RFM segmentasyon, churn tahmini ve profesyonel PDF raporlama &mdash; tek platformda.</p>
+  <div class="stats">
+    <div class="stat"><div class="sv">+<em>34</em>%</div><div class="sl">Retention Art&#305;&#351;&#305;</div></div>
+    <div class="stat"><div class="sv"><em>3.2</em>x</div><div class="sl">LTV Kazan&#305;m&#305;</div></div>
+    <div class="stat"><div class="sv">&minus;<em>41</em>%</div><div class="sl">Churn Azalmas&#305;</div></div>
+    <div class="stat"><div class="sv"><em>500</em>+</div><div class="sl">Aktif Ma&#287;aza</div></div>
+  </div>
+</div>
+<!-- LIVE BAR -->
+<div class="live-bar">
+  <div class="live-badge">&#9679; <span id="lc">47</span> ma&#287;aza &#351;u an aktif</div>
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <span class="ti">&#127978; <strong>KozmikModa</strong> 147 sipari&#351; senkronize etti</span>
+      <span class="ti">&#128202; <strong>TechnoMart</strong> cohort raporu indirdi</span>
+      <span class="ti">&#9889; <strong>SportStyle</strong> churn analizi &#231;al&#305;&#351;t&#305;rd&#305;</span>
+      <span class="ti">&#128142; <strong>PetShopTR</strong> 23 VIP m&#252;&#351;teri tespit etti</span>
+      <span class="ti">&#128196; <strong>GiyimHane</strong> ayl&#305;k PDF raporu haz&#305;rlad&#305;</span>
+      <span class="ti">&#128257; <strong>ElektroStore</strong> 89 churn riski buldu</span>
+      <span class="ti">&#127978; <strong>ModaDepom</strong> 3 ayl&#305;k cohort k&#305;yaslad&#305;</span>
+      <span class="ti">&#128202; <strong>KozmikModa</strong> 147 sipari&#351; senkronize etti</span>
+      <span class="ti">&#9889; <strong>TechnoMart</strong> cohort raporu indirdi</span>
+      <span class="ti">&#128142; <strong>SportStyle</strong> churn analizi &#231;al&#305;&#351;t&#305;rd&#305;</span>
+      <span class="ti">&#128196; <strong>PetShopTR</strong> 23 VIP m&#252;&#351;teri tespit etti</span>
+      <span class="ti">&#128257; <strong>GiyimHane</strong> ayl&#305;k PDF raporu haz&#305;rlad&#305;</span>
+    </div>
+  </div>
+</div>
+<!-- FEATURES -->
+<div class="features">
+  <div class="sec-tag">&#214;zellikler</div>
+  <div class="sec-title">Her &#351;ey tek yerden</div>
+  <div class="sec-sub">Trendyol ma&#287;azan&#305; b&#252;y&#252;tmek i&#231;in ihtiya&#231; duydu&#287;un t&#252;m ara&#231;lar.</div>
+  <div class="feat-grid">
+    <div class="feat">
+      <div class="feat-top"><div class="fi fi-or">&#128202;</div><div class="ft">Anl&#305;k Dashboard</div></div>
+      <div class="fd">G&#252;nl&#252;k gelir, sipari&#351; ve aktif m&#252;&#351;teriyi ger&#231;ek zamanl&#305; izle. Otomatik API senkronizasyonu.</div>
+      <div class="ftags"><span class="tag to">Ger&#231;ek Zamanl&#305;</span><span class="tag tb">Grafik</span><span class="tag to">API</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-top"><div class="fi fi-rd">&#128293;</div><div class="ft">Cohort Retention</div></div>
+      <div class="fd">Hangi m&#252;&#351;teri geri d&#246;nd&#252;? Renk kodlu heatmap ile d&#252;&#351;&#252;&#351; noktalar&#305;n&#305; g&#246;r.</div>
+      <div class="ftags"><span class="tag to">Heatmap</span><span class="tag tg">Ayl&#305;k Kohort</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-top"><div class="fi fi-bl">&#128101;</div><div class="ft">RFM &amp; Churn Skoru</div></div>
+      <div class="fd">0-100 churn riski, 4 segment: Sad&#305;k, Potansiyel, Uyku, Kay&#305;p.</div>
+      <div class="ftags"><span class="tag tb">Churn 0-100</span><span class="tag tp">RFM</span><span class="tag tg">LTV</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-top"><div class="fi fi-gr">&#128231;</div><div class="ft">E-posta Kampanya</div></div>
+      <div class="fd">Segmente &#246;zel &#351;ablonlarla m&#252;&#351;terilerini geri &#231;ek. SMTP entegrasyonu ile g&#246;nder.</div>
+      <div class="ftags"><span class="tag tg">SMTP</span><span class="tag to">&#350;ablonlar</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-top"><div class="fi fi-pu">&#128196;</div><div class="ft">PDF Rapor</div></div>
+      <div class="fd">3 sayfalık markal&#305; analitik raporu tek t&#305;kla olu&#351;tur. Sunum kalitesinde.</div>
+      <div class="ftags"><span class="tag tp">3 Sayfa</span><span class="tag to">Tek T&#305;k</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-top"><div class="fi fi-te">&#127978;</div><div class="ft">&#199;oklu Ma&#287;aza</div></div>
+      <div class="fd">Birden fazla Trendyol ma&#287;azan&#305; tek hesaptan y&#246;net. Ba&#287;&#305;ms&#305;z API.</div>
+      <div class="ftags"><span class="tag tt">&#199;oklu Ma&#287;aza</span><span class="tag tb">API</span></div>
+    </div>
+  </div>
+</div>
+<!-- SOCIAL PROOF STRIP -->
+<div class="soc-strip">
+  <div class="soc-avatars">
+    <div class="soc-av" style="background:#F28500;">K</div>
+    <div class="soc-av" style="background:#3B82F6;">T</div>
+    <div class="soc-av" style="background:#10B981;">S</div>
+    <div class="soc-av" style="background:#8B5CF6;">P</div>
+    <div class="soc-av-more">+496</div>
+  </div>
+  <div class="soc-text">
+    <strong>500+ Trendyol ma&#287;azas&#305;</strong> ReOrder ile retention'&#305;n&#305; art&#305;rd&#305;.
+    <div style="font-size:.65rem;color:#9ca3af;margin-top:.12rem;">Ortalama 34% daha fazla geri d&#246;nen m&#252;&#351;teri</div>
+  </div>
+  <div class="soc-rating"><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><div class="rating-val">4.9</div></div>
+</div>
+<!-- PRICING -->
+<div class="pricing">
+  <div class="sec-tag">Fiyatland&#305;rma</div>
+  <div class="sec-title">Ma&#287;azan&#305;za uygun plan</div>
+  <div class="sec-sub">14 g&#252;n &#252;cretsiz dene &mdash; kredi kart&#305; gerekmez.</div>
+  <div class="period-toggle">
+    <button class="pt on" onclick="sp('m',this)">Ayl&#305;k</button>
+    <button class="pt" onclick="sp('q',this)">3 Ayl&#305;k <span class="sb">&minus;15%</span></button>
+    <button class="pt" onclick="sp('y',this)">Y&#305;ll&#305;k <span class="sb">&minus;35%</span></button>
+  </div>
+  <div class="plans">
+    <div class="plan">
+      <div class="pn">Starter</div>
+      <div class="pp"><span class="pc">&#8378;</span><span class="pa"><span class="pv s" id="sm">199</span><span class="pv" id="sq">169</span><span class="pv" id="sy">129</span></span></div>
+      <div class="pper">/ay</div><div class="pnote" id="sn">ayl&#305;k faturaland&#305;rma</div>
+      <div class="psave h" id="ss">&#8212;</div><div class="pd"></div>
+      <div class="pf"><div class="pok">&#10003;</div>1 Ma&#287;aza</div>
+      <div class="pf"><div class="pok">&#10003;</div>Dashboard &amp; KPI</div>
+      <div class="pf"><div class="pok">&#10003;</div>Cohort Analizi</div>
+      <div class="pf"><div class="pno">&#10005;</div><span class="dim">PDF Rapor</span></div>
+      <div class="pf"><div class="pno">&#10005;</div><span class="dim">Kampanyalar</span></div>
+      <button class="pcta cout">&#220;cretsiz Ba&#351;la</button>
+    </div>
+    <div class="plan pop">
+      <div class="pr">EN POP&#220;LER</div>
+      <div class="pn">Pro</div>
+      <div class="pp"><span class="pc">&#8378;</span><span class="pa"><span class="pv s" id="pm">399</span><span class="pv" id="pq">339</span><span class="pv" id="py">259</span></span></div>
+      <div class="pper">/ay</div><div class="pnote" id="pnn">ayl&#305;k faturaland&#305;rma</div>
+      <div class="psave h" id="ps">&#8212;</div><div class="pd"></div>
+      <div class="pf"><div class="pok">&#10003;</div>3 Ma&#287;aza</div>
+      <div class="pf"><div class="pok">&#10003;</div>Dashboard &amp; KPI</div>
+      <div class="pf"><div class="pok">&#10003;</div>Cohort + RFM</div>
+      <div class="pf"><div class="pok">&#10003;</div>PDF Rapor</div>
+      <div class="pf"><div class="pno">&#10005;</div><span class="dim">Kampanyalar</span></div>
+      <button class="pcta cmain">&#350;imdi Ba&#351;la &#8594;</button>
+    </div>
+    <div class="plan">
+      <div class="pn">Enterprise</div>
+      <div class="pp"><span class="pc">&#8378;</span><span class="pa"><span class="pv s" id="em">799</span><span class="pv" id="eq">679</span><span class="pv" id="ey">519</span></span></div>
+      <div class="pper">/ay</div><div class="pnote" id="en">ayl&#305;k faturaland&#305;rma</div>
+      <div class="psave h" id="es">&#8212;</div><div class="pd"></div>
+      <div class="pf"><div class="pok">&#10003;</div>S&#305;n&#305;rs&#305;z Ma&#287;aza</div>
+      <div class="pf"><div class="pok">&#10003;</div>T&#252;m Pro &#214;zellikler</div>
+      <div class="pf"><div class="pok">&#10003;</div>E-posta Kampanya</div>
+      <div class="pf"><div class="pok">&#10003;</div>&#214;ncelikli Destek</div>
+      <div class="pf"><div class="pok">&#10003;</div>API Eri&#351;imi</div>
+      <button class="pcta cout">Ba&#351;la</button>
+    </div>
+  </div>
+</div>
+<!-- TOAST AREA -->
+<div class="toast-area" id="ta"></div>
 <script>
-var slides=[
-  {h:"Mağazanızın Nabzını Tutun",s:"Tüm metrikleri tek bakışta görün"},
-  {h:"Hangi Müşteriler Geri Dönüyor?",s:"Cohort (müşteri grubu) analizi ile retention'ı anlayın"},
-  {h:"Riski Olan Müşteriyi Önceden Bilin",s:"RFM segmentasyon ile churn önleyin"},
-  {h:"Profesyonel Rapor, Tek Tıkla",s:"3 sayfalık PDF analitik — saniyeler içinde"}
-];
-// Dots
-var dotEl=document.getElementById("dots");
-for(var i=0;i<4;i++){var d=document.createElement("div");d.className="dot"+(i===0?" on":"");dotEl.appendChild(d);}
-// Carousel
-var cur=0;
-var slideEls=document.querySelectorAll(".slide");
-var dotEls=document.querySelectorAll(".dot");
-var featEls=document.querySelectorAll(".fi");
-var hlEl=document.getElementById("hl");
-var slEl=document.getElementById("sl");
-function goTo(idx){
-  slideEls[cur].classList.remove("on");
-  dotEls[cur].classList.remove("on");
-  featEls[cur].classList.remove("on");
-  cur=idx%4;
-  slideEls[cur].classList.add("on");
-  dotEls[cur].classList.add("on");
-  featEls[cur].classList.add("on");
-  hlEl.style.opacity="0";slEl.style.opacity="0";
-  setTimeout(function(){
-    hlEl.innerHTML=slides[cur].h;slEl.textContent=slides[cur].s;
-    hlEl.style.opacity="1";slEl.style.opacity="1";
-  },350);
+var saves={q:{s:(199-169)*3,p:(399-339)*3,e:(799-679)*3},y:{s:(199-129)*12,p:(399-259)*12,e:(799-519)*12}};
+function sp(period,btn){
+  document.querySelectorAll('.pt').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  var ids={s:['sm','sq','sy'],p:['pm','pq','py'],e:['em','eq','ey']};
+  var periods=['m','q','y'];
+  Object.keys(ids).forEach(function(t){
+    ids[t].forEach(function(id,i){
+      var el=document.getElementById(id);
+      if(el){el.classList.remove('s');if(periods[i]===period)el.classList.add('s');}
+    });
+  });
+  var noteMap={m:'aylık faturalandırma',q:'3 aylık faturalandırma',y:'yıllık faturalandırma'};
+  ['sn','pnn','en'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=noteMap[period];});
+  var sv=saves[period];
+  [['ss','s'],['ps','p'],['es','e']].forEach(function(pair){
+    var el=document.getElementById(pair[0]);if(!el)return;
+    if(sv&&sv[pair[1]]){el.textContent='₺'+sv[pair[1]]+' tasarruf';el.classList.remove('h');}
+    else el.classList.add('h');
+  });
 }
-setInterval(function(){goTo(cur+1);},4200);
-</script></body></html>"""
-        _carousel_html = _carousel_css + _carousel_body
-        for _k in ('s0', 's1', 's2', 's3'):
-            _carousel_html = _carousel_html.replace(
-                "__IMG_" + _k.upper() + "__", _CAROUSEL_IMGS.get(_k, "")
-            )
-        _components.html(_carousel_html, height=500, scrolling=False)
+var toasts=[
+  {i:'&#127978;',t:'<strong>KozmikModa</strong> 147 sipariş senkronize etti',m:'Az önce'},
+  {i:'&#128202;',t:'<strong>TechnoMart</strong> cohort raporu indirdi',m:'2 dk önce'},
+  {i:'&#9889;',t:'<strong>SportStyle</strong> churn analizi çalıştırdı',m:'5 dk önce'},
+  {i:'&#128142;',t:'<strong>PetShopTR</strong> 23 VIP müşteri tespit etti',m:'9 dk önce'},
+  {i:'&#128196;',t:'<strong>GiyimHane</strong> PDF raporu hazırladı',m:'14 dk önce'},
+  {i:'&#128257;',t:'<strong>ElektroStore</strong> 89 churn riski buldu',m:'18 dk önce'},
+];
+var ti=0;
+function showToast(){
+  var area=document.getElementById('ta');if(!area)return;
+  var t=toasts[ti%toasts.length];
+  var d=document.createElement('div');d.className='toast';
+  d.innerHTML='<span class="tic">'+t.i+'</span><div class="ttx">'+t.t+'<div class="ttm">'+t.m+'</div></div>';
+  area.appendChild(d);
+  setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d);},5000);
+  ti++;
+}
+setTimeout(showToast,2000);setInterval(showToast,9000);
+setInterval(function(){var el=document.getElementById('lc');if(el)el.textContent=45+Math.floor(Math.random()*10);},15000);
+</script>
+</body>
+</html>"""
+
+        _cmp.html(_left_html, height=920, scrolling=True)
 
     with col_c:
         st.markdown(
             """
-            <div style="text-align:center; margin-bottom:1.8rem; padding-top:.4rem;">
-                <div style="font-size:3rem; margin-bottom:.35rem;
-                            filter:drop-shadow(0 0 18px rgba(242,133,0,.55));">🔄</div>
-                <h1 style="color:#e8f4fa; font-size:2rem; font-weight:800;
-                           margin:.15rem 0 .1rem; letter-spacing:-.01em;
-                           text-shadow:0 2px 14px rgba(0,0,0,.5);">ReOrder</h1>
-                <p style="color:rgba(180,210,230,.7); margin:.2rem 0 0; font-size:.86rem;
-                          font-weight:400;">
-                    Trendyol Retention & Müşteri Analiz Platformu
-                </p>
-                <p style="font-size:.82rem; font-style:italic; font-weight:700; margin:.5rem 0 0;
-                          letter-spacing:.04em;
-                          background: linear-gradient(90deg,#F28500,#ffb347);
-                          -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-                          background-clip:text;">
-                    Seamless Experience, Return Customers.&nbsp;|&nbsp;Kusursuz Deneyim, Geri Dönen Müşteriler.
-                </p>
+            <div style="text-align:center;margin-bottom:1.6rem;padding-top:.3rem;position:relative;z-index:1;">
+                <div style="width:52px;height:52px;border-radius:15px;
+                    background:linear-gradient(135deg,#F28500,#C95A10);
+                    display:inline-flex;align-items:center;justify-content:center;
+                    font-size:1.4rem;box-shadow:0 8px 24px rgba(242,133,0,.45);
+                    margin-bottom:.75rem;">&#x1F504;</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#fff;letter-spacing:-.01em;">
+                    Hesab&#305;na Giri&#351; Yap</div>
+                <div style="font-size:.76rem;color:rgba(255,255,255,.32);margin-top:.22rem;">
+                    ya da 14 g&#252;n &#252;cretsiz ba&#351;la</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1362,7 +1197,7 @@ setInterval(function(){goTo(cur+1);},4200);
                         tok = create_session_token(res["user"]["id"])
                         st.query_params["_rt"] = tok
                     except Exception:
-                        pass  # Token tablosu yoksa bile giriş tamamlanır
+                        pass
                     st.rerun()
                 else:
                     st.error(res["error"])
@@ -1371,7 +1206,9 @@ setInterval(function(){goTo(cur+1);},4200);
             with st.form("register_form"):
                 store = st.text_input("Mağaza Adı", placeholder="Mağazanızın adı")
                 email2 = st.text_input("E-posta", placeholder="ornek@magaza.com")
-                pw1 = st.text_input("Şifre", type="password", help="En az 8 karakter, 1 rakam içermeli")
+                pw1 = st.text_input(
+                    "Şifre", type="password", help="En az 8 karakter, 1 rakam içermeli"
+                )
                 pw2 = st.text_input("Şifre (Tekrar)", type="password")
                 sub2 = st.form_submit_button("Hesap Oluştur", use_container_width=True)
             if sub2:
@@ -1385,27 +1222,42 @@ setInterval(function(){goTo(cur+1);},4200);
                             tok = create_session_token(res["user"]["id"])
                             st.query_params["_rt"] = tok
                         except Exception:
-                            pass  # Token tablosu yoksa bile kayıt tamamlanır
+                            pass
                         st.rerun()
                     else:
                         st.error(res["error"])
 
-    # ── Footer kapsülü ───────────────────────────────────────────────────────
+        st.markdown(
+            """
+            <div style="margin-top:.9rem;background:rgba(242,133,0,.08);
+                border:1px solid rgba(242,133,0,.22);border-radius:12px;
+                padding:.85rem 1rem;text-align:center;position:relative;z-index:1;">
+                <div style="font-size:.67rem;font-weight:800;color:#F28500;
+                    text-transform:uppercase;letter-spacing:.1em;margin-bottom:.28rem;">
+                    &#127873; 14 G&#252;n &#220;cretsiz Deneme</div>
+                <div style="font-size:.7rem;color:rgba(255,255,255,.3);line-height:1.55;">
+                    Kredi kart&#305; gerekmez &nbsp;&#183;&nbsp;
+                    &#304;stedi&#287;in zaman iptal &nbsp;&#183;&nbsp;
+                    T&#252;m &#246;zelliklere tam eri&#351;im
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # ── Footer ─────────────────────────────────────────────────────────────────
     st.markdown(
         '<div class="ro-login-footer">'
         '<span>ReOrder &copy; 2026</span>'
         '<span class="ro-sep">|</span>'
-        '<a href="mailto:support@reorder.app">❓ Support</a>'
+        '<a href="mailto:support@reorder.app">&#10067; Destek</a>'
         '<span class="ro-sep">|</span>'
-        '<a href="#">⭕ Privacy Policy</a>'
+        '<a href="#">&#9899; Gizlilik</a>'
         '</div>',
         unsafe_allow_html=True,
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Sidebar
-# ─────────────────────────────────────────────────────────────────────────────
 def show_sidebar() -> None:
     user = st.session_state.user
     current_page = st.session_state.get("page", "dashboard")
