@@ -725,6 +725,86 @@ def _go(page: str) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # Giriş / Kayıt
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _send_telegram(text: str) -> bool:
+    """Telegram bot üzerinden bildirim gönderir."""
+    import requests as _req
+    try:
+        token = os.getenv("TELEGRAM_BOT_TOKEN") or st.secrets.get("TELEGRAM_BOT_TOKEN", "")
+        chat_id = os.getenv("TELEGRAM_CHAT_ID") or st.secrets.get("TELEGRAM_CHAT_ID", "")
+    except Exception:
+        token, chat_id = os.getenv("TELEGRAM_BOT_TOKEN", ""), os.getenv("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        return False
+    try:
+        r = _req.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
+            timeout=6,
+        )
+        return r.ok
+    except Exception:
+        return False
+
+
+@st.dialog("İletişim Formu", width="large")
+def _contact_dialog() -> None:
+    st.markdown(
+        """
+        <div style="margin-bottom:1.2rem;">
+            <div style="font-size:1rem;font-weight:700;color:#0f1a35;margin-bottom:.3rem;">
+                Size nasıl yardımcı olabiliriz?
+            </div>
+            <div style="font-size:.82rem;color:#6b7280;line-height:1.6;">
+                Formu doldurun, ekibimiz <strong>en geç 1 iş günü içinde</strong> size dönüş yapsın.
+                Plan seçimi, entegrasyon veya teknik konularda destek sağlıyoruz.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    with st.form("contact_form", border=False):
+        c1, c2 = st.columns(2)
+        with c1:
+            name = st.text_input("Ad Soyad *", placeholder="Ahmet Yılmaz")
+        with c2:
+            company = st.text_input("Mağaza / Şirket Adı", placeholder="Mağazanızın adı")
+        c3, c4 = st.columns(2)
+        with c3:
+            email = st.text_input("E-posta *", placeholder="ahmet@magaza.com")
+        with c4:
+            phone = st.text_input("Telefon", placeholder="05XX XXX XX XX")
+        subject = st.selectbox(
+            "Konu *",
+            ["Plan seçimi ve fiyatlandırma", "Teknik entegrasyon", "Demo talebi",
+             "Fatura ve ödeme", "Özel kurumsal teklif", "Diğer"],
+        )
+        message = st.text_area(
+            "Mesajınız *",
+            placeholder="Trendyol mağazanız hakkında kısa bilgi verin ve nasıl yardımcı olabileceğimizi belirtin...",
+            height=120,
+        )
+        submitted = st.form_submit_button("Mesajı Gönder →", use_container_width=True, type="primary")
+
+    if submitted:
+        if not name.strip() or not email.strip() or not message.strip():
+            st.error("Ad soyad, e-posta ve mesaj alanları zorunludur.")
+        elif "@" not in email:
+            st.error("Geçerli bir e-posta adresi girin.")
+        else:
+            tg_text = (
+                "📬 <b>ReOrder — Yeni İletişim Talebi</b>\n\n"
+                f"👤 <b>Ad Soyad:</b> {name}\n"
+                f"🏪 <b>Mağaza:</b> {company or '—'}\n"
+                f"📧 <b>E-posta:</b> {email}\n"
+                f"📞 <b>Telefon:</b> {phone or '—'}\n"
+                f"📌 <b>Konu:</b> {subject}\n\n"
+                f"💬 <b>Mesaj:</b>\n{message}"
+            )
+            _send_telegram(tg_text)
+            st.success("✅ Mesajınız alındı! En geç 1 iş günü içinde size dönüş yapacağız.")
+
+
 def show_auth() -> None:  # noqa: C901
     import streamlit.components.v1 as _cmp
 
@@ -799,6 +879,17 @@ body,html{overflow-x:hidden;}
 [data-testid="stFormSubmitButton"] > button:active{transform:translateY(0) !important;}
 /* Alert */
 [data-testid="stAlert"]{background:rgba(10,37,51,.55) !important;border:1px solid rgba(242,133,0,.25) !important;border-radius:10px !important;color:#dff0f8 !important;}
+/* İletişime Geç butonu */
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child button:not([data-testid="stFormSubmitButton"] > button):not([role="tab"]){
+    background:rgba(255,255,255,.06) !important;color:rgba(255,255,255,.55) !important;
+    border:1.5px solid rgba(255,255,255,.1) !important;border-radius:11px !important;
+    font-size:.83rem !important;font-weight:600 !important;
+    transition:background .18s,border-color .18s,color .18s !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child button:not([data-testid="stFormSubmitButton"] > button):not([role="tab"]):hover{
+    background:rgba(242,133,0,.1) !important;border-color:rgba(242,133,0,.35) !important;
+    color:rgba(255,255,255,.85) !important;
+}
 /* Tooltip */
 [data-testid="stTooltipIcon"] svg,[data-testid="stTooltipIcon"] svg *{fill:rgba(242,133,0,.8) !important;}
 /* Mobile header — hidden on desktop */
@@ -1268,6 +1359,21 @@ function sp(period,btn){
                     else:
                         st.error(res["error"])
 
+
+    with col_c:
+        st.markdown(
+            """
+            <div style="margin-top:1.4rem;border-top:1px solid rgba(255,255,255,.07);
+                padding-top:1.1rem;text-align:center;">
+                <div style="font-size:.72rem;color:rgba(255,255,255,.28);margin-bottom:.6rem;">
+                    Sorularınız mı var? Uzmanlarımız yardımcı olsun.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("✉️  Bizimle İletişime Geçin", use_container_width=True, key="open_contact"):
+            _contact_dialog()
 
     # ── Footer ─────────────────────────────────────────────────────────────────
     st.markdown(
