@@ -962,8 +962,7 @@ body,html{overflow-x:hidden;}
 /* Selectbox */
 [data-testid="stDialog"] [data-testid="stSelectbox"] > div > div{
     background:#f8faff !important;border:1.5px solid #e2e8f0 !important;
-    border-radius:9px !important;color:#0f1a35 !important;
-    min-height:0 !important;height:38px !important;padding:.42rem .75rem !important;
+    border-radius:9px !important;
 }
 [data-testid="stDialog"] [data-testid="stSelectbox"] > div > div:focus-within{
     border-color:#F28500 !important;box-shadow:0 0 0 3px rgba(242,133,0,.09) !important;
