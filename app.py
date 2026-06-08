@@ -1550,6 +1550,17 @@ section[data-testid="stMain"]>div:first-child{padding-top:0!important;}
 .ob-head h1{font-size:2rem;font-weight:900;margin:0 0 .4rem;}
 .ob-head p{color:rgba(255,255,255,.55);font-size:.95rem;margin:0;}
 .period-btn button{border-radius:20px!important;font-size:.82rem!important;font-weight:600!important;}
+.period-btn [data-testid="stBaseButton-secondary"],
+.period-btn button[kind="secondary"]{
+    background:rgba(255,255,255,.12)!important;
+    color:rgba(255,255,255,.65)!important;
+    border:1px solid rgba(255,255,255,.2)!important;
+}
+.period-btn [data-testid="stBaseButton-secondary"]:hover,
+.period-btn button[kind="secondary"]:hover{
+    background:rgba(255,255,255,.2)!important;
+    color:#fff!important;
+}
 .plan-card{
     background:rgba(255,255,255,.08);
     border:1.5px solid rgba(255,255,255,.15);
@@ -2582,6 +2593,7 @@ def show_upload() -> None:
                     store_name=store_name,
                 )
                 imp = import_to_db(sample_df, user["id"], batch="sample_data", store_id=store_id)
+                st.cache_data.clear()
             st.markdown(
                 f"""<div class="success-box">
                 🎉 <b>{imp['inserted']:,} örnek sipariş</b> yüklendi!
