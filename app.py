@@ -1537,7 +1537,10 @@ _ONBOARDING_CSS = """
 header{display:none!important;}
 #MainMenu{display:none!important;}
 footer{display:none!important;}
-[data-testid="stApp"]{
+html,body,[data-testid="stApp"],
+[data-testid="stAppViewContainer"],
+section[data-testid="stMain"],
+.main,.block-container{
     background:linear-gradient(145deg,#0a2533,#0d3a4b,#134e5e,#0a2e3d)!important;
     min-height:100vh;
 }
@@ -1547,15 +1550,16 @@ section[data-testid="stMain"]>div:first-child{padding-top:0!important;}
 .ob-head p{color:rgba(255,255,255,.55);font-size:.95rem;margin:0;}
 .period-btn button{border-radius:20px!important;font-size:.82rem!important;font-weight:600!important;}
 .plan-card{
-    background:rgba(255,255,255,.05);
-    border:1.5px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.08);
+    border:1.5px solid rgba(255,255,255,.15);
     border-radius:16px;padding:1.6rem 1.4rem 1rem;
     min-height:360px;display:flex;flex-direction:column;
+    backdrop-filter:blur(10px);
 }
 .plan-card-pop{
-    background:rgba(242,133,0,.07);
+    background:rgba(242,133,0,.12);
     border:2px solid #F28500;
-    box-shadow:0 8px 32px rgba(242,133,0,.2);
+    box-shadow:0 8px 32px rgba(242,133,0,.25);
 }
 .plan-badge{
     background:linear-gradient(90deg,#F28500,#D46000);
