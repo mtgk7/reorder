@@ -1394,8 +1394,8 @@ function sp(period,btn){
   });
 }
 function goRegister(){
-    var url=window.parent.location.href.split('?')[0];
-    window.parent.location.href=url+'?action=register';
+    try{ window.parent.sessionStorage.setItem('reorder_go_register','1'); }
+    catch(e){}
 }
 </script>
 </body>
@@ -1423,19 +1423,22 @@ function goRegister(){
 
         tab_giris, tab_kayit = st.tabs(["🔐 Giriş Yap", "✨ Hesap Oluştur"])
 
-        if st.query_params.get("action") == "register":
-            _cmp.html("""
-            <script>
-            (function(){
-                function tryClick(n){
+        # Pricing buton tıklamasını dinle: sol panel iframe sessionStorage flag koyar,
+        # bu component 100ms'de bir okur ve direkt tab'a DOM click atar.
+        _cmp.html("""
+        <script>
+        (function poll(){
+            try{
+                if(window.parent.sessionStorage.getItem('reorder_go_register')==='1'){
+                    window.parent.sessionStorage.removeItem('reorder_go_register');
                     var tabs=window.parent.document.querySelectorAll('[role="tab"]');
-                    if(tabs&&tabs.length>1){tabs[1].click();}
-                    else if(n>0){setTimeout(function(){tryClick(n-1);},200);}
+                    if(tabs&&tabs.length>1) tabs[1].click();
                 }
-                setTimeout(function(){tryClick(15);},400);
-            })();
-            </script>
-            """, height=0)
+            }catch(e){}
+            setTimeout(poll,100);
+        })();
+        </script>
+        """, height=0)
 
         with tab_giris:
             with st.form("login_form"):
