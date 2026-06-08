@@ -747,7 +747,7 @@ def _send_telegram(text: str) -> bool:
         return False
 
 
-@st.dialog("✉️ İletişim", width="large")
+@st.dialog("✉️ İletişim")
 def _contact_dialog() -> None:
     st.markdown(
         """
