@@ -728,7 +728,7 @@ def _go(page: str) -> None:
 
 def _send_telegram(text: str) -> bool:
     """Telegram bot üzerinden bildirim gönderir."""
-    import requests as _req
+    import os, requests as _req
     try:
         token = os.getenv("TELEGRAM_BOT_TOKEN") or st.secrets.get("TELEGRAM_BOT_TOKEN", "")
         chat_id = os.getenv("TELEGRAM_CHAT_ID") or st.secrets.get("TELEGRAM_CHAT_ID", "")
