@@ -747,25 +747,24 @@ def _send_telegram(text: str) -> bool:
         return False
 
 
-@st.dialog("✉️ İletişim", width="large")
+@st.dialog("✉️ İletişim")
 def _contact_dialog() -> None:
     st.markdown(
         """
         <div style="background:linear-gradient(135deg,#fff9f0,#fff4e6);
-            border:1px solid rgba(242,133,0,.18);border-radius:14px;
-            padding:1.1rem 1.3rem;margin-bottom:1.4rem;
-            display:flex;align-items:center;gap:1rem;">
-            <div style="width:46px;height:46px;border-radius:13px;flex-shrink:0;
+            border:1px solid rgba(242,133,0,.18);border-radius:12px;
+            padding:.7rem 1rem;margin-bottom:1rem;
+            display:flex;align-items:center;gap:.75rem;">
+            <div style="width:36px;height:36px;border-radius:10px;flex-shrink:0;
                 background:linear-gradient(135deg,#F28500,#C95A10);
                 display:flex;align-items:center;justify-content:center;
-                font-size:1.3rem;box-shadow:0 4px 14px rgba(242,133,0,.3);">✉️</div>
+                font-size:1rem;box-shadow:0 3px 10px rgba(242,133,0,.28);">✉️</div>
             <div>
-                <div style="font-size:.95rem;font-weight:800;color:#0f1a35;margin-bottom:.2rem;">
+                <div style="font-size:.84rem;font-weight:800;color:#0f1a35;margin-bottom:.1rem;">
                     Size nasıl yardımcı olabiliriz?
                 </div>
-                <div style="font-size:.78rem;color:#6b7280;line-height:1.55;">
-                    Formu doldurun — ekibimiz <strong style="color:#D46000;">en geç 1 iş günü içinde</strong>
-                    sizi arayarak dönüş yapsın.
+                <div style="font-size:.73rem;color:#6b7280;line-height:1.5;">
+                    Ekibimiz <strong style="color:#D46000;">en geç 1 iş günü içinde</strong> dönüş yapar.
                 </div>
             </div>
         </div>
@@ -790,8 +789,8 @@ def _contact_dialog() -> None:
         )
         message = st.text_area(
             "Mesajınız",
-            placeholder="Trendyol mağazanız hakkında kısa bilgi verin ve size nasıl yardımcı olabileceğimizi belirtin...",
-            height=130,
+            placeholder="Trendyol mağazanız hakkında kısa bilgi verin...",
+            height=90,
         )
         st.markdown(
             '<div style="font-size:.72rem;color:#9ca3af;margin-bottom:.3rem;">'
@@ -924,7 +923,7 @@ body,html{overflow-x:hidden;}
 }
 [data-testid="stDialog"] button[aria-label="Close"]:hover{background:rgba(0,0,0,.08) !important;}
 /* Dialog içerik alanı */
-[data-testid="stDialog"] [data-testid="stVerticalBlock"]{padding:2rem 2.2rem 1.8rem !important;}
+[data-testid="stDialog"] [data-testid="stVerticalBlock"]{padding:1.2rem 1.4rem 1.2rem !important;}
 /* Dialog label'ları */
 [data-testid="stDialog"] label p{
     color:#374151 !important;font-size:.79rem !important;
