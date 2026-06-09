@@ -276,9 +276,10 @@ background:#f0f4fa;margin:0;padding:20px;">
     if resend_api_key:
         try:
             import urllib.request, json as _json
-            from_addr = smtp_from if smtp_from else "ReOrder <noreply@reorder.app>"
+            # Resend: domain dogrulanmadiysa onboarding@resend.dev kullan
+            resend_from = os.environ.get("RESEND_FROM_EMAIL", "ReOrder <onboarding@resend.dev>")
             payload = _json.dumps({
-                "from": from_addr,
+                "from": resend_from,
                 "to": [email],
                 "subject": "ReOrder — Şifre Sıfırlama",
                 "html": html,
