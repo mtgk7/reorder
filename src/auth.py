@@ -275,7 +275,7 @@ background:#f0f4fa;margin:0;padding:20px;">
     # ── Resend HTTP API (Render free tier'da çalışır) ─────────────────────────
     if resend_api_key:
         try:
-            import urllib.request, json as _json
+            import urllib.request, urllib.error, json as _json
             # Resend: domain dogrulanmadiysa onboarding@resend.dev kullan
             resend_from = os.environ.get("RESEND_FROM_EMAIL", "ReOrder <onboarding@resend.dev>")
             payload = _json.dumps({
@@ -293,11 +293,15 @@ background:#f0f4fa;margin:0;padding:20px;">
                 },
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                if resp.status in (200, 201):
-                    return {"success": True}
-                body = resp.read().decode()
-                return {"success": False, "error": f"Resend {resp.status}: {body}"}
+            try:
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    if resp.status in (200, 201):
+                        return {"success": True}
+                    body = resp.read().decode()
+                    return {"success": False, "error": f"Resend {resp.status}: {body}"}
+            except urllib.error.HTTPError as he:
+                body = he.read().decode(errors="replace")
+                return {"success": False, "error": f"Resend {he.code}: {body}"}
         except Exception as exc:
             return {"success": False, "error": str(exc)}
 
