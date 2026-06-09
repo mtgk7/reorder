@@ -275,33 +275,25 @@ background:#f0f4fa;margin:0;padding:20px;">
     # ── Resend HTTP API (Render free tier'da çalışır) ─────────────────────────
     if resend_api_key:
         try:
-            import urllib.request, urllib.error, json as _json
-            # Resend: domain dogrulanmadiysa onboarding@resend.dev kullan
+            import requests as _req
             resend_from = os.environ.get("RESEND_FROM_EMAIL", "ReOrder <onboarding@resend.dev>")
-            payload = _json.dumps({
-                "from": resend_from,
-                "to": [email],
-                "subject": "ReOrder — Şifre Sıfırlama",
-                "html": html,
-            }).encode()
-            req = urllib.request.Request(
+            resp = _req.post(
                 "https://api.resend.com/emails",
-                data=payload,
                 headers={
                     "Authorization": f"Bearer {resend_api_key}",
                     "Content-Type": "application/json",
                 },
-                method="POST",
+                json={
+                    "from": resend_from,
+                    "to": [email],
+                    "subject": "ReOrder — Şifre Sıfırlama",
+                    "html": html,
+                },
+                timeout=15,
             )
-            try:
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    if resp.status in (200, 201):
-                        return {"success": True}
-                    body = resp.read().decode()
-                    return {"success": False, "error": f"Resend {resp.status}: {body}"}
-            except urllib.error.HTTPError as he:
-                body = he.read().decode(errors="replace")
-                return {"success": False, "error": f"Resend {he.code}: {body}"}
+            if resp.status_code in (200, 201):
+                return {"success": True}
+            return {"success": False, "error": f"Resend {resp.status_code}: {resp.text}"}
         except Exception as exc:
             return {"success": False, "error": str(exc)}
 
