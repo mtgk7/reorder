@@ -56,7 +56,7 @@ from src.analytics import (
 # _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
 # Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
-_SCHEMA_VER = "v7"  # plan sistemi: users.plan/plan_period kolonları
+_SCHEMA_VER = "v8"  # password_reset_tokens tablosu + migration savepoint fix
 
 
 @st.cache_resource

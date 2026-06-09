@@ -237,27 +237,32 @@ def _init_postgres(db_url: str) -> None:
 
 
 def _migrate_orders_unique_pg(cur) -> None:
-    """orders tablosunun UNIQUE constraint'ine store_id ekler (idempotent)."""
+    """orders tablosunun UNIQUE constraint'ine store_id ekler (idempotent).
+    SAVEPOINT kullanır — istisna tüm transaction'ı abort etmesin.
+    """
     try:
-        # Mevcut constraint'i bul ve sil
+        cur.execute("SAVEPOINT mou_drop")
         cur.execute("""
             SELECT constraint_name FROM information_schema.table_constraints
             WHERE table_name = 'orders' AND constraint_type = 'UNIQUE'
-            AND constraint_name LIKE '%order_number%customer%'
+            AND constraint_name LIKE '%%order_number%%customer%%'
         """)
         rows = cur.fetchall() if hasattr(cur, 'fetchall') else []
         for row in (rows or []):
             name = list(row.values())[0] if hasattr(row, 'values') else row[0]
             cur.execute(f"ALTER TABLE orders DROP CONSTRAINT IF EXISTS \"{name}\"")
+        cur.execute("RELEASE SAVEPOINT mou_drop")
     except Exception:
-        pass
+        cur.execute("ROLLBACK TO SAVEPOINT mou_drop")
     try:
+        cur.execute("SAVEPOINT mou_add")
         cur.execute("""
             ALTER TABLE orders ADD CONSTRAINT orders_user_store_order_cust_unique
             UNIQUE (user_id, store_id, order_number, customer_identifier)
         """)
+        cur.execute("RELEASE SAVEPOINT mou_add")
     except Exception:
-        pass  # Constraint zaten varsa atla
+        cur.execute("ROLLBACK TO SAVEPOINT mou_add")
 
 
 def _migrate_postgres(cur) -> None:
