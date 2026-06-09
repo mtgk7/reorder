@@ -217,11 +217,15 @@ def delete_session_token(token: str) -> None:
 
 
 def send_reset_email(email: str, token: str) -> dict:
-    """Şifre sıfırlama e-postası gönderir. SMTP env vars gereklidir."""
+    """Şifre sıfırlama e-postası gönderir.
+    Önce RESEND_API_KEY'e bakar (Render free tier için önerilir),
+    yoksa SMTP env vars ile dener.
+    """
     import os, smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
 
+    resend_api_key = os.environ.get("RESEND_API_KEY", "")
     smtp_host = os.environ.get("SMTP_HOST", "")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
     smtp_user = os.environ.get("SMTP_USER", "")
@@ -229,14 +233,10 @@ def send_reset_email(email: str, token: str) -> dict:
     smtp_from = os.environ.get("SMTP_FROM_EMAIL", smtp_user)
     app_url   = os.environ.get("APP_URL", "https://reorder-81nz.onrender.com").rstrip("/")
 
-    if not (smtp_host and smtp_user and smtp_pass):
+    if not (resend_api_key or (smtp_host and smtp_user and smtp_pass)):
         return {"success": False, "error": "no_smtp"}
 
     reset_link = f"{app_url}/?reset_token={token}"
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "ReOrder — Şifre Sıfırlama"
-    msg["From"]    = f"ReOrder <{smtp_from}>"
-    msg["To"]      = email
 
     html = f"""
 <!DOCTYPE html><html lang="tr"><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -272,10 +272,42 @@ background:#f0f4fa;margin:0;padding:20px;">
 </div>
 </body></html>
 """
-    msg.attach(MIMEText(html, "html"))
+    # ── Resend HTTP API (Render free tier'da çalışır) ─────────────────────────
+    if resend_api_key:
+        try:
+            import urllib.request, json as _json
+            from_addr = smtp_from if smtp_from else "ReOrder <noreply@reorder.app>"
+            payload = _json.dumps({
+                "from": from_addr,
+                "to": [email],
+                "subject": "ReOrder — Şifre Sıfırlama",
+                "html": html,
+            }).encode()
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=payload,
+                headers={
+                    "Authorization": f"Bearer {resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                if resp.status in (200, 201):
+                    return {"success": True}
+                body = resp.read().decode()
+                return {"success": False, "error": f"Resend {resp.status}: {body}"}
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
+
+    # ── SMTP fallback ─────────────────────────────────────────────────────────
+    msg_obj = MIMEMultipart("alternative")
+    msg_obj["Subject"] = "ReOrder — Şifre Sıfırlama"
+    msg_obj["From"]    = f"ReOrder <{smtp_from}>"
+    msg_obj["To"]      = email
+    msg_obj.attach(MIMEText(html, "html"))
     try:
-        import socket as _sock, ssl as _ssl
-        # Render free tier bazen IPv6 rotası bulamaz; IPv4'e zorla
+        import socket as _sock
         _orig_gai = _sock.getaddrinfo
         def _ipv4_gai(host, port, family=0, *a, **kw):
             return _orig_gai(host, port, _sock.AF_INET, *a, **kw)
@@ -286,7 +318,7 @@ background:#f0f4fa;margin:0;padding:20px;">
                 server.starttls()
                 server.ehlo()
                 server.login(smtp_user, smtp_pass)
-                server.sendmail(smtp_from, [email], msg.as_string())
+                server.sendmail(smtp_from, [email], msg_obj.as_string())
         finally:
             _sock.getaddrinfo = _orig_gai
         return {"success": True}
