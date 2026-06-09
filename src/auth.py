@@ -274,11 +274,21 @@ background:#f0f4fa;margin:0;padding:20px;">
 """
     msg.attach(MIMEText(html, "html"))
     try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_from, [email], msg.as_string())
+        import socket as _sock, ssl as _ssl
+        # Render free tier bazen IPv6 rotası bulamaz; IPv4'e zorla
+        _orig_gai = _sock.getaddrinfo
+        def _ipv4_gai(host, port, family=0, *a, **kw):
+            return _orig_gai(host, port, _sock.AF_INET, *a, **kw)
+        _sock.getaddrinfo = _ipv4_gai
+        try:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_from, [email], msg.as_string())
+        finally:
+            _sock.getaddrinfo = _orig_gai
         return {"success": True}
     except Exception as exc:
         return {"success": False, "error": str(exc)}
