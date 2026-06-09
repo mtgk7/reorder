@@ -838,6 +838,17 @@ def show_reset_password() -> None:
 [data-testid="stSidebar"]{display:none !important;}
 [data-testid="stHeader"]{background:transparent !important;}
 .block-container{max-width:480px !important;padding:3rem 1.5rem !important;margin:0 auto !important;}
+[data-testid="stAppViewContainer"],[data-testid="stMain"],
+section[data-testid="stMain"]>div:first-child{background:#f0f4fa !important;}
+[data-testid="stTextInput"] label p{color:#374151 !important;font-size:.85rem !important;font-weight:600 !important;}
+[data-testid="stTextInput"]>div{background:#fff !important;border:1.5px solid #e2e8f0 !important;border-radius:10px !important;}
+[data-testid="stTextInput"]>div:focus-within{border-color:#F28500 !important;box-shadow:0 0 0 3px rgba(242,133,0,.1) !important;}
+[data-testid="stTextInput"] input{color:#0f1a35 !important;-webkit-text-fill-color:#0f1a35 !important;background:transparent !important;}
+[data-testid="stTextInput"] input::placeholder{color:#9ca3af !important;-webkit-text-fill-color:#9ca3af !important;}
+[data-testid="stTextInput"] button svg,[data-testid="stTextInput"] button svg *{fill:#6b7280 !important;}
+[data-testid="stFormSubmitButton"]>button{background:linear-gradient(135deg,#F28500,#D46000) !important;color:#fff !important;border:none !important;border-radius:10px !important;font-weight:800 !important;box-shadow:0 4px 16px rgba(242,133,0,.35) !important;}
+[data-testid="stFormSubmitButton"]>button:hover{box-shadow:0 6px 22px rgba(242,133,0,.5) !important;}
+[data-testid="stAlert"]{background:#fff !important;border-radius:10px !important;color:#374151 !important;}
 </style>
 """, unsafe_allow_html=True)
 
