@@ -66,47 +66,6 @@ def _init_db_once(_ver: str = _SCHEMA_VER):
 
 _init_db_once(_SCHEMA_VER)
 
-# Carousel PNG'lerini yükleme anında WebP'ye çevirip base64 olarak göm.
-# Tam boy (1280px) WebP q90 ~267KB (eski ham PNG 4.65MB) — görseller panelde küçülmesin diye
-# çözünürlük düşürülmez, sadece WebP sıkıştırması uygulanır.
-_CAROUSEL_MAX_W = 1280  # tam boy korunur (kaynak zaten 1280) — downscale yok
-_CAROUSEL_QUALITY = 90
-
-@st.cache_data
-def _load_carousel_images():
-    import base64
-    import os
-    import io
-    slides = {}
-    asset_dir = os.path.join(os.path.dirname(__file__), 'assets')
-    files = [('slide_dashboard.png', 's0'), ('slide_cohort.png', 's1'),
-             ('slide_segments.png', 's2'), ('slide_pdf.png', 's3')]
-    try:
-        from PIL import Image
-    except ImportError:
-        Image = None
-    for fname, key in files:
-        fpath = os.path.join(asset_dir, fname)
-        if not os.path.exists(fpath):
-            continue
-        if Image is not None:
-            try:
-                im = Image.open(fpath).convert('RGB')
-                if im.width > _CAROUSEL_MAX_W:
-                    ratio = _CAROUSEL_MAX_W / im.width
-                    im = im.resize((_CAROUSEL_MAX_W, round(im.height * ratio)),
-                                   Image.LANCZOS)
-                buf = io.BytesIO()
-                im.save(buf, format='WEBP', quality=_CAROUSEL_QUALITY, method=6)
-                slides[key] = 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()
-                continue
-            except Exception:
-                pass  # PIL/WebP başarısız olursa ham PNG'ye düş
-        with open(fpath, 'rb') as f:
-            slides[key] = 'data:image/png;base64,' + base64.b64encode(f.read()).decode()
-    return slides
-
-_CAROUSEL_IMGS = _load_carousel_images()
 
 from PIL import Image as _PIL_Image
 from pathlib import Path as _Path
