@@ -1101,26 +1101,14 @@ body,html{overflow-x:hidden;}
 .ro-sep{opacity:.28;}
 /* ── MOBILE ≤ 768px ── */
 @media (max-width:768px){
-    /* Sütunları dikey sırala: login formu üstte, marketing içeriği altta */
-    [data-testid="stHorizontalBlock"]{flex-direction:column !important;min-height:unset !important;}
-    /* Login formu (sağ kolon) → üstte, tam genişlik */
-    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child{
-        order:1 !important;min-width:100% !important;flex:1 1 100% !important;
-    }
-    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child > [data-testid="stVerticalBlock"]{
-        padding:1.8rem 1.2rem 2rem !important;justify-content:flex-start !important;min-height:100svh !important;
-    }
-    /* Marketing içeriği (sol kolon) → altta, tam genişlik, görünür */
-    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child{
-        display:block !important;order:2 !important;min-width:100% !important;flex:1 1 100% !important;
-    }
-    /* iframe'i tüm içerik görünecek şekilde uzat (dahili scroll yok) */
-    [data-testid="stCustomComponentV1"] iframe{
-        height:1700px !important;min-height:1700px !important;
-    }
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child{display:none !important;}
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child{min-width:100% !important;flex:1 1 100% !important;}
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child > [data-testid="stVerticalBlock"]{padding:1.8rem 1.2rem 2rem !important;justify-content:flex-start !important;}
     .ro-mob-hdr{display:block !important;}
     .block-container{padding-left:0 !important;padding-right:0 !important;}
     .ro-login-footer{font-size:.6rem !important;padding:.28rem .85rem !important;}
+    /* Mobil marketing bloğu görünür */
+    .ro-mob-marketing{display:block !important;}
 }
 @media (max-width:400px){.ro-login-footer{display:none !important;}}
 </style>
