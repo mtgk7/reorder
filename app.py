@@ -1644,6 +1644,108 @@ function goRegister(){
         if st.button("✉️  Bizimle İletişime Geçin", use_container_width=True, key="open_contact"):
             _contact_dialog()
 
+    # ── Mobil Marketing Bloğu (masaüstünde gizli, mobilde login altında görünür) ──
+    st.markdown("""
+<div class="ro-mob-marketing" style="display:none;background:#f0f4fa;padding:0 0 4rem;">
+
+  <!-- Özellikler -->
+  <div style="padding:1.6rem 1rem 0;">
+    <div style="font-size:.6rem;font-weight:700;color:#F28500;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.3rem;">&#10022; Özellikler</div>
+    <div style="font-size:1.15rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;margin-bottom:.2rem;">Her şey tek yerden</div>
+    <div style="font-size:.79rem;color:#9ca3af;line-height:1.6;margin-bottom:1rem;">Trendyol mağazanı büyütmek için ihtiyaç duyduğun tüm araçlar.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem;">
+      <div style="background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">📊</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Anlık Dashboard</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Günlük gelir ve sipariş gerçek zamanlı.</div>
+      </div>
+      <div style="background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">🔥</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Cohort Retention</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Renk kodlu heatmap ile analiz.</div>
+      </div>
+      <div style="background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">👥</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">RFM & Churn Skoru</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">0-100 risk, 4 müşteri segmenti.</div>
+      </div>
+      <div style="background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">📧</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">E-posta Kampanya</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Segmente özel şablonlarla gönder.</div>
+      </div>
+      <div style="background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">📄</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">PDF Rapor</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">3 sayfalık markalı rapor, tek tık.</div>
+      </div>
+      <div style="background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">🏪</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Çoklu Mağaza</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Birden fazla mağaza, tek hesap.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sosyal Kanıt -->
+  <div style="margin:1.2rem 1rem 0;background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.85rem 1rem;display:flex;align-items:center;gap:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+    <div style="display:flex;">
+      <div style="width:28px;height:28px;border-radius:50%;background:#F28500;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;">K</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:#3B82F6;border:2px solid #fff;margin-left:-7px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;">T</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:#10B981;border:2px solid #fff;margin-left:-7px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;">S</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:#e8edf5;border:2px solid #fff;margin-left:-7px;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#6b7280;">+496</div>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:.75rem;font-weight:700;color:#0f1a35;">150+ Trendyol mağazası</div>
+      <div style="font-size:.65rem;color:#9ca3af;margin-top:.1rem;">Ortalama +34% geri dönen müşteri</div>
+    </div>
+    <div style="font-size:.7rem;font-weight:700;color:#0f1a35;">⭐ 4.9</div>
+  </div>
+
+  <!-- Fiyatlandırma -->
+  <div style="padding:1.3rem 1rem 0;">
+    <div style="font-size:.6rem;font-weight:700;color:#F28500;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.3rem;">&#10022; Fiyatlandırma</div>
+    <div style="font-size:1.15rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;margin-bottom:.2rem;">Mağazanıza uygun plan</div>
+    <div style="font-size:.79rem;color:#9ca3af;margin-bottom:1rem;">Büyüklüğünüze göre plan seçin. İstediğiniz zaman değiştirin.</div>
+    <!-- Starter -->
+    <div style="background:#fff;border:1.5px solid #e8edf5;border-radius:14px;padding:1.1rem;margin-bottom:.6rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+      <div style="font-size:.62rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem;">Starter</div>
+      <div style="display:flex;align-items:baseline;gap:.1rem;margin-bottom:.15rem;"><span style="font-size:.85rem;font-weight:700;color:#6b7280;">₺</span><span style="font-size:1.7rem;font-weight:900;color:#0f1a35;line-height:1;">349</span><span style="font-size:.62rem;color:#9ca3af;">/ay</span></div>
+      <div style="height:1px;background:#f0f2f7;margin:.65rem 0;"></div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 1 Mağaza</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Dashboard & KPI</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Cohort Analizi</div>
+      <div style="font-size:.72rem;color:#c4c9d4;margin-bottom:.28rem;">✗ PDF Rapor</div>
+      <div style="font-size:.72rem;color:#c4c9d4;">✗ Kampanyalar</div>
+    </div>
+    <!-- Pro -->
+    <div style="background:linear-gradient(135deg,#fff9f0,#fff);border:1.5px solid #F28500;border-radius:14px;padding:1.1rem;margin-bottom:.6rem;box-shadow:0 4px 18px rgba(242,133,0,.14);position:relative;">
+      <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.2rem 1rem;border-radius:0 0 9px 9px;">EN POPÜLER</div>
+      <div style="font-size:.62rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem;margin-top:.8rem;">Pro</div>
+      <div style="display:flex;align-items:baseline;gap:.1rem;margin-bottom:.15rem;"><span style="font-size:.85rem;font-weight:700;color:#6b7280;">₺</span><span style="font-size:1.7rem;font-weight:900;color:#F28500;line-height:1;">699</span><span style="font-size:.62rem;color:#9ca3af;">/ay</span></div>
+      <div style="height:1px;background:#f0f2f7;margin:.65rem 0;"></div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 3 Mağaza</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Dashboard & KPI</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Cohort + RFM</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ PDF Rapor</div>
+      <div style="font-size:.72rem;color:#c4c9d4;">✗ Kampanyalar</div>
+    </div>
+    <!-- Enterprise -->
+    <div style="background:#fff;border:1.5px solid #e8edf5;border-radius:14px;padding:1.1rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+      <div style="font-size:.62rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem;">Enterprise</div>
+      <div style="display:flex;align-items:baseline;gap:.1rem;margin-bottom:.15rem;"><span style="font-size:.85rem;font-weight:700;color:#6b7280;">₺</span><span style="font-size:1.7rem;font-weight:900;color:#0f1a35;line-height:1;">1.249</span><span style="font-size:.62rem;color:#9ca3af;">/ay</span></div>
+      <div style="height:1px;background:#f0f2f7;margin:.65rem 0;"></div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Sınırsız Mağaza</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Tüm Pro Özellikler</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ E-posta Kampanya</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Öncelikli Destek</div>
+      <div style="font-size:.72rem;color:#374151;">✅ API Erişimi</div>
+    </div>
+  </div>
+
+</div>
+""", unsafe_allow_html=True)
+
     # ── Footer ─────────────────────────────────────────────────────────────────
     st.markdown(
         '<div class="ro-login-footer">'
