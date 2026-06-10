@@ -1763,11 +1763,14 @@ def _plan_gate(feature: str) -> bool:
     limits = _plan_limits()
     if limits.get(feature, False):
         return True
-    plan = st.session_state.get("user", {}).get("plan", "Starter")
-    upgrade_to = _PLAN_UPGRADE.get(plan)
-    if upgrade_to:
+    _plan_order = ["Starter", "Pro", "Enterprise"]
+    min_plan = next(
+        (p for p in _plan_order if _PLAN_LIMITS.get(p, {}).get(feature, False)),
+        None,
+    )
+    if min_plan:
         st.warning(
-            f"Bu özellik **{upgrade_to}** ve üzeri planlarda kullanılabilir. "
+            f"Bu özellik **{min_plan}** ve üzeri planlarda kullanılabilir. "
             f"Planınızı yükseltmek için **Ayarlar → Plan Yönetimi** sayfasını ziyaret edin."
         )
     return False
@@ -1782,9 +1785,9 @@ _PLAN_PRICES = {
     "y": {"Starter": (2699, "/yıl"), "Pro": (6900, "/yıl"), "Enterprise": (12000, "/yıl")},
 }
 _PLAN_FEATURES = {
-    "Starter":    ["1 Mağaza", "Dashboard & KPI", "Cohort Analizi", "E-posta Desteği"],
-    "Pro":        ["3 Mağaza", "Dashboard & KPI", "Cohort + RFM", "PDF Rapor", "Öncelikli Destek"],
-    "Enterprise": ["Sınırsız Mağaza", "Tüm Pro Özellikler", "E-posta Kampanya", "API Erişimi", "Özel Hesap Yöneticisi"],
+    "Starter":    ["1 Mağaza", "Dashboard & KPI", "Cohort Analizi", "Temel E-posta Desteği"],
+    "Pro":        ["3 Mağaza", "Dashboard & KPI", "Cohort + RFM", "PDF Rapor", "E-posta Kampanya", "Öncelikli Destek"],
+    "Enterprise": ["Sınırsız Mağaza", "Tüm Pro Özellikler", "Trendyol API Entegrasyonu", "Öncelikli Destek", "Özel Hesap Yöneticisi"],
 }
 
 _ONBOARDING_BG = """
@@ -2086,8 +2089,7 @@ def show_sidebar() -> None:
                     -webkit-text-fill-color:transparent;
                     background-clip:text;
                     line-height:1.35;
-                ">Seamless Experience, Return Customers.<br>
-                <span style="font-size:.75rem;font-weight:600;">Kusursuz Deneyim, Geri Dönen Müşteriler.</span></div>
+                ">Kusursuz Deneyim, Geri Dönen Müşteriler.</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -2934,9 +2936,17 @@ def show_analytics() -> None:
         st.info("Veri bulunamadı. Lütfen önce sipariş yükleyin.")
         return
 
-    tab_cohort, tab_ltv, tab_retention, tab_product = st.tabs(
-        ["🔢 Cohort (Müşteri Grubu) Analizi", "💰 LTV Analizi", "📉 Retention Trendi", "📦 Ürün Analizi"]
-    )
+    _analytics_tabs_allowed = _plan_limits()["analytics_tabs"]
+    _all_tab_defs = [
+        ("cohort",    "🔢 Cohort Analizi"),
+        ("ltv",       "💰 LTV Analizi"),
+        ("retention", "📉 Retention Trendi"),
+        ("product",   "📦 Ürün Analizi"),
+    ]
+    _visible_defs = [(k, lbl) for k, lbl in _all_tab_defs if k in _analytics_tabs_allowed]
+    _created_tabs = st.tabs([lbl for _, lbl in _visible_defs])
+    _tab_map = {k: tab for (k, _), tab in zip(_visible_defs, _created_tabs)}
+    tab_cohort = _tab_map.get("cohort")
 
     # ── Cohort ───────────────────────────────────────────────────────────────
     with tab_cohort:
@@ -3004,13 +3014,9 @@ def show_analytics() -> None:
             fig2.update_layout(height=220, margin=dict(l=0, r=0, t=10, b=0))
             st.plotly_chart(fig2, use_container_width=True)
 
-    _analytics_tabs = _plan_limits()["analytics_tabs"]
-
     # ── LTV ──────────────────────────────────────────────────────────────────
-    with tab_ltv:
-        if "ltv" not in _analytics_tabs:
-            _plan_gate("pdf_report")
-        else:
+    if "ltv" in _tab_map:
+        with _tab_map["ltv"]:
             ltv_df = get_ltv_distribution(user["id"], store_id)
             top10 = get_top_customers(user["id"], store_id=store_id)
 
@@ -3077,10 +3083,8 @@ def show_analytics() -> None:
                 st.plotly_chart(fig3, use_container_width=True)
 
     # ── Retention Trendi ─────────────────────────────────────────────────────
-    with tab_retention:
-        if "retention" not in _analytics_tabs:
-            _plan_gate("pdf_report")
-        else:
+    if "retention" in _tab_map:
+        with _tab_map["retention"]:
             _section("Aylık Retention Oranı Trendi")
             nvr = get_new_vs_returning(user["id"], store_id)
             trend = get_monthly_trend(user["id"], store_id)
@@ -3125,10 +3129,8 @@ def show_analytics() -> None:
                     st.plotly_chart(fig2, use_container_width=True)
 
     # ── Ürün Analizi ─────────────────────────────────────────────────────────
-    with tab_product:
-        if "product" not in _analytics_tabs:
-            _plan_gate("pdf_report")
-        else:
+    if "product" in _tab_map:
+        with _tab_map["product"]:
             prod = get_product_analysis(user["id"], store_id)
             if prod["retention"].empty:
                 st.info("Ürün analizi için sipariş verilerinde ürün adı sütunu gereklidir.")
