@@ -2881,14 +2881,20 @@ def show_upload() -> None:
                 )
                 imp = import_to_db(sample_df, user["id"], batch="sample_data", store_id=store_id)
                 st.cache_data.clear()
+            st.session_state["_sample_done"] = {"inserted": imp["inserted"], "n_cust": n_cust}
+            st.rerun()
+
+        if st.session_state.get("_sample_done"):
+            res = st.session_state["_sample_done"]
             st.markdown(
                 f"""<div class="success-box">
-                🎉 <b>{imp['inserted']:,} örnek sipariş</b> yüklendi!
-                {n_cust} müşteri için 12 aylık veri hazır.
+                🎉 <b>{res['inserted']:,} örnek sipariş</b> yüklendi!
+                {res['n_cust']} müşteri için 12 aylık veri hazır.
                 </div>""",
                 unsafe_allow_html=True,
             )
             if st.button("📊 Dashboard'a Git"):
+                del st.session_state["_sample_done"]
                 _go("dashboard")
 
     # ── Veri Yönetimi ────────────────────────────────────────────────────────
