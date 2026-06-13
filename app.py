@@ -1159,7 +1159,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 .sec-title{font-size:1.22rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;margin-bottom:.28rem;}
 .sec-sub{font-size:.79rem;color:#9ca3af;line-height:1.6;margin-bottom:1.1rem;}
 .feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
-.feat{background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:1rem 1.1rem;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:all .22s;cursor:default;}
+.feat{background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:1rem 1.1rem;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:all .22s;cursor:default;position:relative;overflow:hidden;}
 .feat:hover{border-color:rgba(242,133,0,.25);box-shadow:0 6px 20px rgba(0,0,0,.09);transform:translateY(-2px);}
 .feat-top{display:flex;align-items:center;gap:.55rem;margin-bottom:.4rem;}
 .fi{width:35px;height:35px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;}
@@ -1332,12 +1332,12 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 <div class="features">
   <div class="sec-tag">&#214;zellikler</div>
   <div class="sec-title">Her &#351;ey tek yerden</div>
-  <div class="sec-sub">Trendyol ma&#287;azan&#305; b&#252;y&#252;tmek i&#231;in ihtiya&#231; duydu&#287;un t&#252;m ara&#231;lar.</div>
+  <div class="sec-sub">Trendyol ma&#287;azan&#305; b&#252;y&#252;tmek i&#231;in ihtiya&#231; duydu&#287;un t&#252;m ara&#231;lar. <span style="background:linear-gradient(135deg,#F28500,#D46000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">7 yeni &#246;zellik eklendi!</span></div>
   <div class="feat-grid">
     <div class="feat">
       <div class="feat-top"><div class="fi fi-or">&#128202;</div><div class="ft">Anl&#305;k Dashboard</div></div>
       <div class="fd">G&#252;nl&#252;k gelir, sipari&#351; ve aktif m&#252;&#351;teriyi ger&#231;ek zamanl&#305; izle. Otomatik API senkronizasyonu.</div>
-      <div class="ftags"><span class="tag to">Ger&#231;ek Zamanl&#305;</span><span class="tag tb">Grafik</span><span class="tag to">API</span></div>
+      <div class="ftags"><span class="tag to">Ger&#231;ek Zamanl&#305;</span><span class="tag tb">Grafik</span></div>
     </div>
     <div class="feat">
       <div class="feat-top"><div class="fi fi-rd">&#128293;</div><div class="ft">Cohort Retention</div></div>
@@ -1363,6 +1363,42 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="feat-top"><div class="fi fi-te">&#127978;</div><div class="ft">&#199;oklu Ma&#287;aza</div></div>
       <div class="fd">Birden fazla Trendyol ma&#287;azan&#305; tek hesaptan y&#246;net. Ba&#287;&#305;ms&#305;z API.</div>
       <div class="ftags"><span class="tag tt">&#199;oklu Ma&#287;aza</span><span class="tag tb">API</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-or">&#128302;</div><div class="ft">Gelir Tahmini</div></div>
+      <div class="fd">Sonraki 30&#8211;180 g&#252;n&#252;n gelirini lineer trend analizi ile tahmin et. G&#252;ven aral&#305;kl&#305; grafik.</div>
+      <div class="ftags"><span class="tag to">AI Tahmin</span><span class="tag tb">Pro+</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-bl">&#128279;</div><div class="ft">Cross-Sell Matrisi</div></div>
+      <div class="fd">Birlikte sat&#305;n al&#305;nan &#252;r&#252;n &#231;iftleri. G&#252;ven skoru ve lift analizi ile en iyi &#246;neri f&#305;rsatlar&#305;n&#305; bul.</div>
+      <div class="ftags"><span class="tag tp">Cross-Sell</span><span class="tag tb">Pro+</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-gr">&#128197;</div><div class="ft">D&#246;nem Kar&#351;&#305;la&#351;t&#305;rmas&#305;</div></div>
+      <div class="fd">Bu ay vs ge&#231;en ay, bu y&#305;l vs ge&#231;en y&#305;l. Gelir, sipari&#351; ve m&#252;&#351;teri de&#287;i&#351;imini g&#246;r.</div>
+      <div class="ftags"><span class="tag tg">Trendler</span><span class="tag to">Grafik</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-rd">&#128276;</div><div class="ft">Anl&#305;k Bildirimler</div></div>
+      <div class="fd">Gelir d&#252;&#351;&#252;&#351;&#252;, ani art&#305;&#351; veya b&#252;y&#252;k sipari&#351; geldi&#287;inde otomatik uyar&#305; al.</div>
+      <div class="ftags"><span class="tag to">Anomali</span><span class="tag tg">Otomatik</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-pu">&#127919;</div><div class="ft">Aksiyon &#214;nerileri</div></div>
+      <div class="fd">Her segment i&#231;in &#246;ncelikli aksiyonlar: hangi m&#252;&#351;teriye ne zaman ne yap? Beklenen etki hesab&#305;.</div>
+      <div class="ftags"><span class="tag tp">Yapay Zeka</span><span class="tag to">&#214;neriler</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-te">&#128337;</div><div class="ft">Haftal&#305;k Rapor</div></div>
+      <div class="fd">Her Pazartesi sabah&#305; m&#228;&#287;azan&#305;n&#305;n &#246;zeti e-posta ile gelsin. Hi&#231;bir metri&#287;i ka&#231;&#305;rma.</div>
+      <div class="ftags"><span class="tag tt">Otomatik</span><span class="tag tb">Pro+</span></div>
     </div>
   </div>
 </div>
@@ -1400,8 +1436,11 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="pf"><div class="pok">&#10003;</div>1 Ma&#287;aza</div>
       <div class="pf"><div class="pok">&#10003;</div>Dashboard &amp; KPI</div>
       <div class="pf"><div class="pok">&#10003;</div>Cohort Analizi</div>
+      <div class="pf"><div class="pok">&#10003;</div>D&#246;nem Kar&#351;&#305;la&#351;t&#305;rmas&#305;</div>
+      <div class="pf"><div class="pok">&#10003;</div>Anl&#305;k Bildirimler</div>
       <div class="pf"><div class="pno">&#10005;</div><span class="dim">PDF Rapor</span></div>
       <div class="pf"><div class="pno">&#10005;</div><span class="dim">Kampanyalar</span></div>
+      <div class="pf"><div class="pno">&#10005;</div><span class="dim">Gelir Tahmini</span></div>
       <button class="pcta cout" onclick="goRegister()">Ba&#351;la</button>
     </div>
     <div class="plan pop">
@@ -1411,10 +1450,12 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="pper" id="pp-pper">/ay</div><div class="pnote" id="pnn">ayl&#305;k faturaland&#305;rma</div>
       <div class="psave h" id="ps">&#8212;</div><div class="pd"></div>
       <div class="pf"><div class="pok">&#10003;</div>3 Ma&#287;aza</div>
-      <div class="pf"><div class="pok">&#10003;</div>Dashboard &amp; KPI</div>
-      <div class="pf"><div class="pok">&#10003;</div>Cohort + RFM</div>
-      <div class="pf"><div class="pok">&#10003;</div>PDF Rapor</div>
-      <div class="pf"><div class="pno">&#10005;</div><span class="dim">Kampanyalar</span></div>
+      <div class="pf"><div class="pok">&#10003;</div>Dashboard &amp; KPI + Bildirimler</div>
+      <div class="pf"><div class="pok">&#10003;</div>Cohort + RFM + Aksiyon &#214;nerileri</div>
+      <div class="pf"><div class="pok">&#10003;</div>&#128302; Gelir Tahmini <span style="font-size:.52rem;background:#F28500;color:#fff;border-radius:4px;padding:.05rem .3rem;vertical-align:middle;">YEN&#304;</span></div>
+      <div class="pf"><div class="pok">&#10003;</div>&#128279; Cross-Sell Matrisi <span style="font-size:.52rem;background:#F28500;color:#fff;border-radius:4px;padding:.05rem .3rem;vertical-align:middle;">YEN&#304;</span></div>
+      <div class="pf"><div class="pok">&#10003;</div>&#128337; Haftal&#305;k Rapor <span style="font-size:.52rem;background:#F28500;color:#fff;border-radius:4px;padding:.05rem .3rem;vertical-align:middle;">YEN&#304;</span></div>
+      <div class="pf"><div class="pok">&#10003;</div>PDF Rapor + Kampanyalar</div>
       <button class="pcta cmain" onclick="goRegister()">&#350;imdi Ba&#351;la &#8594;</button>
     </div>
     <div class="plan">
@@ -1424,9 +1465,9 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="psave h" id="es">&#8212;</div><div class="pd"></div>
       <div class="pf"><div class="pok">&#10003;</div>S&#305;n&#305;rs&#305;z Ma&#287;aza</div>
       <div class="pf"><div class="pok">&#10003;</div>T&#252;m Pro &#214;zellikler</div>
-      <div class="pf"><div class="pok">&#10003;</div>E-posta Kampanya</div>
-      <div class="pf"><div class="pok">&#10003;</div>&#214;ncelikli Destek</div>
-      <div class="pf"><div class="pok">&#10003;</div>API Eri&#351;imi</div>
+      <div class="pf"><div class="pok">&#10003;</div>E-posta Kampanya + Haftal&#305;k Rapor</div>
+      <div class="pf"><div class="pok">&#10003;</div>Trendyol API Entegrasyonu</div>
+      <div class="pf"><div class="pok">&#10003;</div>&#214;ncelikli Destek + Hesap Y&#246;neticisi</div>
       <button class="pcta cout" onclick="goRegister()">Ba&#351;la</button>
     </div>
   </div>
@@ -1622,7 +1663,8 @@ function goRegister(){
   <div style="padding:1.6rem 1rem 0;">
     <div style="font-size:.6rem;font-weight:700;color:#F28500;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.3rem;">&#10022; Özellikler</div>
     <div style="font-size:1.15rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;margin-bottom:.2rem;">Her şey tek yerden</div>
-    <div style="font-size:.79rem;color:#9ca3af;line-height:1.6;margin-bottom:1rem;">Trendyol mağazanı büyütmek için ihtiyaç duyduğun tüm araçlar.</div>
+    <div style="font-size:.79rem;color:#9ca3af;line-height:1.6;margin-bottom:.4rem;">Trendyol mağazanı büyütmek için ihtiyaç duyduğun tüm araçlar.</div>
+    <div style="font-size:.72rem;font-weight:800;background:linear-gradient(90deg,#F28500,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.85rem;">&#10024; 7 yeni özellik eklendi!</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem;">
       <div style="background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
         <div style="font-size:1.1rem;margin-bottom:.3rem;">📊</div>
@@ -1653,6 +1695,42 @@ function goRegister(){
         <div style="font-size:1.1rem;margin-bottom:.3rem;">🏪</div>
         <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Çoklu Mağaza</div>
         <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Birden fazla mağaza, tek hesap.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fff9f0,#fff);border:1px solid #F28500;border-radius:12px;padding:.9rem;box-shadow:0 1px 6px rgba(242,133,0,.12);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:.4rem;right:.4rem;background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.15rem .35rem;border-radius:4px;letter-spacing:.06em;">YENİ</div>
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">🔮</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Gelir Tahmini</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">90 günlük AI destekli projeksiyon.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fff9f0,#fff);border:1px solid #F28500;border-radius:12px;padding:.9rem;box-shadow:0 1px 6px rgba(242,133,0,.12);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:.4rem;right:.4rem;background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.15rem .35rem;border-radius:4px;letter-spacing:.06em;">YENİ</div>
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">🔗</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Cross-Sell Matrisi</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Birlikte satılan ürünler, lift skoru.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fff9f0,#fff);border:1px solid #F28500;border-radius:12px;padding:.9rem;box-shadow:0 1px 6px rgba(242,133,0,.12);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:.4rem;right:.4rem;background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.15rem .35rem;border-radius:4px;letter-spacing:.06em;">YENİ</div>
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">📅</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Dönem Karşılaştırması</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Bu ay vs geçen ay, grafik ile.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fff9f0,#fff);border:1px solid #F28500;border-radius:12px;padding:.9rem;box-shadow:0 1px 6px rgba(242,133,0,.12);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:.4rem;right:.4rem;background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.15rem .35rem;border-radius:4px;letter-spacing:.06em;">YENİ</div>
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">🚨</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Anlık Bildirimler</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Gelir düşüşü, ani sipariş uyarısı.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fff9f0,#fff);border:1px solid #F28500;border-radius:12px;padding:.9rem;box-shadow:0 1px 6px rgba(242,133,0,.12);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:.4rem;right:.4rem;background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.15rem .35rem;border-radius:4px;letter-spacing:.06em;">YENİ</div>
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">🎯</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Aksiyon Önerileri</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Segmente özel büyüme adımları.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fff9f0,#fff);border:1px solid #F28500;border-radius:12px;padding:.9rem;box-shadow:0 1px 6px rgba(242,133,0,.12);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:.4rem;right:.4rem;background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.15rem .35rem;border-radius:4px;letter-spacing:.06em;">YENİ</div>
+        <div style="font-size:1.1rem;margin-bottom:.3rem;">📩</div>
+        <div style="font-size:.8rem;font-weight:700;color:#0f1a35;margin-bottom:.2rem;">Haftalık Rapor</div>
+        <div style="font-size:.71rem;color:#6b7280;line-height:1.5;">Otomatik e-posta özet, her Pazartesi.</div>
       </div>
     </div>
   </div>
@@ -1685,8 +1763,10 @@ function goRegister(){
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 1 Mağaza</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Dashboard & KPI</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Cohort Analizi</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Dönem Karşılaştırması</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Anlık Bildirimler</div>
       <div style="font-size:.72rem;color:#c4c9d4;margin-bottom:.28rem;">✗ PDF Rapor</div>
-      <div style="font-size:.72rem;color:#c4c9d4;">✗ Kampanyalar</div>
+      <div style="font-size:.72rem;color:#c4c9d4;">✗ Gelir Tahmini</div>
     </div>
     <!-- Pro -->
     <div style="background:linear-gradient(135deg,#fff9f0,#fff);border:1.5px solid #F28500;border-radius:14px;padding:1.1rem;margin-bottom:.6rem;box-shadow:0 4px 18px rgba(242,133,0,.14);position:relative;">
@@ -1698,6 +1778,9 @@ function goRegister(){
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Dashboard & KPI</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Cohort + RFM</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ PDF Rapor</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🔮 Gelir Tahmini <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🔗 Cross-Sell Matrisi <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🎯 Aksiyon Önerileri <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
       <div style="font-size:.72rem;color:#c4c9d4;">✗ Kampanyalar</div>
     </div>
     <!-- Enterprise -->
@@ -1708,6 +1791,7 @@ function goRegister(){
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Sınırsız Mağaza</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Tüm Pro Özellikler</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ E-posta Kampanya</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 📩 Haftalık Rapor <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Öncelikli Destek</div>
       <div style="font-size:.72rem;color:#374151;">✅ API Erişimi</div>
     </div>
