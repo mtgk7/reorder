@@ -362,6 +362,31 @@ def _migrate_postgres(cur) -> None:
         )
     """)
 
+    # ── Referral Sistemi ──────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS referrals (
+            id             SERIAL PRIMARY KEY,
+            referrer_id    INTEGER NOT NULL,
+            referee_id     INTEGER,
+            referral_code  TEXT NOT NULL UNIQUE,
+            bonus_days     INTEGER DEFAULT 0,
+            created_at     TIMESTAMPTZ DEFAULT NOW(),
+            used_at        TIMESTAMPTZ,
+            FOREIGN KEY (referrer_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (referee_id)  REFERENCES users(id) ON DELETE SET NULL
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(referral_code)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id)")
+
+    # ── Haftalık Rapor Takibi ─────────────────────────────────────────────────
+    cur.execute("""
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_report_enabled BOOLEAN DEFAULT FALSE
+    """)
+    cur.execute("""
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_report_last_sent TIMESTAMPTZ
+    """)
+
 def _init_sqlite() -> None:
     os.makedirs(_DB_PATH.parent, exist_ok=True)
     conn = sqlite3.connect(str(_DB_PATH), check_same_thread=False)
@@ -521,6 +546,36 @@ def _migrate_sqlite(cur) -> None:
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     """)
+
+    # ── Referral Sistemi ──────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS referrals (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            referrer_id    INTEGER NOT NULL,
+            referee_id     INTEGER,
+            referral_code  TEXT NOT NULL UNIQUE,
+            bonus_days     INTEGER DEFAULT 0,
+            created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+            used_at        DATETIME,
+            FOREIGN KEY (referrer_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (referee_id)  REFERENCES users(id) ON DELETE SET NULL
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(referral_code)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id)")
+    except Exception:
+        pass
+
+    # ── Haftalık Rapor Takibi ─────────────────────────────────────────────────
+    for col_def in [
+        ("weekly_report_enabled",   "INTEGER DEFAULT 0"),
+        ("weekly_report_last_sent", "DATETIME"),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE users ADD COLUMN {col_def[0]} {col_def[1]}")
+        except Exception:
+            pass
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS campaigns (
@@ -736,6 +791,132 @@ def load_goals(user_id: int, store_id: int | None) -> dict:
         ).fetchall()
     conn.close()
     return {r["metric"]: r["target"] for r in rows}
+
+
+# ─── Referral fonksiyonları ──────────────────────────────────────────────────
+
+def get_or_create_referral_code(user_id: int) -> str:
+    """Kullanıcının referral kodunu döndürür; yoksa oluşturur."""
+    import secrets as _sec
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT referral_code FROM referrals WHERE referrer_id = ? AND referee_id IS NULL LIMIT 1",
+        (user_id,),
+    ).fetchone()
+    if row:
+        code = row["referral_code"]
+        conn.close()
+        return code
+    # Yeni kod oluştur
+    code = "RO-" + _sec.token_urlsafe(6).upper()
+    conn.execute(
+        "INSERT INTO referrals (referrer_id, referral_code) VALUES (?, ?)",
+        (user_id, code),
+    )
+    conn.commit()
+    conn.close()
+    return code
+
+
+def use_referral_code(code: str, referee_id: int) -> dict:
+    """Referral kodu kullanır. Başarılıysa {'success': True, 'bonus_days': N} döner."""
+    code = code.strip().upper()
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT id, referrer_id FROM referrals WHERE referral_code = ? AND referee_id IS NULL AND used_at IS NULL",
+        (code,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return {"success": False, "error": "Geçersiz veya kullanılmış kod"}
+    if row["referrer_id"] == referee_id:
+        conn.close()
+        return {"success": False, "error": "Kendi referral kodunuzu kullanamazsınız"}
+    db_url = _get_db_url()
+    if db_url:
+        conn.execute(
+            "UPDATE referrals SET referee_id = ?, bonus_days = 30, used_at = NOW() WHERE id = ?",
+            (referee_id, row["id"]),
+        )
+        conn.execute(
+            "UPDATE referrals SET bonus_days = bonus_days + 30 WHERE referrer_id = ? AND referee_id IS NULL LIMIT 1",
+            (row["referrer_id"],),
+        )
+    else:
+        conn.execute(
+            "UPDATE referrals SET referee_id = ?, bonus_days = 30, used_at = datetime('now') WHERE id = ?",
+            (referee_id, row["id"]),
+        )
+    conn.commit()
+    conn.close()
+    return {"success": True, "bonus_days": 30}
+
+
+def get_referral_stats(user_id: int) -> dict:
+    """Kullanıcının referral istatistiklerini döndürür."""
+    conn = get_connection()
+    total_row = conn.execute(
+        "SELECT COUNT(*) FROM referrals WHERE referrer_id = ? AND referee_id IS NOT NULL",
+        (user_id,),
+    ).fetchone()
+    bonus_row = conn.execute(
+        "SELECT COALESCE(SUM(bonus_days), 0) FROM referrals WHERE referrer_id = ?",
+        (user_id,),
+    ).fetchone()
+    code_row = conn.execute(
+        "SELECT referral_code FROM referrals WHERE referrer_id = ? AND referee_id IS NULL LIMIT 1",
+        (user_id,),
+    ).fetchone()
+    conn.close()
+    total = list(total_row)[0] if total_row else 0
+    bonus = list(bonus_row)[0] if bonus_row else 0
+    code  = code_row["referral_code"] if code_row else None
+    return {"total_referrals": int(total), "bonus_days": int(bonus), "code": code}
+
+
+# ─── Haftalık rapor ──────────────────────────────────────────────────────────
+
+def get_weekly_report_settings(user_id: int) -> dict:
+    """Haftalık rapor ayarlarını döndürür."""
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT weekly_report_enabled, weekly_report_last_sent FROM users WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        return {"enabled": False, "last_sent": None}
+    return {
+        "enabled":   bool(row["weekly_report_enabled"]),
+        "last_sent": row["weekly_report_last_sent"],
+    }
+
+
+def save_weekly_report_settings(user_id: int, enabled: bool) -> None:
+    conn = get_connection()
+    conn.execute(
+        "UPDATE users SET weekly_report_enabled = ? WHERE id = ?",
+        (1 if enabled else 0, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def mark_weekly_report_sent(user_id: int) -> None:
+    db_url = _get_db_url()
+    conn = get_connection()
+    if db_url:
+        conn.execute(
+            "UPDATE users SET weekly_report_last_sent = NOW() WHERE id = ?",
+            (user_id,),
+        )
+    else:
+        conn.execute(
+            "UPDATE users SET weekly_report_last_sent = datetime('now') WHERE id = ?",
+            (user_id,),
+        )
+    conn.commit()
+    conn.close()
 
 
 def delete_all_orders(user_id: int, store_id: int | None = None) -> int:

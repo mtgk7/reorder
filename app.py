@@ -16,7 +16,13 @@ import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime
 
-from src.database import init_db as _init_db, get_stores, create_store, rename_store, delete_store, save_goals, load_goals, link_null_orders, save_user_plan, create_reset_token, verify_reset_token, use_reset_token
+from src.database import (
+    init_db as _init_db, get_stores, create_store, rename_store, delete_store,
+    save_goals, load_goals, link_null_orders, save_user_plan,
+    create_reset_token, verify_reset_token, use_reset_token,
+    get_or_create_referral_code, use_referral_code, get_referral_stats,
+    get_weekly_report_settings, save_weekly_report_settings, mark_weekly_report_sent,
+)
 from src.auth import (
     login_user, register_user, update_store_name, change_password,
     create_session_token, verify_session_token, delete_session_token,
@@ -30,7 +36,7 @@ from src.trendyol_api import (
 )
 from src.email_service import (
     save_smtp_settings, load_smtp_settings,
-    send_test_email, send_campaign_report,
+    send_test_email, send_campaign_report, send_weekly_summary,
     save_campaign_log, load_campaign_history,
     build_template, SEGMENT_TEMPLATES, SMTPConfig,
 )
@@ -45,10 +51,15 @@ from src.analytics import (
     get_order_status_kpis,
     get_top_products,
     get_daily_revenue,
-    # Yeni özellikler
     get_customer_detail,
     get_current_month_metrics,
     get_product_analysis,
+    # Yeni özellikler
+    get_revenue_forecast,
+    get_cross_sell_matrix,
+    get_period_comparison,
+    get_anomalies,
+    get_segment_recommendations,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -56,7 +67,7 @@ from src.analytics import (
 # _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
 # Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
-_SCHEMA_VER = "v8"  # password_reset_tokens tablosu + migration savepoint fix
+_SCHEMA_VER = "v9"  # referrals + weekly_report + yeni özellikler
 
 
 @st.cache_resource
@@ -1728,7 +1739,8 @@ _PLAN_LIMITS = {
         "campaigns":     False,
         "pdf_report":    False,
         "trendyol_api":  False,
-        "analytics_tabs": ["cohort"],   # LTV, Retention, Ürün kilitli
+        "weekly_report": False,
+        "analytics_tabs": ["cohort"],
     },
     "Pro": {
         "max_stores":    3,
@@ -1736,15 +1748,17 @@ _PLAN_LIMITS = {
         "campaigns":     True,
         "pdf_report":    True,
         "trendyol_api":  False,
-        "analytics_tabs": ["cohort", "ltv", "retention", "product"],
+        "weekly_report": True,
+        "analytics_tabs": ["cohort", "ltv", "retention", "product", "forecast", "crosssell"],
     },
     "Enterprise": {
-        "max_stores":    None,          # sınırsız
+        "max_stores":    None,
         "segments":      True,
         "campaigns":     True,
         "pdf_report":    True,
         "trendyol_api":  True,
-        "analytics_tabs": ["cohort", "ltv", "retention", "product"],
+        "weekly_report": True,
+        "analytics_tabs": ["cohort", "ltv", "retention", "product", "forecast", "crosssell"],
     },
 }
 
@@ -2279,6 +2293,34 @@ def show_dashboard() -> None:
             _go("upload")
         return
 
+    # ── Anlık Bildirimler ──────────────────────────────────────────────────────
+    try:
+        alerts = get_anomalies(user["id"], store_id)
+        if alerts:
+            for alert in alerts:
+                if alert["severity"] == "high":
+                    st.markdown(
+                        f"""<div style="background:#FEF2F2;border:1px solid #FECACA;border-left:4px solid #EF4444;
+                        border-radius:8px;padding:.8rem 1rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.6rem;">
+                        <span style="font-size:1.2rem;">{alert['icon']}</span>
+                        <div><b style="color:#991B1B;">{alert['title']}</b>
+                        <span style="color:#7F1D1D;font-size:.86rem;"> — {alert['message']}</span></div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f"""<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-left:4px solid #10B981;
+                        border-radius:8px;padding:.8rem 1rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.6rem;">
+                        <span style="font-size:1.2rem;">{alert['icon']}</span>
+                        <div><b style="color:#065F46;">{alert['title']}</b>
+                        <span style="color:#064E3B;font-size:.86rem;"> — {alert['message']}</span></div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+    except Exception:
+        pass
+
     # ── KPI Satırı 1 ──
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -2613,6 +2655,82 @@ def show_dashboard() -> None:
                 )
         st.markdown("&nbsp;")
 
+    # ── Dönem Karşılaştırması ──────────────────────────────────────────────────
+    st.markdown('<hr style="border:none;border-top:1px solid rgba(242,122,26,.18);margin:1.6rem 0 1rem;">', unsafe_allow_html=True)
+    _section("📅 Dönem Karşılaştırması")
+    try:
+        _cmp_mode = st.radio(
+            "Karşılaştırma Dönemi",
+            ["Bu Ay vs Geçen Ay", "Bu Yıl vs Geçen Yıl"],
+            horizontal=True,
+            key="cmp_mode_radio",
+            label_visibility="collapsed",
+        )
+        cmp_mode = "month" if "Ay" in _cmp_mode else "year"
+        cmp = get_period_comparison(user["id"], store_id, mode=cmp_mode)
+        if cmp:
+            cur_lbl  = cmp["cur_label"]
+            prev_lbl = cmp["prev_label"]
+            cc1, cc2, cc3 = st.columns(3)
+
+            def _delta_badge(pct: float) -> str:
+                if pct > 0:
+                    return f'<span style="color:#10B981;font-weight:700;font-size:.8rem;">▲ %{abs(pct):.1f}</span>'
+                elif pct < 0:
+                    return f'<span style="color:#EF4444;font-weight:700;font-size:.8rem;">▼ %{abs(pct):.1f}</span>'
+                return '<span style="color:#9CA3AF;font-size:.8rem;">— değişim yok</span>'
+
+            with cc1:
+                st.markdown(
+                    f"""<div class="kpi-card">
+                    <div class="kpi-label">💰 GELİR</div>
+                    <div class="kpi-value">{_fmt_tl(cmp['current']['revenue'])}</div>
+                    <div class="kpi-sub">{cur_lbl} · {_delta_badge(cmp['delta_revenue_pct'])}</div>
+                    <div style="font-size:.75rem;color:#9CA3AF;margin-top:.2rem;">{prev_lbl}: {_fmt_tl(cmp['previous']['revenue'])}</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            with cc2:
+                st.markdown(
+                    f"""<div class="kpi-card">
+                    <div class="kpi-label">🛒 SİPARİŞ</div>
+                    <div class="kpi-value">{cmp['current']['orders']:,}</div>
+                    <div class="kpi-sub">{cur_lbl} · {_delta_badge(cmp['delta_orders_pct'])}</div>
+                    <div style="font-size:.75rem;color:#9CA3AF;margin-top:.2rem;">{prev_lbl}: {cmp['previous']['orders']:,}</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            with cc3:
+                st.markdown(
+                    f"""<div class="kpi-card">
+                    <div class="kpi-label">👤 MÜŞTERİ</div>
+                    <div class="kpi-value">{cmp['current']['unique_customers']:,}</div>
+                    <div class="kpi-sub">{cur_lbl} · {_delta_badge(cmp['delta_customers_pct'])}</div>
+                    <div style="font-size:.75rem;color:#9CA3AF;margin-top:.2rem;">{prev_lbl}: {cmp['previous']['unique_customers']:,}</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+
+            st.markdown("&nbsp;")
+
+            # Günlük karşılaştırma grafiği
+            if not cmp["daily_current"].empty or not cmp["daily_previous"].empty:
+                daily_all = pd.concat([cmp["daily_current"], cmp["daily_previous"]], ignore_index=True)
+                if not daily_all.empty:
+                    fig_cmp = px.line(
+                        daily_all, x="gun", y="revenue", color="seri",
+                        color_discrete_map={"Bu Dönem": "#F27A1A", "Önceki Dönem": "#9CA3AF"},
+                        labels={"gun": "Gün", "revenue": "Gelir (₺)", "seri": ""},
+                        template="plotly_white",
+                    )
+                    fig_cmp.update_layout(
+                        height=220, margin=dict(l=0, r=0, t=8, b=0),
+                        legend=dict(orientation="h", yanchor="bottom", y=1),
+                    )
+                    st.plotly_chart(fig_cmp, use_container_width=True)
+    except Exception:
+        pass
+
     # ── Aylık sipariş tablosu ──
     _section("Aylık Özet Tablosu")
     if not trend.empty:
@@ -2942,6 +3060,8 @@ def show_analytics() -> None:
         ("ltv",       "💰 LTV Analizi"),
         ("retention", "📉 Retention Trendi"),
         ("product",   "📦 Ürün Analizi"),
+        ("forecast",  "🔮 Gelir Tahmini"),
+        ("crosssell", "🔗 Cross-Sell"),
     ]
     _visible_defs = [(k, lbl) for k, lbl in _all_tab_defs if k in _analytics_tabs_allowed]
     _created_tabs = st.tabs([lbl for _, lbl in _visible_defs])
@@ -3201,6 +3321,142 @@ def show_analytics() -> None:
                 tbl["Toplam Gelir (₺)"] = tbl["Toplam Gelir (₺)"].apply(_fmt_tl)
                 st.dataframe(tbl, use_container_width=True, hide_index=True)
 
+    # ── Gelir Tahmini ─────────────────────────────────────────────────────────
+    if "forecast" in _tab_map:
+        with _tab_map["forecast"]:
+            _section("🔮 Gelir Tahmini — Lineer Trend Analizi")
+            st.markdown(
+                """<div class="info-box" style="font-size:.82rem;">
+                Geçmiş aylık gelir verisiyle ağırlıklı lineer regresyon kullanılarak gelir tahmini yapılır.
+                Yakın dönem aylar daha yüksek ağırlık alır. Tahmin aralığı geçmiş volatiliteye göre belirlenir.
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            fc_horizon = st.slider("Kaç günlük tahmin?", 30, 180, 90, step=30, key="fc_horizon")
+            fc = get_revenue_forecast(user["id"], store_id, horizon_days=fc_horizon)
+
+            if fc["history"].empty:
+                st.info("Tahmin için yeterli veri yok.")
+            else:
+                # Trend özeti
+                trend_color = "#10B981" if fc["trend"] == "artış" else ("#EF4444" if fc["trend"] == "düşüş" else "#6B7280")
+                trend_icon  = "📈" if fc["trend"] == "artış" else ("📉" if fc["trend"] == "düşüş" else "➡️")
+                fc1, fc2, fc3 = st.columns(3)
+                fc1.markdown(
+                    f"""<div class="kpi-card"><div class="kpi-label">TREND</div>
+                    <div class="kpi-value" style="color:{trend_color};">{trend_icon} {fc['trend'].title()}</div></div>""",
+                    unsafe_allow_html=True,
+                )
+                fc2.markdown(
+                    f"""<div class="kpi-card"><div class="kpi-label">AYLIK BÜYÜME</div>
+                    <div class="kpi-value">%{fc['monthly_growth']:+.1f}</div>
+                    <div class="kpi-sub">son 3 ay vs önceki 3 ay</div></div>""",
+                    unsafe_allow_html=True,
+                )
+                # Tahmini toplam gelir
+                fc_total = float(fc["forecast"]["revenue"].sum()) if not fc["forecast"].empty else 0
+                fc3.markdown(
+                    f"""<div class="kpi-card"><div class="kpi-label">{fc_horizon} GÜNLÜK TAHMİN</div>
+                    <div class="kpi-value">{_fmt_tl(fc_total)}</div>
+                    <div class="kpi-sub">tahmini toplam gelir</div></div>""",
+                    unsafe_allow_html=True,
+                )
+
+                st.markdown("&nbsp;")
+
+                # Grafik
+                _section("Tarihsel Gelir + Tahmin")
+                fig_fc = go.Figure()
+
+                # Geçmiş
+                hist = fc["history"]
+                fig_fc.add_trace(go.Bar(
+                    x=hist["month_str"], y=hist["revenue"],
+                    name="Gerçek Gelir",
+                    marker_color="#F27A1A",
+                    opacity=0.85,
+                ))
+
+                # Tahmin + güven aralığı
+                if not fc["forecast"].empty:
+                    fdf = fc["forecast"]
+                    fig_fc.add_trace(go.Scatter(
+                        x=fdf["date_str"], y=fdf["upper"],
+                        mode="lines", line=dict(width=0),
+                        showlegend=False, name="Üst Sınır",
+                    ))
+                    fig_fc.add_trace(go.Scatter(
+                        x=fdf["date_str"], y=fdf["lower"],
+                        fill="tonexty",
+                        mode="lines", line=dict(width=0),
+                        fillcolor="rgba(59,130,246,0.12)",
+                        name="Güven Aralığı",
+                    ))
+                    fig_fc.add_trace(go.Scatter(
+                        x=fdf["date_str"], y=fdf["revenue"],
+                        mode="lines",
+                        line=dict(color="#3B82F6", width=2.5, dash="dash"),
+                        name="Tahmin (günlük)",
+                    ))
+
+                fig_fc.update_layout(
+                    height=360, margin=dict(l=0, r=0, t=10, b=0),
+                    template="plotly_white",
+                    legend=dict(orientation="h", yanchor="bottom", y=1),
+                    xaxis_title="", yaxis_title="Gelir (₺)",
+                    yaxis=dict(tickprefix="₺", tickformat=",.0f"),
+                )
+                st.plotly_chart(fig_fc, use_container_width=True)
+
+    # ── Cross-Sell Matrisi ────────────────────────────────────────────────────
+    if "crosssell" in _tab_map:
+        with _tab_map["crosssell"]:
+            _section("🔗 Ürün Öneri Matrisi — Cross-Sell Analizi")
+            st.markdown(
+                """<div class="info-box" style="font-size:.82rem;">
+                Aynı müşteri tarafından birlikte satın alınan ürün çiftleri.
+                <b>Güven (A→B)</b>: A ürününü alanların kaçı B'yi de aldı?
+                <b>Lift</b>: Birliktelik ne kadar anlamlı? (1'den büyükse istatistiksel ilişki var)
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            cs_df = get_cross_sell_matrix(user["id"], store_id)
+            if cs_df.empty:
+                st.info("Cross-sell analizi için yeterli ürün verisi yok. En az 3 müşteri 2+ farklı ürün almalı.")
+            else:
+                # Isı haritası yerine sıralamalı çubuk
+                _section(f"En Güçlü {min(10, len(cs_df))} Ürün Çifti")
+                cs_top = cs_df.head(10).copy()
+                cs_top["pair_label"] = cs_top["product_a"].str[:22] + " ↔ " + cs_top["product_b"].str[:22]
+                fig_cs = go.Figure(go.Bar(
+                    x=cs_top["co_buyers"],
+                    y=cs_top["pair_label"],
+                    orientation="h",
+                    marker=dict(
+                        color=cs_top["lift"],
+                        colorscale="Oranges",
+                        showscale=True,
+                        colorbar=dict(title="Lift"),
+                    ),
+                    text=cs_top["co_buyers"].apply(lambda v: f"{v} müşteri"),
+                    textposition="outside",
+                    customdata=cs_top[["confidence_ab", "confidence_ba", "lift"]].values,
+                    hovertemplate="<b>%{y}</b><br>Ortak Alıcı: %{x}<br>Güven A→B: %{customdata[0]}%<br>Güven B→A: %{customdata[1]}%<br>Lift: %{customdata[2]}<extra></extra>",
+                ))
+                fig_cs.update_layout(
+                    height=max(280, len(cs_top) * 40 + 60),
+                    margin=dict(l=0, r=60, t=8, b=0),
+                    xaxis=dict(title="Ortak Alıcı Sayısı"),
+                    yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
+                    template="plotly_white",
+                )
+                st.plotly_chart(fig_cs, use_container_width=True)
+
+                _section("📋 Tüm Çiftler Tablosu")
+                tbl_cs = cs_df[["product_a", "product_b", "co_buyers", "confidence_ab", "confidence_ba", "lift"]].copy()
+                tbl_cs.columns = ["Ürün A", "Ürün B", "Ortak Alıcı", "Güven A→B (%)", "Güven B→A (%)", "Lift"]
+                st.dataframe(tbl_cs, use_container_width=True, hide_index=True)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Sayfa: Müşteri Segmentleri
@@ -3320,6 +3576,51 @@ def show_segments() -> None:
     except AttributeError:
         styled = display.style.applymap(_color_churn, subset=["Churn Risk"])  # pandas < 2.1
     st.dataframe(styled, use_container_width=True, hide_index=True)
+
+    # ── Segment Aksiyon Önerileri ─────────────────────────────────────────────
+    st.markdown('<hr style="border:none;border-top:1px solid rgba(242,122,26,.18);margin:1.6rem 0 1rem;">', unsafe_allow_html=True)
+    _section("🎯 Aksiyon Önerileri — Segmentlere Göre")
+    st.markdown(
+        """<div class="info-box" style="font-size:.82rem;">
+        Her segment için yapay zeka destekli öncelikli aksiyon listesi.
+        En kritik segmentler önce gösterilir.
+        </div>""",
+        unsafe_allow_html=True,
+    )
+    try:
+        recs = get_segment_recommendations(user["id"], store_id)
+        if recs:
+            for rec in recs:
+                priority_color = rec.get("priority_color", "#6B7280")
+                with st.expander(
+                    f"{rec['icon']} {rec['segment']} — {rec['count']} müşteri "
+                    f"| [{rec['priority']}]",
+                    expanded=(rec.get("priority") in ("ACİL", "YÜKSEK")),
+                ):
+                    ra1, ra2 = st.columns([2, 1])
+                    with ra1:
+                        st.markdown("**Önerilen Aksiyonlar:**")
+                        for action in rec["actions"]:
+                            st.markdown(f"- {action}")
+                    with ra2:
+                        st.markdown(
+                            f"""<div style="background:{rec['color']}15;border:1px solid {rec['color']}40;
+                            border-radius:10px;padding:14px;text-align:center;">
+                            <div style="font-size:.72rem;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">
+                            Beklenen Etki</div>
+                            <div style="font-size:.88rem;font-weight:700;color:{rec['color']};">
+                            {rec['expected_impact']}</div>
+                            <div style="font-size:.72rem;color:#9CA3AF;margin-top:.4rem;">
+                            Toplam Gelir: {_fmt_tl(rec.get('revenue', 0))}</div>
+                            </div>""",
+                            unsafe_allow_html=True,
+                        )
+        else:
+            st.info("Yeterli müşteri segmenti bulunamadı.")
+    except Exception:
+        pass
+
+    st.markdown("&nbsp;")
 
     # ── Müşteri Detay ─────────────────────────────────────────────────────────
     st.markdown("&nbsp;")
@@ -3700,7 +4001,10 @@ def show_settings() -> None:
     store_id = st.session_state.get("active_store_id")
     _header("⚙️", "Ayarlar", "Hesap ve mağaza bilgilerinizi yönetin")
 
-    tab_account, tab_goals, tab_api, tab_plan = st.tabs(["👤 Hesap Bilgileri", "🎯 Hedefler", "🔌 Trendyol API (Enterprise)", "💎 Plan Yönetimi"])
+    tab_account, tab_goals, tab_api, tab_plan, tab_weekly, tab_referral = st.tabs([
+        "👤 Hesap Bilgileri", "🎯 Hedefler", "🔌 Trendyol API (Enterprise)",
+        "💎 Plan Yönetimi", "📅 Haftalık Rapor", "🎁 Referral",
+    ])
 
     with tab_goals:
         _section("🎯 Aylık Hedefler")
@@ -3832,6 +4136,126 @@ def show_settings() -> None:
                     st.success("✅ Bağlantı başarılı!")
                 else:
                     st.error("❌ Bağlantı başarısız. Bilgilerinizi kontrol edin.")
+
+    # ── Haftalık Rapor ────────────────────────────────────────────────────────
+    with tab_weekly:
+        if not _plan_gate("weekly_report"):
+            st.stop()
+        _header_weekly = get_weekly_report_settings(user["id"])
+        _smtp_cfg = load_smtp_settings(user["id"])
+
+        _section("📅 Haftalık Özet Raporu")
+        st.markdown(
+            """<div class="info-box">
+            Her Pazartesi sabahı mağazanızın haftalık özetini e-posta olarak alın.
+            Gelir, sipariş, yeni müşteri ve retention metriklerini içerir.
+            <br><br>📧 Rapor SMTP ayarlarınızla gönderilir. Önce <b>E-posta Kampanyaları → SMTP Ayarları</b>
+            sekmesini yapılandırın.
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+        if not _smtp_cfg:
+            st.warning("⚠️ Haftalık rapor için önce SMTP yapılandırması gereklidir.")
+        else:
+            _wr_enabled = st.toggle(
+                "Haftalık raporu etkinleştir",
+                value=_header_weekly["enabled"],
+                key="wr_toggle",
+            )
+            if _wr_enabled != _header_weekly["enabled"]:
+                save_weekly_report_settings(user["id"], _wr_enabled)
+                st.success("✅ Ayar kaydedildi!")
+                st.rerun()
+
+            if _header_weekly["last_sent"]:
+                st.caption(f"Son gönderim: {_header_weekly['last_sent']}")
+
+            st.markdown("&nbsp;")
+            st.markdown("**Test — Şimdi Gönder**")
+            if st.button("📧 Test Raporu Gönder", key="wr_test_btn"):
+                try:
+                    from src.analytics import get_current_month_metrics as _gmm, get_top_customers as _gtc
+                    _metrics = _gmm(user["id"], store_id)
+                    _cmp_data = get_period_comparison(user["id"], store_id, "month")
+                    _top = _gtc(user["id"], n=5, store_id=store_id)
+                    _top_list = [{"musteri": r["musteri"], "ltv": r["ltv"]} for _, r in _top.iterrows()] if not _top.empty else []
+                    stores = st.session_state.get("stores", [])
+                    store_name_wr = next((s["store_name"] for s in stores if s["id"] == store_id), user["store_name"])
+                    with st.spinner("Gönderiliyor…"):
+                        res = send_weekly_summary(
+                            _smtp_cfg, user["email"], store_name_wr,
+                            _metrics, _cmp_data, _top_list,
+                        )
+                    if res["success"]:
+                        st.success(res["message"])
+                        mark_weekly_report_sent(user["id"])
+                    else:
+                        st.error(res["message"])
+                except Exception as e:
+                    st.error(f"Hata: {e}")
+
+    # ── Referral Sistemi ──────────────────────────────────────────────────────
+    with tab_referral:
+        _section("🎁 Arkadaşını Davet Et — Kazan!")
+        st.markdown(
+            """<div class="info-box">
+            Arkadaşlarınızı ReOrder'a davet edin. Her başarılı davet için
+            <b>siz +30 gün</b>, arkadaşınız da <b>+30 gün</b> ücretsiz kullanım kazanır!
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+        try:
+            referral_code = get_or_create_referral_code(user["id"])
+            stats = get_referral_stats(user["id"])
+
+            # Kod kutusu
+            app_url = "https://reorder-81nz.onrender.com"
+            ref_url = f"{app_url}/?ref={referral_code}"
+
+            r1, r2, r3 = st.columns(3)
+            r1.markdown(
+                f"""<div class="kpi-card"><div class="kpi-label">REFERRAL KODUNUZ</div>
+                <div class="kpi-value" style="font-size:1.4rem;letter-spacing:.1em;">{referral_code}</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            r2.markdown(
+                f"""<div class="kpi-card"><div class="kpi-label">DAVET EDİLEN</div>
+                <div class="kpi-value">{stats['total_referrals']}</div>
+                <div class="kpi-sub">kişi kaydoldu</div></div>""",
+                unsafe_allow_html=True,
+            )
+            r3.markdown(
+                f"""<div class="kpi-card"><div class="kpi-label">KAZANILAN BONUS</div>
+                <div class="kpi-value">{stats['bonus_days']} gün</div>
+                <div class="kpi-sub">ücretsiz kullanım</div></div>""",
+                unsafe_allow_html=True,
+            )
+
+            st.markdown("&nbsp;")
+            _section("Davet Linki")
+            st.code(ref_url)
+            st.caption("Linki kopyalayıp arkadaşlarınızla paylaşın.")
+
+            st.markdown("&nbsp;")
+            _section("Referral Kodu Kullan")
+            with st.form("use_referral_form"):
+                friend_code = st.text_input("Arkadaşınızın referral kodu", placeholder="RO-XXXXXX")
+                use_btn = st.form_submit_button("🎁 Kodu Kullan", use_container_width=True)
+            if use_btn:
+                if not friend_code.strip():
+                    st.error("Kod girin.")
+                else:
+                    res_ref = use_referral_code(friend_code.strip(), user["id"])
+                    if res_ref["success"]:
+                        st.success(f"✅ {res_ref['bonus_days']} gün bonus kazandınız! Kodu paylaşan arkadaşınız da kazandı.")
+                        st.balloons()
+                    else:
+                        st.error(res_ref.get("error", "Kod kullanılamadı."))
+        except Exception as e:
+            st.error(f"Referral sistemi yüklenemedi: {e}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

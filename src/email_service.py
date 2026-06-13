@@ -405,3 +405,92 @@ def send_campaign_report(
         }
     except Exception as exc:
         return {"success": False, "message": f"❌ Hata: {exc}", "subject": ""}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Haftalık Özet E-posta
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _weekly_html(
+    store_name: str,
+    metrics: dict,
+    comparison: dict,
+    top_customers: list[dict],
+) -> str:
+    rev = metrics.get("revenue", 0)
+    orders = metrics.get("orders", 0)
+    new_c = metrics.get("new_customers", 0)
+    ret = metrics.get("retention_rate", 0)
+    delta_rev = comparison.get("delta_revenue_pct", 0)
+    delta_ord = comparison.get("delta_orders_pct", 0)
+    delta_color = "#10B981" if delta_rev >= 0 else "#EF4444"
+    delta_sign  = "+" if delta_rev >= 0 else ""
+
+    def fmt(v):
+        return f"₺{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    top_rows = "".join(
+        f"<tr><td style='padding:6px 10px;border-bottom:1px solid #f0f2f7;'>{i+1}. {r.get('musteri','—')[:30]}</td>"
+        f"<td style='padding:6px 10px;border-bottom:1px solid #f0f2f7;text-align:right;'>{fmt(r.get('ltv',0))}</td></tr>"
+        for i, r in enumerate(top_customers[:5])
+    )
+
+    return f"""
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:20px;">
+      <div style="background:linear-gradient(135deg,#F28500,#D46000);border-radius:14px;padding:24px;text-align:center;margin-bottom:20px;">
+        <div style="font-size:28px;margin-bottom:4px;">🔄 ReOrder</div>
+        <h2 style="color:#fff;margin:0;font-size:20px;">Haftalık Özet Raporu</h2>
+        <p style="color:rgba(255,255,255,.75);margin:6px 0 0;font-size:13px;">{store_name} · {datetime.now().strftime('%d.%m.%Y')}</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+        <div style="background:#fff;border-radius:10px;padding:16px;border-left:4px solid #F28500;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">BU AY GELİR</div>
+          <div style="font-size:22px;font-weight:800;color:#0f1a35;">{fmt(rev)}</div>
+          <div style="font-size:12px;color:{delta_color};margin-top:3px;">{delta_sign}{delta_rev:.1f}% geçen aya göre</div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:16px;border-left:4px solid #3B82F6;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">SİPARİŞ</div>
+          <div style="font-size:22px;font-weight:800;color:#0f1a35;">{orders:,}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:3px;">{delta_sign}{delta_ord:.1f}% geçen aya göre</div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:16px;border-left:4px solid #10B981;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">YENİ MÜŞTERİ</div>
+          <div style="font-size:22px;font-weight:800;color:#0f1a35;">{new_c}</div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:16px;border-left:4px solid #8B5CF6;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">RETENTİON</div>
+          <div style="font-size:22px;font-weight:800;color:#0f1a35;">%{ret:.1f}</div>
+        </div>
+      </div>
+
+      {'<div style="background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:20px;"><div style="font-size:13px;font-weight:700;color:#0f1a35;margin-bottom:10px;">⭐ En İyi Müşteriler</div><table style="width:100%;border-collapse:collapse;font-size:13px;">' + top_rows + '</table></div>' if top_rows else ''}
+
+      <div style="text-align:center;padding:16px 0;border-top:1px solid #e8edf5;color:#9ca3af;font-size:11px;">
+        ReOrder © 2026 · Bu raporu devre dışı bırakmak için Ayarlar → Haftalık Rapor
+      </div>
+    </div>
+    """
+
+
+def send_weekly_summary(
+    config: SMTPConfig,
+    to_email: str,
+    store_name: str,
+    metrics: dict,
+    comparison: dict,
+    top_customers: list[dict],
+) -> dict:
+    """Haftalık özet raporunu e-posta ile gönderir."""
+    try:
+        subject = f"📊 {store_name} — Haftalık ReOrder Raporu ({datetime.now().strftime('%d.%m.%Y')})"
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"{config.from_name} <{config.from_email}>"
+        msg["To"] = to_email
+        html = _weekly_html(store_name, metrics, comparison, top_customers)
+        msg.attach(MIMEText(html, "html", "utf-8"))
+        _send_smtp(config, to_email, msg)
+        return {"success": True, "message": "✅ Haftalık rapor gönderildi!"}
+    except Exception as exc:
+        return {"success": False, "message": f"❌ Hata: {exc}"}
