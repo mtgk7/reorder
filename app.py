@@ -29,7 +29,7 @@ from src.auth import (
     send_reset_email, reset_password_with_token,
 )
 from src.parser import parse_trendyol_file, import_to_db, generate_sample_orders
-from src.report import generate_report
+# generate_report imported lazily inside show_analytics() to avoid loading fpdf2 at startup
 from src.trendyol_api import (
     save_credentials, load_credentials, sync_orders,
     TrendyolClient, TrendyolAPIError,
@@ -2838,6 +2838,7 @@ def show_dashboard() -> None:
     if st.button("📄 PDF Raporu Hazırla", key="pdf_generate_btn"):
         with st.spinner("PDF hazırlanıyor…"):
             try:
+                from src.report import generate_report
                 pdf_bytes = generate_report(user["id"], store_name, store_id)
                 st.session_state["pdf_report"] = {
                     "bytes": bytes(pdf_bytes),
