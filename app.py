@@ -1781,7 +1781,8 @@ function goRegister(){
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🔮 Gelir Tahmini <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🔗 Cross-Sell Matrisi <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🎯 Aksiyon Önerileri <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
-      <div style="font-size:.72rem;color:#c4c9d4;">✗ Kampanyalar</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 📧 E-posta Kampanya</div>
+      <div style="font-size:.72rem;color:#374151;">✅ 📩 Haftalık Rapor <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
     </div>
     <!-- Enterprise -->
     <div style="background:#fff;border:1.5px solid #e8edf5;border-radius:14px;padding:1.1rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
@@ -1790,10 +1791,9 @@ function goRegister(){
       <div style="height:1px;background:#f0f2f7;margin:.65rem 0;"></div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Sınırsız Mağaza</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Tüm Pro Özellikler</div>
-      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ E-posta Kampanya</div>
-      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 📩 Haftalık Rapor <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🔌 Trendyol API Entegrasyonu</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Öncelikli Destek</div>
-      <div style="font-size:.72rem;color:#374151;">✅ API Erişimi</div>
+      <div style="font-size:.72rem;color:#374151;">✅ Özel Hesap Yöneticisi</div>
     </div>
   </div>
 

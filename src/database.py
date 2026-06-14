@@ -838,10 +838,6 @@ def use_referral_code(code: str, referee_id: int) -> dict:
             "UPDATE referrals SET referee_id = ?, bonus_days = 30, used_at = NOW() WHERE id = ?",
             (referee_id, row["id"]),
         )
-        conn.execute(
-            "UPDATE referrals SET bonus_days = bonus_days + 30 WHERE referrer_id = ? AND referee_id IS NULL LIMIT 1",
-            (row["referrer_id"],),
-        )
     else:
         conn.execute(
             "UPDATE referrals SET referee_id = ?, bonus_days = 30, used_at = datetime('now') WHERE id = ?",
