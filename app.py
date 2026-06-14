@@ -4163,7 +4163,13 @@ def show_settings() -> None:
         if _upgrade_plan:
             st.markdown(f"**{_upgrade_plan}** planına yükselterek daha fazla özelliğe erişin.")
             if st.button(f"⬆️ {_upgrade_plan} Planına Geç", use_container_width=True, type="primary"):
-                st.session_state.selected_plan = _upgrade_plan
+                _up_price, _up_unit = _PLAN_PRICES.get(_cur_period, _PLAN_PRICES["m"]).get(_upgrade_plan, (0, "/ay"))
+                st.session_state.selected_plan = {
+                    "name": _upgrade_plan,
+                    "price": _up_price,
+                    "unit": _up_unit,
+                    "period": _cur_period,
+                }
                 st.session_state.new_user = True
                 st.rerun()
         else:
