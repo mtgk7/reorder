@@ -1974,10 +1974,11 @@ section[data-testid="stMain"]>div:first-child{padding-top:0!important;}
 .pay-secure{text-align:center;color:rgba(255,255,255,.35);font-size:.78rem;margin-top:.8rem;}
 [data-testid="stTextInput"] label{color:rgba(255,255,255,.65)!important;font-size:.85rem!important;}
 [data-testid="stTextInput"] input{
-    background:rgba(255,255,255,.07)!important;
-    border:1.5px solid rgba(255,255,255,.15)!important;
+    background:#0d2e40!important;
+    border:1.5px solid rgba(255,255,255,.2)!important;
     color:#fff!important;border-radius:10px!important;
 }
+[data-testid="stTextInput"] input::placeholder{color:rgba(255,255,255,.35)!important;}
 [data-testid="stTextInput"] input:focus{
     border-color:#F28500!important;
     box-shadow:0 0 0 2px rgba(242,133,0,.2)!important;
