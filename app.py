@@ -1819,7 +1819,7 @@ function goRegister(){
 _PLAN_LIMITS = {
     "Starter": {
         "max_stores":    1,
-        "segments":      False,
+        "segments":      True,
         "campaigns":     False,
         "pdf_report":    False,
         "trendyol_api":  False,
