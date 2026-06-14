@@ -2223,13 +2223,15 @@ def show_sidebar() -> None:
                 st.rerun()
 
             active_store = stores[current_idx]
-            # Trendyol API bilgileri var mı?
-            creds = None
-            try:
-                from src.trendyol_api import load_credentials as _lc
-                creds = _lc(user["id"], active_store["id"])
-            except Exception:
-                pass
+            # Trendyol API bilgileri var mı? — session_state'de cache'le, her render'da DB'ye gitme
+            _cred_key = f"_ty_creds_{user['id']}_{active_store['id']}"
+            if _cred_key not in st.session_state:
+                try:
+                    from src.trendyol_api import load_credentials as _lc
+                    st.session_state[_cred_key] = _lc(user["id"], active_store["id"])
+                except Exception:
+                    st.session_state[_cred_key] = None
+            creds = st.session_state[_cred_key]
 
             if creds:
                 last_sync = creds.get("last_sync_at")
@@ -2260,8 +2262,9 @@ def show_sidebar() -> None:
                         res = _so(user["id"], start, end, active_store["id"])
                     if res["success"]:
                         st.success(f"✅ {res['inserted']} yeni sipariş eklendi.")
-                        # Mağaza listesini ve cache'i yenile
+                        # Mağaza listesini, credentials cache'ini ve analytics cache'ini yenile
                         st.session_state.stores = get_stores(user["id"])
+                        st.session_state.pop(_cred_key, None)
                         st.cache_data.clear()
                         st.rerun()
                     else:
@@ -2981,6 +2984,8 @@ def show_upload() -> None:
                     st.error("Tüm alanları doldurun.")
                 else:
                     save_credentials(user["id"], seller_id, api_key, api_secret, store_id)
+                    # Sidebar creds cache'ini temizle
+                    st.session_state.pop(f"_ty_creds_{user['id']}_{store_id}", None)
                     st.success("✅ API bilgileri kaydedildi!")
                     st.rerun()
 
@@ -4213,6 +4218,7 @@ def show_settings() -> None:
                 st.error("Tüm alanları doldurun.")
             else:
                 save_credentials(user["id"], s_seller, s_key, s_secret, store_id)
+                st.session_state.pop(f"_ty_creds_{user['id']}_{store_id}", None)
                 st.success("✅ API bilgileri kaydedildi!")
                 st.rerun()
         if test_s:
