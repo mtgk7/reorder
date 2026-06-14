@@ -138,17 +138,80 @@ class _PgConnection:
 _DB_PATH = Path(__file__).parent.parent / "data" / "reorder.db"
 
 
+class _PooledPgConnection(_PgConnection):
+    """_PgConnection that returns itself to the pool on close() instead of terminating."""
+
+    def __init__(self, pool, pg_conn) -> None:
+        super().__init__(pg_conn)
+        self._pool = pool
+
+    def close(self) -> None:
+        try:
+            self._pool.putconn(self._conn)
+        except Exception:
+            try:
+                self._conn.close()
+            except Exception:
+                pass
+
+    def __exit__(self, *args):
+        self.close()
+
+
+def _get_pg_pool():
+    """Returns a module-level cached psycopg2 ThreadedConnectionPool (via st.cache_resource)."""
+    try:
+        import streamlit as st
+
+        @st.cache_resource
+        def _cached_pool():
+            db_url = _get_db_url()
+            if not db_url:
+                return None
+            from psycopg2.pool import ThreadedConnectionPool
+            from urllib.parse import urlparse, unquote
+            p = urlparse(_normalize_url(db_url))
+            return ThreadedConnectionPool(
+                minconn=1,
+                maxconn=5,
+                host=p.hostname,
+                port=p.port or 5432,
+                user=unquote(p.username or ""),
+                password=unquote(p.password or ""),
+                dbname=(p.path or "/postgres").lstrip("/"),
+                connect_timeout=10,
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5,
+            )
+
+        return _cached_pool()
+    except Exception:
+        return None
+
+
 def get_connection():
     """
     Veritabanı bağlantısı döndürür.
 
-    - DATABASE_URL ayarlıysa → PostgreSQL (_PgConnection)
+    - DATABASE_URL ayarlıysa → PostgreSQL (_PooledPgConnection via connection pool)
     - Ayarlı değilse         → SQLite (sqlite3.Connection, yerel geliştirme)
     """
     db_url = _get_db_url()
     if db_url:
-        conn = _pg_connect(_normalize_url(db_url))
-        return _PgConnection(conn)
+        pool = _get_pg_pool()
+        if pool:
+            try:
+                raw_conn = pool.getconn()
+                if raw_conn.closed:
+                    pool.putconn(raw_conn, close=True)
+                    raw_conn = pool.getconn()
+                return _PooledPgConnection(pool, raw_conn)
+            except Exception:
+                pass
+        # Pool yoksa veya tükendiyse direkt bağlantı aç
+        return _PgConnection(_pg_connect(_normalize_url(db_url)))
 
     # SQLite (yerel)
     os.makedirs(_DB_PATH.parent, exist_ok=True)
