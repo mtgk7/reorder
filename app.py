@@ -1297,7 +1297,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 <div class="features">
   <div class="sec-tag">&#214;zellikler</div>
   <div class="sec-title">Her &#351;ey tek yerden</div>
-  <div class="sec-sub">Trendyol ma&#287;azan&#305; b&#252;y&#252;tmek i&#231;in ihtiya&#231; duydu&#287;un t&#252;m ara&#231;lar. <span style="background:linear-gradient(135deg,#F28500,#D46000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">7 yeni &#246;zellik eklendi!</span></div>
+  <div class="sec-sub">Trendyol ma&#287;azan&#305; b&#252;y&#252;tmek i&#231;in ihtiya&#231; duydu&#287;un t&#252;m ara&#231;lar. <span style="background:linear-gradient(135deg,#F28500,#D46000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">12 yeni &#246;zellik eklendi!</span></div>
   <div class="feat-grid">
     <div class="feat">
       <div class="feat-top"><div class="fi fi-or">&#128202;</div><div class="ft">Anl&#305;k Dashboard</div></div>
@@ -1364,6 +1364,36 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="feat-top"><div class="fi fi-te">&#128337;</div><div class="ft">Haftal&#305;k Rapor</div></div>
       <div class="fd">Her Pazartesi sabah&#305; m&#228;&#287;azan&#305;n&#305;n &#246;zeti e-posta ile gelsin. Hi&#231;bir metri&#287;i ka&#231;&#305;rma.</div>
       <div class="ftags"><span class="tag tt">Otomatik</span><span class="tag tb">Pro+</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-or">&#128230;</div><div class="ft">&#304;ade Analizi</div></div>
+      <div class="fd">&#220;r&#252;n baz&#305;nda iade oran&#305;n&#305; g&#246;r. En &#231;ok iade edilen &#252;r&#252;nleri ve ayl&#305;k iade trendi ile kay&#305;plar&#305; azalt.</div>
+      <div class="ftags"><span class="tag tg">Starter+</span><span class="tag to">&#220;r&#252;n Analizi</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-bl">&#128336;</div><div class="ft">Zaman Analizi</div></div>
+      <div class="fd">En &#231;ok hangi saatte ve g&#252;nde sipari&#351; geliyor? Reklam ve kampanya zaman&#305;n&#305; veriye g&#246;re ayarla.</div>
+      <div class="ftags"><span class="tag tb">Pro+</span><span class="tag tp">Saatlik Grafik</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-gr">&#127758;</div><div class="ft">&#350;ehir / B&#246;lge Da&#287;&#305;l&#305;m&#305;</div></div>
+      <div class="fd">Sipari&#351;lerin hangi &#351;ehirden geldi&#287;ini g&#246;r. En y&#252;ksek gelir getiren b&#246;lgelere odaklan, kargo maliyetini optimize et.</div>
+      <div class="ftags"><span class="tag tb">Pro+</span><span class="tag tg">Harita Analizi</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-rd">&#9889;</div><div class="ft">Stok Tükenmesi Uyar&#305;s&#305;</div></div>
+      <div class="fd">G&#252;nl&#252;k sat&#305;&#351; h&#305;z&#305;na g&#246;re ka&#231; g&#252;nde stok tükenir? Renk kodlu uyar&#305;larla stok &#246;nce bitmeden haberdar ol.</div>
+      <div class="ftags"><span class="tag tg">T&#252;m Planlar</span><span class="tag to">Stok Takibi</span></div>
+    </div>
+    <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
+      <div style="position:absolute;top:-1px;right:10px;background:linear-gradient(135deg,#F28500,#D46000);color:#fff;font-size:.5rem;font-weight:800;letter-spacing:.08em;padding:.18rem .55rem;border-radius:0 0 7px 7px;">YEN&#304;</div>
+      <div class="feat-top"><div class="fi fi-pu">&#128172;</div><div class="ft">Yorum Sentiment Analizi</div></div>
+      <div class="fd">M&#252;&#351;teri yorumlar&#305;n&#305; yap&#305;&#351;t&#305;r, saniyeler i&#231;inde pozitif / negatif / n&#246;tr skoru al. En s&#305;k &#351;ikayet edilen konular&#305; bul.</div>
+      <div class="ftags"><span class="tag tp">Pro+</span><span class="tag tb">NLP Analizi</span></div>
     </div>
   </div>
 </div>
@@ -1629,7 +1659,7 @@ function goRegister(){
     <div style="font-size:.6rem;font-weight:700;color:#F28500;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.3rem;">&#10022; Özellikler</div>
     <div style="font-size:1.15rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;margin-bottom:.2rem;">Her şey tek yerden</div>
     <div style="font-size:.79rem;color:#9ca3af;line-height:1.6;margin-bottom:.4rem;">Trendyol mağazanı büyütmek için ihtiyaç duyduğun tüm araçlar.</div>
-    <div style="font-size:.72rem;font-weight:800;background:linear-gradient(90deg,#F28500,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.85rem;">&#10024; 7 yeni özellik eklendi!</div>
+    <div style="font-size:.72rem;font-weight:800;background:linear-gradient(90deg,#F28500,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.85rem;">&#10024; 12 yeni özellik eklendi!</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem;">
       <div style="background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
         <div style="font-size:1.1rem;margin-bottom:.3rem;">📊</div>
