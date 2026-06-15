@@ -1859,12 +1859,20 @@ section[data-testid="stMain"]>div:first-child{padding-top:0!important;}
 [data-testid="stTextInput"] input{
     background:#0d2e40!important;
     border:1.5px solid rgba(255,255,255,.2)!important;
-    color:#fff!important;border-radius:10px!important;
+    color:#fff!important;
+    -webkit-text-fill-color:#fff!important;
+    border-radius:10px!important;
 }
-[data-testid="stTextInput"] input::placeholder{color:rgba(255,255,255,.35)!important;}
+[data-testid="stTextInput"] input::placeholder{
+    color:rgba(255,255,255,.35)!important;
+    -webkit-text-fill-color:rgba(255,255,255,.35)!important;
+}
 [data-testid="stTextInput"] input:focus{
     border-color:#F28500!important;
     box-shadow:0 0 0 2px rgba(242,133,0,.2)!important;
+}
+[data-testid="stTextInput"] label p{
+    color:rgba(255,255,255,.7)!important;
 }
 .stForm [data-testid="stFormSubmitButton"] button{
     background:linear-gradient(135deg,#F28500,#D46000)!important;
@@ -2265,19 +2273,19 @@ def main() -> None:
 
     page = st.session_state.page
     if page == "dashboard":
-        from pages.dashboard import run as _run; _run()
+        from page_views.dashboard import run as _run; _run()
     elif page == "upload":
-        from pages.upload import run as _run; _run()
+        from page_views.upload import run as _run; _run()
     elif page == "analytics":
-        from pages.analytics import run as _run; _run()
+        from page_views.analytics import run as _run; _run()
     elif page == "segments":
-        from pages.segments import run as _run; _run()
+        from page_views.segments import run as _run; _run()
     elif page == "campaigns":
-        from pages.campaigns import run as _run; _run()
+        from page_views.campaigns import run as _run; _run()
     elif page == "settings":
-        from pages.settings import run as _run; _run()
+        from page_views.settings import run as _run; _run()
     else:
-        from pages.dashboard import run as _run; _run()
+        from page_views.dashboard import run as _run; _run()
 
 
 main()

@@ -118,12 +118,12 @@ def _section(title: str) -> None:
 
 
 _PAGE_MAP = {
-    "dashboard": "pages/dashboard.py",
-    "upload":    "pages/upload.py",
-    "analytics": "pages/analytics.py",
-    "segments":  "pages/segments.py",
-    "campaigns": "pages/campaigns.py",
-    "settings":  "pages/settings.py",
+    "dashboard": "page_views/dashboard.py",
+    "upload":    "page_views/upload.py",
+    "analytics": "page_views/analytics.py",
+    "segments":  "page_views/segments.py",
+    "campaigns": "page_views/campaigns.py",
+    "settings":  "page_views/settings.py",
 }
 
 
