@@ -423,6 +423,44 @@ def run() -> None:
         st.dataframe(display.sort_values("Ay", ascending=False), use_container_width=True, hide_index=True)
 
     st.markdown("&nbsp;")
+
+    # ── Stok Hızı Uyarısı ─────────────────────────────────────────────────────
+    try:
+        from src.analytics import get_stock_velocity
+        velocity_df = get_stock_velocity(user["id"], store_id)
+        if not velocity_df.empty:
+            _section("⚡ Satış Hızı — Stok Takibi")
+            st.markdown(
+                """<div class="info-box">Günlük satış hızına göre ürünlerinizi izleyin.
+                Stok miktarınızı girerek tükenme tarihini hesaplayın.</div>""",
+                unsafe_allow_html=True,
+            )
+            for _, row in velocity_df.head(8).iterrows():
+                cols = st.columns([3, 1, 2])
+                cols[0].markdown(
+                    f"<small>{str(row['product_name'])[:40]}</small>",
+                    unsafe_allow_html=True,
+                )
+                stok = cols[1].number_input(
+                    "",
+                    min_value=0,
+                    value=0,
+                    key=f"stok_{str(row['product_name'])[:20]}",
+                    label_visibility="collapsed",
+                )
+                if stok > 0:
+                    gun = stok / row["gunluk_satis"]
+                    renk = "🔴" if gun < 7 else "🟡" if gun < 14 else "🟢"
+                    cols[2].markdown(f"{renk} **{gun:.0f} gün**")
+                else:
+                    cols[2].markdown(
+                        f"<small style='color:#9ca3af;'>{row['gunluk_satis']:.2f} adet/gün</small>",
+                        unsafe_allow_html=True,
+                    )
+            st.markdown("&nbsp;")
+    except Exception:
+        pass
+
     _section("📄 PDF Rapor")
     st.markdown(
         """<div class="info-box">Tüm metrikleri, cohort (müşteri grubu) matrisini ve müşteri segmentlerini

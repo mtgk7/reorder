@@ -10,6 +10,7 @@ from src.analytics import (
     get_summary_metrics, get_cohort_retention, get_monthly_trend,
     get_new_vs_returning, get_ltv_distribution, get_top_customers,
     get_product_analysis, get_revenue_forecast, get_cross_sell_matrix,
+    get_return_analysis, get_hourly_distribution, get_city_distribution,
 )
 from src.ui_helpers import _fmt_tl, _header, _section, _plan_limits
 
@@ -32,6 +33,9 @@ def run() -> None:
         ("product",   "📦 Ürün Analizi"),
         ("forecast",  "🔮 Gelir Tahmini"),
         ("crosssell", "🔗 Cross-Sell"),
+        ("return",    "📦 İade Analizi"),
+        ("hourly",    "🕐 Zaman Analizi"),
+        ("city",      "🗺️ Şehir"),
     ]
     _visible_defs = [(k, lbl) for k, lbl in _all_tab_defs if k in _analytics_tabs_allowed]
     _created_tabs = st.tabs([lbl for _, lbl in _visible_defs])
@@ -330,3 +334,137 @@ def run() -> None:
                 tbl_cs = cs_df[["product_a", "product_b", "co_buyers", "confidence_ab", "confidence_ba", "lift"]].copy()
                 tbl_cs.columns = ["Ürün A", "Ürün B", "Ortak Alıcı", "Güven A→B (%)", "Güven B→A (%)", "Lift"]
                 st.dataframe(tbl_cs, use_container_width=True, hide_index=True)
+
+    if "return" in _tab_map:
+        with _tab_map["return"]:
+            _section("📦 İade Analizi")
+            ret_data = get_return_analysis(user["id"], store_id)
+            if not ret_data.get("has_data"):
+                st.info("İade analizi için sipariş verisi bulunamadı.")
+            else:
+                r1, r2, r3 = st.columns(3)
+                r1.metric("Toplam Sipariş", f"{ret_data['total_orders']:,}")
+                r2.metric("İade Edilen", f"{ret_data['total_returns']:,}")
+                r3.metric("İade Oranı", f"%{ret_data['return_rate']}")
+
+                if not ret_data["by_product"].empty:
+                    _section("Ürün Bazlı İade Oranı (En Yüksek)")
+                    prod_ret = ret_data["by_product"].head(15).copy()
+                    prod_ret["product_label"] = prod_ret["product_name"].apply(
+                        lambda x: x[:35] + "…" if len(str(x)) > 35 else x
+                    )
+                    fig_ret = px.bar(
+                        prod_ret, x="iade_oran", y="product_label", orientation="h",
+                        labels={"iade_oran": "İade Oranı (%)", "product_label": ""},
+                        color="iade_oran",
+                        color_continuous_scale=[[0, "#10B981"], [0.5, "#F27A1A"], [1, "#EF4444"]],
+                        template="plotly_white",
+                    )
+                    fig_ret.update_layout(
+                        height=max(280, len(prod_ret) * 32 + 60),
+                        margin=dict(l=0, r=20, t=8, b=0),
+                        xaxis=dict(ticksuffix="%"),
+                        yaxis=dict(autorange="reversed"),
+                        coloraxis_showscale=False,
+                    )
+                    st.plotly_chart(fig_ret, use_container_width=True)
+
+                    _section("Ürün İade Detay Tablosu")
+                    tbl_ret = ret_data["by_product"][["product_name", "toplam", "iade", "iade_oran"]].copy()
+                    tbl_ret.columns = ["Ürün", "Toplam Sipariş", "İade Sayısı", "İade Oranı (%)"]
+                    st.dataframe(tbl_ret, use_container_width=True, hide_index=True)
+
+                if not ret_data["monthly_trend"].empty:
+                    _section("Aylık İade Trendi")
+                    fig_trend = px.line(
+                        ret_data["monthly_trend"], x="ay", y="iade_oran", markers=True,
+                        labels={"ay": "Ay", "iade_oran": "İade Oranı (%)"},
+                        color_discrete_sequence=["#EF4444"], template="plotly_white",
+                    )
+                    fig_trend.update_layout(
+                        height=260, margin=dict(l=0, r=0, t=10, b=0),
+                        yaxis=dict(ticksuffix="%"),
+                    )
+                    st.plotly_chart(fig_trend, use_container_width=True)
+
+    if "hourly" in _tab_map:
+        with _tab_map["hourly"]:
+            _section("🕐 Zaman Analizi — Sipariş Saati ve Gün Dağılımı")
+            hourly_data = get_hourly_distribution(user["id"], store_id)
+            if not hourly_data.get("has_data"):
+                st.info("Zaman analizi için sipariş verisi bulunamadı.")
+            else:
+                if hourly_data.get("has_hour_data") and not hourly_data["hourly"].empty:
+                    _section("Saatlik Sipariş Dağılımı")
+                    fig_hour = px.bar(
+                        hourly_data["hourly"], x="order_hour", y="siparis",
+                        labels={"order_hour": "Saat", "siparis": "Sipariş Sayısı"},
+                        color_discrete_sequence=["#F27A1A"], template="plotly_white",
+                    )
+                    fig_hour.update_layout(
+                        height=260, margin=dict(l=0, r=0, t=8, b=0),
+                        xaxis=dict(tickmode="linear", tick0=0, dtick=1),
+                    )
+                    st.plotly_chart(fig_hour, use_container_width=True)
+                    st.markdown(
+                        """<div class="info-box" style="font-size:.82rem;">
+                        💡 Reklam bütçenizi en yüksek sipariş saatine odaklayın.
+                        En aktif saatlerde kampanya, SMS veya push notification gönderin.
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.info("Sipariş saati verisi bulunmuyor. Trendyol export dosyanızda saat bilgisi içeren tarih sütunu olduğunda bu grafik dolar.")
+
+                if not hourly_data["weekday"].empty:
+                    _section("Haftanın Günü Dağılımı")
+                    fig_wday = px.bar(
+                        hourly_data["weekday"], x="gun", y="siparis",
+                        labels={"gun": "Gün", "siparis": "Sipariş Sayısı"},
+                        color_discrete_sequence=["#3B82F6"], template="plotly_white",
+                    )
+                    fig_wday.update_layout(height=240, margin=dict(l=0, r=0, t=8, b=0))
+                    st.plotly_chart(fig_wday, use_container_width=True)
+
+    if "city" in _tab_map:
+        with _tab_map["city"]:
+            _section("🗺️ Şehir / Bölge Dağılımı")
+            city_data = get_city_distribution(user["id"], store_id)
+            if not city_data.get("has_data"):
+                if city_data.get("no_city_data"):
+                    st.info(
+                        "Şehir verisi bulunamadı. Trendyol export dosyanızda 'İl' veya 'Teslimat İli' "
+                        "sütunu olduğunda bu analiz otomatik olarak dolar. "
+                        "Örnek veriler için Veri Yükle sayfasından örnek oluşturabilirsiniz."
+                    )
+                else:
+                    st.info("Şehir analizi için sipariş verisi bulunamadı.")
+            else:
+                c1, c2 = st.columns(2)
+                c1.metric("En Çok Sipariş Veren Şehir", city_data["top_city"])
+                c2.metric("Toplam Şehir Sayısı", city_data["total_cities"])
+
+                by_city = city_data["by_city"]
+                if not by_city.empty:
+                    _section("Şehir Bazlı Sipariş Sayısı (İlk 15)")
+                    fig_city = px.bar(
+                        by_city.head(15), x="siparis", y="city", orientation="h",
+                        labels={"siparis": "Sipariş Sayısı", "city": ""},
+                        color="siparis",
+                        color_continuous_scale=[[0, "#FED7AA"], [1, "#C95A10"]],
+                        template="plotly_white",
+                    )
+                    fig_city.update_layout(
+                        height=max(280, min(len(by_city), 15) * 32 + 60),
+                        margin=dict(l=0, r=20, t=8, b=0),
+                        yaxis=dict(autorange="reversed"),
+                        coloraxis_showscale=False,
+                    )
+                    st.plotly_chart(fig_city, use_container_width=True)
+
+                    _section("Şehir Detay Tablosu")
+                    tbl_city = by_city[["city", "siparis", "gelir", "musteri", "ort_siparis"]].copy()
+                    tbl_city.columns = ["Şehir", "Sipariş", "Gelir (₺)", "Müşteri", "Ort. Sipariş (₺)"]
+                    tbl_city["Gelir (₺)"] = tbl_city["Gelir (₺)"].apply(_fmt_tl)
+                    tbl_city["Ort. Sipariş (₺)"] = tbl_city["Ort. Sipariş (₺)"].apply(_fmt_tl)
+                    st.dataframe(tbl_city, use_container_width=True, hide_index=True)

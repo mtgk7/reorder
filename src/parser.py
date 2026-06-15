@@ -43,6 +43,10 @@ COLUMN_MAP: dict[str, list[str]] = {
     "status": [
         "Durum", "Sipariş Durumu", "Status", "İptal/İade Durumu",
     ],
+    "city": [
+        "İl", "Şehir", "Teslimat İli", "Alıcı İli", "Delivery City",
+        "City", "İl/İlçe", "Teslimat Şehri", "Şehir/İlçe",
+    ],
 }
 
 
@@ -92,22 +96,27 @@ _DATE_FMTS = [
 ]
 
 
-def _parse_date(value) -> str | None:
-    """Çeşitli tarih formatlarını YYYY-MM-DD'ye çevirir."""
+def _parse_date(value) -> tuple[str | None, int | None]:
+    """(YYYY-MM-DD, saat_0_23) tuple döndürür. Saat yoksa None."""
     if pd.isna(value):
-        return None
+        return None, None
     if hasattr(value, "strftime"):
-        return value.strftime("%Y-%m-%d")
+        hour = value.hour if hasattr(value, "hour") else None
+        return value.strftime("%Y-%m-%d"), hour
     s = str(value).strip()
     for fmt in _DATE_FMTS:
         try:
-            return datetime.strptime(s[:len(fmt)], fmt).strftime("%Y-%m-%d")
+            dt = datetime.strptime(s[:len(fmt)], fmt)
+            date_str = dt.strftime("%Y-%m-%d")
+            hour = dt.hour if "%H" in fmt else None
+            return date_str, hour
         except ValueError:
             pass
     try:
-        return pd.to_datetime(s, dayfirst=True).strftime("%Y-%m-%d")
+        dt = pd.to_datetime(s, dayfirst=True)
+        return dt.strftime("%Y-%m-%d"), dt.hour
     except Exception:
-        return None
+        return None, None
 
 
 def _read_raw(file) -> pd.DataFrame:
@@ -190,7 +199,9 @@ def parse_trendyol_file(file) -> dict:
     # Normalleştirilmiş tablo oluştur
     out = pd.DataFrame()
     out["customer_identifier"] = raw[col_map["customer_identifier"]].astype(str).str.strip()
-    out["order_date"] = raw[col_map["order_date"]].apply(_parse_date)
+    _parsed = raw[col_map["order_date"]].apply(_parse_date)
+    out["order_date"] = _parsed.apply(lambda x: x[0])
+    out["order_hour"] = _parsed.apply(lambda x: x[1])
     out["total_amount"] = raw[col_map["total_amount"]].apply(_parse_amount)
 
     if "order_number" in col_map:
@@ -205,6 +216,7 @@ def parse_trendyol_file(file) -> dict:
         if "quantity" in col_map else 1
     )
     out["status"] = raw[col_map["status"]].astype(str).str.strip() if "status" in col_map else "Teslim Edildi"
+    out["city"] = raw[col_map["city"]].astype(str).str.strip() if "city" in col_map else ""
 
     # Temizlik
     before = len(out)
@@ -249,12 +261,20 @@ def import_to_db(
 
     for row in df.itertuples(index=False):
         try:
+            city_val = str(getattr(row, "city", "") or "")
+            hour_val = getattr(row, "order_hour", None)
+            if hour_val is not None:
+                try:
+                    hour_val = int(hour_val)
+                except (ValueError, TypeError):
+                    hour_val = None
             cur.execute(
                 """
                 INSERT INTO orders
                     (user_id, store_id, order_number, customer_identifier, order_date,
-                     total_amount, status, product_name, quantity, import_batch)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
+                     total_amount, status, product_name, quantity, import_batch,
+                     city, order_hour)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT DO NOTHING
                 """,
                 (
@@ -268,6 +288,8 @@ def import_to_db(
                     str(row.product_name),
                     int(row.quantity),
                     batch,
+                    city_val,
+                    hour_val,
                 ),
             )
             if cur.rowcount:
@@ -356,6 +378,24 @@ def generate_sample_orders(
         category = _detect_store_category(store_name)
         products = STORE_PRODUCTS[category]
 
+    CITIES = [
+        "İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana",
+        "Konya", "Mersin", "Gaziantep", "Kocaeli", "Trabzon", "Diyarbakır",
+        "Eskişehir", "Samsun", "Kayseri",
+    ]
+    CITY_WEIGHTS = [0.30, 0.15, 0.10, 0.07, 0.06, 0.05, 0.04, 0.04, 0.04, 0.04, 0.03, 0.03, 0.02, 0.02, 0.01]
+    # Saatlik ağırlıklar: 10-22 arası yoğun
+    _hour_raw = [
+        1, 1, 1, 1, 1, 1,   # 0-5 (gece)
+        2, 3, 5, 8,          # 6-9 (sabah)
+        12, 14, 13, 11,      # 10-13 (öğle)
+        10, 10, 11, 13,      # 14-17 (öğleden sonra)
+        15, 15, 13, 12,      # 18-21 (akşam)
+        9, 5,                # 22-23 (gece)
+    ]
+    _hour_total = sum(_hour_raw)
+    HOUR_WEIGHTS = [v / _hour_total for v in _hour_raw]
+
     customers = [
         f"{rng.choice(names_first)} {rng.choice(names_last)}"
         for _ in range(n_customers)
@@ -372,6 +412,9 @@ def generate_sample_orders(
         # Ortalama 1-4 sipariş
         n_orders = int(rng.choice([1, 1, 2, 2, 3, 4], p=[0.35, 0.20, 0.20, 0.10, 0.10, 0.05]))
 
+        # Her müşteri için sabit şehir (gerçekçi)
+        cust_city = str(rng.choice(CITIES, p=CITY_WEIGHTS))
+
         prev_date = first_date
         for _ in range(n_orders):
             delta = int(rng.integers(0, 90))
@@ -379,6 +422,7 @@ def generate_sample_orders(
             if order_date > datetime(2026, 5, 26):
                 break
             amount = round(float(rng.uniform(50, 800)), 2)
+            order_hour = int(rng.choice(range(24), p=HOUR_WEIGHTS))
             records.append({
                 "customer_identifier": cust,
                 "order_date": order_date.strftime("%Y-%m-%d"),
@@ -390,6 +434,8 @@ def generate_sample_orders(
                     ["Teslim Edildi", "Teslim Edildi", "Teslim Edildi", "İptal"],
                     p=[0.88, 0.05, 0.05, 0.02],
                 ),
+                "city": cust_city,
+                "order_hour": order_hour,
             })
             prev_date = order_date
 

@@ -1001,3 +1001,151 @@ def get_segment_recommendations(user_id: int, store_id: int | None = None) -> li
             })
 
     return recs
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Yeni özellikler: İade Analizi, Zaman Dağılımı, Şehir, Stok Hızı
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_return_analysis(user_id: int, store_id: int | None = None) -> dict:
+    """İade analizi — ürün bazlı iade oranı, aylık trend."""
+    df = _fetch_orders(user_id, store_id)
+    if df.empty:
+        return {"has_data": False}
+
+    total = len(df)
+    iade = df[df["status"].str.contains("İade", na=False, case=False)]
+    iade_rate = len(iade) / total * 100 if total > 0 else 0
+
+    # Ürün bazlı iade oranı
+    if "product_name" in df.columns and df["product_name"].str.strip().ne("").any():
+        prod = df.groupby("product_name").agg(
+            toplam=("status", "count"),
+            iade=("status", lambda x: x.str.contains("İade", na=False, case=False).sum()),
+        ).reset_index()
+        prod["iade_oran"] = (prod["iade"] / prod["toplam"] * 100).round(1)
+        prod = prod[prod["toplam"] >= 2].sort_values("iade_oran", ascending=False)
+    else:
+        prod = pd.DataFrame()
+
+    # Aylık iade trendi
+    df2 = df.copy()
+    df2["ay"] = df2["order_date"].dt.to_period("M").astype(str)
+    monthly = df2.groupby("ay").agg(
+        toplam=("status", "count"),
+        iade=("status", lambda x: x.str.contains("İade", na=False, case=False).sum()),
+    ).reset_index()
+    monthly["iade_oran"] = (monthly["iade"] / monthly["toplam"] * 100).round(1)
+
+    return {
+        "has_data": True,
+        "total_orders": total,
+        "total_returns": len(iade),
+        "return_rate": round(iade_rate, 1),
+        "by_product": prod,
+        "monthly_trend": monthly,
+    }
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_hourly_distribution(user_id: int, store_id: int | None = None) -> dict:
+    """Sipariş saati ve haftanın günü dağılımı."""
+    df = _fetch_orders(user_id, store_id)
+    if df.empty:
+        return {"has_data": False}
+
+    has_hour = "order_hour" in df.columns and df["order_hour"].notna().sum() > 10
+
+    if has_hour:
+        hour_df = df[df["order_hour"].notna()].copy()
+        hour_df["order_hour"] = hour_df["order_hour"].astype(int)
+        hourly = hour_df.groupby("order_hour").size().reset_index(name="siparis")
+        # Tüm 24 saati doldur
+        hourly = pd.DataFrame({"order_hour": range(24)}).merge(hourly, on="order_hour", how="left").fillna(0)
+        hourly["siparis"] = hourly["siparis"].astype(int)
+    else:
+        hourly = pd.DataFrame()
+
+    # Haftanın günü (her zaman var — order_date'den)
+    df2 = df.copy()
+    df2["weekday"] = df2["order_date"].dt.weekday  # 0=Pzt, 6=Paz
+    DAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
+    weekday = df2.groupby("weekday").size().reset_index(name="siparis")
+    weekday["gun"] = weekday["weekday"].apply(lambda x: DAYS[x])
+
+    # Aylık sipariş trendi
+    df2["ay"] = df2["order_date"].dt.to_period("M").astype(str)
+    monthly_orders = df2.groupby("ay").size().reset_index(name="siparis")
+
+    return {
+        "has_data": True,
+        "hourly": hourly,
+        "has_hour_data": has_hour,
+        "weekday": weekday,
+        "monthly_orders": monthly_orders,
+    }
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_city_distribution(user_id: int, store_id: int | None = None) -> dict:
+    """Şehir bazlı sipariş ve gelir dağılımı."""
+    df = _fetch_orders(user_id, store_id)
+    if df.empty:
+        return {"has_data": False}
+
+    has_city = (
+        "city" in df.columns
+        and df["city"].str.strip().ne("").sum() > 5
+    )
+    if not has_city:
+        return {"has_data": False, "no_city_data": True}
+
+    city_df = df[df["city"].str.strip().ne("") & df["city"].notna()].copy()
+    city_df["city"] = city_df["city"].str.strip()
+
+    by_city = city_df.groupby("city").agg(
+        siparis=("order_number", "count"),
+        gelir=("total_amount", "sum"),
+        musteri=("customer_identifier", "nunique"),
+    ).reset_index().sort_values("siparis", ascending=False)
+
+    by_city["gelir"] = by_city["gelir"].round(2)
+    by_city["ort_siparis"] = (by_city["gelir"] / by_city["siparis"]).round(2)
+
+    return {
+        "has_data": True,
+        "no_city_data": False,
+        "by_city": by_city,
+        "top_city": by_city.iloc[0]["city"] if not by_city.empty else "",
+        "total_cities": len(by_city),
+    }
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_stock_velocity(user_id: int, store_id: int | None = None) -> pd.DataFrame:
+    """Ürün bazlı satış hızı (adet/gün). Stok riski hesabı için."""
+    df = _fetch_orders(user_id, store_id)
+    if df.empty or "product_name" not in df.columns:
+        return pd.DataFrame()
+
+    # Sadece teslim edilen siparişler
+    delivered = df[df["status"].str.contains("Teslim", na=False, case=False)].copy()
+    if delivered.empty:
+        return pd.DataFrame()
+
+    date_range = (delivered["order_date"].max() - delivered["order_date"].min()).days
+    if date_range < 1:
+        date_range = 1
+
+    velocity = delivered.groupby("product_name").agg(
+        toplam_adet=("quantity", "sum"),
+        siparis_sayisi=("order_number", "count"),
+        son_siparis=("order_date", "max"),
+    ).reset_index()
+
+    velocity["gunluk_satis"] = (velocity["toplam_adet"] / date_range).round(2)
+    velocity["gunluk_satis"] = velocity["gunluk_satis"].clip(lower=0.01)
+    velocity = velocity.sort_values("gunluk_satis", ascending=False)
+
+    return velocity

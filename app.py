@@ -1,4 +1,4 @@
-﻿"""
+"""
 app.py — ReOrder Streamlit Web Arayüzü (Ana Giriş Noktası)
 Çalıştırmak için: streamlit run app.py
 Güncelleme: 2026-06-07
@@ -2205,6 +2205,7 @@ def show_sidebar() -> None:
             ("📁", "Veri Yükle", "upload"),
             ("📈", "Analitik", "analytics"),
             ("👥", "Müşteri Segmentleri", "segments"),
+            ("💬", "Yorum Analizi", "reviews"),
             ("📧", "Kampanyalar", "campaigns"),
             ("⚙️", "Ayarlar", "settings"),
         ]
@@ -2280,6 +2281,8 @@ def main() -> None:
         from page_views.segments import run as _run; _run()
     elif page == "campaigns":
         from page_views.campaigns import run as _run; _run()
+    elif page == "reviews":
+        from page_views.reviews import run as _run; _run()
     elif page == "settings":
         from page_views.settings import run as _run; _run()
     else:

@@ -15,7 +15,7 @@ _PLAN_LIMITS = {
         "pdf_report":    False,
         "trendyol_api":  False,
         "weekly_report": False,
-        "analytics_tabs": ["cohort"],
+        "analytics_tabs": ["cohort", "return"],
     },
     "Pro": {
         "max_stores":    3,
@@ -24,7 +24,7 @@ _PLAN_LIMITS = {
         "pdf_report":    True,
         "trendyol_api":  False,
         "weekly_report": True,
-        "analytics_tabs": ["cohort", "ltv", "retention", "product", "forecast", "crosssell"],
+        "analytics_tabs": ["cohort", "ltv", "retention", "product", "forecast", "crosssell", "return", "hourly", "city"],
     },
     "Enterprise": {
         "max_stores":    None,
@@ -33,7 +33,7 @@ _PLAN_LIMITS = {
         "pdf_report":    True,
         "trendyol_api":  True,
         "weekly_report": True,
-        "analytics_tabs": ["cohort", "ltv", "retention", "product", "forecast", "crosssell"],
+        "analytics_tabs": ["cohort", "ltv", "retention", "product", "forecast", "crosssell", "return", "hourly", "city"],
     },
 }
 
@@ -124,6 +124,7 @@ _PAGE_MAP = {
     "segments":  "page_views/segments.py",
     "campaigns": "page_views/campaigns.py",
     "settings":  "page_views/settings.py",
+    "reviews":   "page_views/reviews.py",
 }
 
 

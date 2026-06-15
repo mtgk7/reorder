@@ -380,6 +380,10 @@ def _migrate_postgres(cur) -> None:
     cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES stores(id)")
     cur.execute("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES stores(id)")
 
+    # Şehir ve sipariş saati kolonları
+    cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS city TEXT DEFAULT ''")
+    cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_hour SMALLINT DEFAULT NULL")
+
     # Mevcut kullanıcılar için varsayılan mağaza oluştur
     cur.execute("""
         INSERT INTO stores (user_id, store_name)
@@ -559,6 +563,14 @@ def _migrate_sqlite(cur) -> None:
             pass
         try:
             cur.execute(f"ALTER TABLE campaigns ADD COLUMN {col} INTEGER")
+        except Exception:
+            pass
+
+    # Şehir ve sipariş saati kolonları
+    _orders_new_cols = [("city", "TEXT"), ("order_hour", "INTEGER")]
+    for col, dtype in _orders_new_cols:
+        try:
+            cur.execute(f"ALTER TABLE orders ADD COLUMN {col} {dtype}")
         except Exception:
             pass
 
