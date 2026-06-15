@@ -915,11 +915,11 @@ def get_referral_stats(user_id: int) -> dict:
     """Kullanıcının referral istatistiklerini döndürür."""
     conn = get_connection()
     total_row = conn.execute(
-        "SELECT COUNT(*) FROM referrals WHERE referrer_id = ? AND referee_id IS NOT NULL",
+        "SELECT COUNT(*) AS n FROM referrals WHERE referrer_id = ? AND referee_id IS NOT NULL",
         (user_id,),
     ).fetchone()
     bonus_row = conn.execute(
-        "SELECT COALESCE(SUM(bonus_days), 0) FROM referrals WHERE referrer_id = ?",
+        "SELECT COALESCE(SUM(bonus_days), 0) AS n FROM referrals WHERE referrer_id = ?",
         (user_id,),
     ).fetchone()
     code_row = conn.execute(
@@ -927,8 +927,8 @@ def get_referral_stats(user_id: int) -> dict:
         (user_id,),
     ).fetchone()
     conn.close()
-    total = list(total_row)[0] if total_row else 0
-    bonus = list(bonus_row)[0] if bonus_row else 0
+    total = total_row["n"] if total_row else 0
+    bonus = bonus_row["n"] if bonus_row else 0
     code  = code_row["referral_code"] if code_row else None
     return {"total_referrals": int(total), "bonus_days": int(bonus), "code": code}
 
