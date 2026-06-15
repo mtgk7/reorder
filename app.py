@@ -469,9 +469,14 @@ st.markdown(
             position:   fixed     !important;
             z-index:    1000      !important;
             top:        0         !important;
-            left:       0         !important;
+            /* left intentionally omitted — Streamlit manages translateX for collapse */
             height:     100dvh    !important;
             box-shadow: 4px 0 24px rgba(0,0,0,.5) !important;
+        }
+        /* Sidebar kapalıyken karanlık overlay arkaplan */
+        section[data-testid="stSidebar"][aria-expanded="false"],
+        section[data-testid="stSidebar"].st-emotion-cache-collapsed {
+            box-shadow: none !important;
         }
         section[data-testid="stMain"] {
             margin-left: 0   !important;
