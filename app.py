@@ -1100,8 +1100,9 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 .hero-h1{font-size:1.85rem;font-weight:900;color:#0f1a35;line-height:1.15;letter-spacing:-.03em;margin-bottom:.55rem;transition:opacity .45s ease,transform .45s ease;}
 .hero-h1 em{font-style:normal;background:linear-gradient(135deg,#F28500,#e55f00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .hero-sub{font-size:.81rem;color:#6b7280;line-height:1.65;margin-bottom:1.25rem;max-width:490px;transition:opacity .45s ease,transform .45s ease;}
-.hero-h1.fade-out,.hero-sub.fade-out{opacity:0;transform:translateY(-6px);}
-.hero-h1.fade-in,.hero-sub.fade-in{opacity:1;transform:translateY(0);}
+.hero-h1.fade-out,.hero-sub.fade-out,.hero-stats.fade-out{opacity:0;transform:translateY(-6px);}
+.hero-h1.fade-in,.hero-sub.fade-in,.hero-stats.fade-in{opacity:1;transform:translateY(0);}
+.hero-stats{transition:opacity .45s ease,transform .45s ease;}
 .stats{display:flex;background:#fff;border:1px solid #e8edf5;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04);}
 .stat{flex:1;padding:.7rem .9rem;border-right:1px solid #f0f2f7;transition:background .15s;}
 .stat:last-child{border-right:none;}
@@ -1200,7 +1201,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
   <div class="hero-pill">Trendyol Ma&#287;azalar&#305; &#304;&#231;in Geli&#351;tirildi</div>
   <h1 class="hero-h1" id="hero-h1">M&#252;&#351;terini Geri Kazan.<br><em>Gelirini Art&#305;r.</em></h1>
   <p class="hero-sub" id="hero-sub">Cohort retention, RFM segmentasyon, churn tahmini ve profesyonel PDF raporlama &mdash; tek platformda.</p>
-  <div class="stats">
+  <div class="stats hero-stats" id="hero-stats">
     <div class="stat"><div class="sv">+<em>34</em>%</div><div class="sl">Retention Art&#305;&#351;&#305;</div></div>
     <div class="stat"><div class="sv"><em>3.2</em>x</div><div class="sl">LTV Kazan&#305;m&#305;</div></div>
     <div class="stat"><div class="sv">&minus;<em>41</em>%</div><div class="sl">Churn Azalmas&#305;</div></div>
@@ -1212,42 +1213,85 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
   var slides = [
     {
       h: "Müşterini Geri Kazan.<br><em>Gelirini Artır.</em>",
-      s: "Cohort retention, RFM segmentasyon, churn tahmini ve profesyonel PDF raporlama — tek platformda."
+      s: "Cohort retention, RFM segmentasyon, churn tahmini ve profesyonel PDF raporlama — tek platformda.",
+      st: [
+        {v:"+<em>34</em>%", l:"Retention Artışı"},
+        {v:"<em>3.2</em>x", l:"LTV Kazanımı"},
+        {v:"−<em>41</em>%", l:"Churn Azalması"},
+        {v:"<em>150</em>+", l:"Aktif Mağaza"}
+      ]
     },
     {
       h: "İade Oranını Düşür.<br><em>Kârını Koru.</em>",
-      s: "Ürün bazında iade analizi ile hangi ürünlerin zarar verdiğini gör, kayıpları azalt."
+      s: "Ürün bazında iade analizi ile hangi ürünlerin zarar verdiğini gör, kayıpları azalt.",
+      st: [
+        {v:"−<em>28</em>%", l:"İade Oranı"},
+        {v:"+<em>18</em>%", l:"Net Kâr Artışı"},
+        {v:"<em>12</em> Ay", l:"Trend Görünümü"},
+        {v:"<em>2.1</em>k+", l:"Ürün Analizi"}
+      ]
     },
     {
       h: "Sipariş Zamanını Bil.<br><em>Reklamı Doğru Saate Ver.</em>",
-      s: "Saatlik ve günlük sipariş dağılımı ile kampanyalarını en yüksek dönüşüm saatine taşı."
+      s: "Saatlik ve günlük sipariş dağılımı ile kampanyalarını en yüksek dönüşüm saatine taşı.",
+      st: [
+        {v:"+<em>22</em>%", l:"Reklam ROI"},
+        {v:"<em>24</em>h", l:"Saatlik Grafik"},
+        {v:"<em>7</em> Gün", l:"Haftalık Analiz"},
+        {v:"−<em>31</em>%", l:"Reklam İsrafı"}
+      ]
     },
     {
       h: "Stok Bitmeden.<br><em>Haberdar Ol.</em>",
-      s: "Günlük satış hızına göre tükenme tarihini hesapla — renk kodlu uyarılarla hiç şaşırma."
+      s: "Günlük satış hızına göre tükenme tarihini hesapla — renk kodlu uyarılarla hiç şaşırma.",
+      st: [
+        {v:"−<em>67</em>%", l:"Stok Açığı"},
+        {v:"<em>7</em> Gün", l:"Önceden Uyarı"},
+        {v:"+<em>41</em>%", l:"Satış Sürekliliği"},
+        {v:"<em>10</em>k+", l:"Ürün Takipte"}
+      ]
     },
     {
       h: "Şehir Bazında Sat.<br><em>Bölgeye Özel Büyü.</em>",
-      s: "Hangi şehirden ne kadar gelir geliyor? Kargo ve kampanyalarını bölgeye göre optimize et."
+      s: "Hangi şehirden ne kadar gelir geliyor? Kargo ve kampanyalarını bölgeye göre optimize et.",
+      st: [
+        {v:"<em>81</em>", l:"Şehir Analizi"},
+        {v:"+<em>29</em>%", l:"Bölgesel Gelir"},
+        {v:"−<em>19</em>%", l:"Kargo Maliyeti"},
+        {v:"<em>500</em>+", l:"Teslimat Bölgesi"}
+      ]
     },
     {
       h: "Yorumları Oku.<br><em>Şikayeti Fırsata Çevir.</em>",
-      s: "Müşteri yorumlarını saniyeler içinde analiz et, negatif konuları erkenden yakala ve ürünü iyileştir."
+      s: "Müşteri yorumlarını saniyeler içinde analiz et, negatif konuları erkenden yakala ve ürünü iyileştir.",
+      st: [
+        {v:"<em>92</em>%", l:"Doğruluk Oranı"},
+        {v:"+<em>35</em>%", l:"Müşteri Skoru"},
+        {v:"−<em>44</em>%", l:"Şikayet Oranı"},
+        {v:"<em>50</em>k+", l:"Yorum Analizi"}
+      ]
     }
   ];
   var idx = 0;
   function next(){
-    var h1 = document.getElementById('hero-h1');
+    var h1  = document.getElementById('hero-h1');
     var sub = document.getElementById('hero-sub');
-    if(!h1 || !sub) return;
-    h1.classList.add('fade-out'); sub.classList.add('fade-out');
+    var sts = document.getElementById('hero-stats');
+    if(!h1 || !sub || !sts) return;
+    h1.classList.add('fade-out'); sub.classList.add('fade-out'); sts.classList.add('fade-out');
     setTimeout(function(){
       idx = (idx + 1) % slides.length;
-      h1.innerHTML = slides[idx].h;
-      sub.textContent = slides[idx].s;
-      h1.classList.remove('fade-out'); sub.classList.remove('fade-out');
-      h1.classList.add('fade-in'); sub.classList.add('fade-in');
-      setTimeout(function(){ h1.classList.remove('fade-in'); sub.classList.remove('fade-in'); }, 500);
+      var sl = slides[idx];
+      h1.innerHTML  = sl.h;
+      sub.textContent = sl.s;
+      sts.innerHTML = sl.st.map(function(x){
+        return '<div class="stat"><div class="sv">'+x.v+'</div><div class="sl">'+x.l+'</div></div>';
+      }).join('');
+      h1.classList.remove('fade-out');  sub.classList.remove('fade-out');  sts.classList.remove('fade-out');
+      h1.classList.add('fade-in');      sub.classList.add('fade-in');      sts.classList.add('fade-in');
+      setTimeout(function(){
+        h1.classList.remove('fade-in'); sub.classList.remove('fade-in'); sts.classList.remove('fade-in');
+      }, 500);
     }, 460);
   }
   setInterval(next, 5000);
