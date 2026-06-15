@@ -2022,13 +2022,6 @@ def show_payment() -> None:
                 import time; time.sleep(1.2)
                 st.rerun()
 
-        st.markdown(
-            '<div style="text-align:center;margin-top:.6rem">'
-            '<button style="background:none;border:none;color:rgba(255,255,255,.4);'
-            'cursor:pointer;font-size:.82rem;text-decoration:underline" '
-            'onclick="void(0)">← Plan Değiştir</button></div>',
-            unsafe_allow_html=True,
-        )
         if st.button("← Plan Değiştir", key="back_to_plans"):
             st.session_state.selected_plan = None
             st.rerun()

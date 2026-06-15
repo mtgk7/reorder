@@ -109,116 +109,114 @@ def run() -> None:
             st.success("En yüksek planda bulunuyorsunuz. Tüm özellikler açık!")
 
     with tab_api:
-        if not _plan_gate("trendyol_api"):
-            st.stop()
-        creds_s = load_credentials(user["id"], store_id)
-        st.markdown(
-            """<div class="info-box">
-            🔌 <b>Trendyol API Entegrasyonu</b><br>
-            Buraya kaydettiğiniz bilgiler <b>Veri Yükle → Trendyol API</b> sekmesinde
-            otomatik olarak kullanılır. Siparişlerinizi manuel dosya yüklemeden doğrudan çekebilirsiniz.
-            <br><br>
-            <b>Nasıl alınır?</b> Trendyol Satıcı Paneli → <b>Entegrasyonlar → API Entegrasyonları</b>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-        if creds_s:
+        if _plan_gate("trendyol_api"):
+            creds_s = load_credentials(user["id"], store_id)
             st.markdown(
-                f"""<div class="success-box">
-                ✅ API bağlantısı kayıtlı — Satıcı ID: <b>{creds_s['seller_id']}</b><br>
-                Son senkronizasyon: {creds_s['last_sync_at'] or 'Henüz yapılmadı'}
+                """<div class="info-box">
+                🔌 <b>Trendyol API Entegrasyonu</b><br>
+                Buraya kaydettiğiniz bilgiler <b>Veri Yükle → Trendyol API</b> sekmesinde
+                otomatik olarak kullanılır. Siparişlerinizi manuel dosya yüklemeden doğrudan çekebilirsiniz.
+                <br><br>
+                <b>Nasıl alınır?</b> Trendyol Satıcı Paneli → <b>Entegrasyonlar → API Entegrasyonları</b>
                 </div>""",
                 unsafe_allow_html=True,
             )
-        with st.form("api_settings_form"):
-            s_seller = st.text_input("Satıcı ID",  value=creds_s["seller_id"]  if creds_s else "")
-            s_key    = st.text_input("API Key",    value=creds_s["api_key"]    if creds_s else "")
-            s_secret = st.text_input("API Secret", value=creds_s["api_secret"] if creds_s else "", type="password")
-            col1, col2 = st.columns(2)
-            with col1:
-                save_s = st.form_submit_button("💾 Kaydet", use_container_width=True)
-            with col2:
-                test_s = st.form_submit_button("🔗 Test Et", use_container_width=True)
+            if creds_s:
+                st.markdown(
+                    f"""<div class="success-box">
+                    ✅ API bağlantısı kayıtlı — Satıcı ID: <b>{creds_s['seller_id']}</b><br>
+                    Son senkronizasyon: {creds_s['last_sync_at'] or 'Henüz yapılmadı'}
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            with st.form("api_settings_form"):
+                s_seller = st.text_input("Satıcı ID",  value=creds_s["seller_id"]  if creds_s else "")
+                s_key    = st.text_input("API Key",    value=creds_s["api_key"]    if creds_s else "")
+                s_secret = st.text_input("API Secret", value=creds_s["api_secret"] if creds_s else "", type="password")
+                col1, col2 = st.columns(2)
+                with col1:
+                    save_s = st.form_submit_button("💾 Kaydet", use_container_width=True)
+                with col2:
+                    test_s = st.form_submit_button("🔗 Test Et", use_container_width=True)
 
-        if save_s:
-            if not (s_seller and s_key and s_secret):
-                st.error("Tüm alanları doldurun.")
-            else:
-                save_credentials(user["id"], s_seller, s_key, s_secret, store_id)
-                st.session_state.pop(f"_ty_creds_{user['id']}_{store_id}", None)
-                st.success("✅ API bilgileri kaydedildi!")
-                st.rerun()
-        if test_s:
-            if not (s_seller and s_key and s_secret):
-                st.error("Önce bilgileri girin.")
-            else:
-                with st.spinner("Test ediliyor…"):
-                    try:
-                        ok = TrendyolClient(s_seller, s_key, s_secret).test_connection()
-                    except Exception:
-                        ok = False
-                if ok:
-                    st.success("✅ Bağlantı başarılı!")
+            if save_s:
+                if not (s_seller and s_key and s_secret):
+                    st.error("Tüm alanları doldurun.")
                 else:
-                    st.error("❌ Bağlantı başarısız. Bilgilerinizi kontrol edin.")
+                    save_credentials(user["id"], s_seller, s_key, s_secret, store_id)
+                    st.session_state.pop(f"_ty_creds_{user['id']}_{store_id}", None)
+                    st.success("✅ API bilgileri kaydedildi!")
+                    st.rerun()
+            if test_s:
+                if not (s_seller and s_key and s_secret):
+                    st.error("Önce bilgileri girin.")
+                else:
+                    with st.spinner("Test ediliyor…"):
+                        try:
+                            ok = TrendyolClient(s_seller, s_key, s_secret).test_connection()
+                        except Exception:
+                            ok = False
+                    if ok:
+                        st.success("✅ Bağlantı başarılı!")
+                    else:
+                        st.error("❌ Bağlantı başarısız. Bilgilerinizi kontrol edin.")
 
     with tab_weekly:
-        if not _plan_gate("weekly_report"):
-            st.stop()
-        _header_weekly = get_weekly_report_settings(user["id"])
-        _smtp_cfg = load_smtp_settings(user["id"])
+        if _plan_gate("weekly_report"):
+            _header_weekly = get_weekly_report_settings(user["id"])
+            _smtp_cfg = load_smtp_settings(user["id"])
 
-        _section("📅 Haftalık Özet Raporu")
-        st.markdown(
-            """<div class="info-box">
-            Her Pazartesi sabahı mağazanızın haftalık özetini e-posta olarak alın.
-            Gelir, sipariş, yeni müşteri ve retention metriklerini içerir.
-            <br><br>📧 Rapor SMTP ayarlarınızla gönderilir. Önce <b>E-posta Kampanyaları → SMTP Ayarları</b>
-            sekmesini yapılandırın.
-            </div>""",
-            unsafe_allow_html=True,
-        )
-
-        if not _smtp_cfg:
-            st.warning("⚠️ Haftalık rapor için önce SMTP yapılandırması gereklidir.")
-        else:
-            _wr_enabled = st.toggle(
-                "Haftalık raporu etkinleştir",
-                value=_header_weekly["enabled"],
-                key="wr_toggle",
+            _section("📅 Haftalık Özet Raporu")
+            st.markdown(
+                """<div class="info-box">
+                Her Pazartesi sabahı mağazanızın haftalık özetini e-posta olarak alın.
+                Gelir, sipariş, yeni müşteri ve retention metriklerini içerir.
+                <br><br>📧 Rapor SMTP ayarlarınızla gönderilir. Önce <b>E-posta Kampanyaları → SMTP Ayarları</b>
+                sekmesini yapılandırın.
+                </div>""",
+                unsafe_allow_html=True,
             )
-            if _wr_enabled != _header_weekly["enabled"]:
-                save_weekly_report_settings(user["id"], _wr_enabled)
-                st.success("✅ Ayar kaydedildi!")
-                st.rerun()
 
-            if _header_weekly["last_sent"]:
-                st.caption(f"Son gönderim: {_header_weekly['last_sent']}")
+            if not _smtp_cfg:
+                st.warning("⚠️ Haftalık rapor için önce SMTP yapılandırması gereklidir.")
+            else:
+                _wr_enabled = st.toggle(
+                    "Haftalık raporu etkinleştir",
+                    value=_header_weekly["enabled"],
+                    key="wr_toggle",
+                )
+                if _wr_enabled != _header_weekly["enabled"]:
+                    save_weekly_report_settings(user["id"], _wr_enabled)
+                    st.success("✅ Ayar kaydedildi!")
+                    st.rerun()
 
-            st.markdown("&nbsp;")
-            st.markdown("**Test — Şimdi Gönder**")
-            if st.button("📧 Test Raporu Gönder", key="wr_test_btn"):
-                try:
-                    from src.analytics import get_current_month_metrics as _gmm, get_top_customers as _gtc
-                    from src.email_service import send_weekly_summary
-                    _metrics = _gmm(user["id"], store_id)
-                    _cmp_data = get_period_comparison(user["id"], store_id, "month")
-                    _top = _gtc(user["id"], n=5, store_id=store_id)
-                    _top_list = [{"musteri": r["musteri"], "ltv": r["ltv"]} for _, r in _top.iterrows()] if not _top.empty else []
-                    stores = st.session_state.get("stores", [])
-                    store_name_wr = next((s["store_name"] for s in stores if s["id"] == store_id), user["store_name"])
-                    with st.spinner("Gönderiliyor…"):
-                        res = send_weekly_summary(
-                            _smtp_cfg, user["email"], store_name_wr,
-                            _metrics, _cmp_data, _top_list,
-                        )
-                    if res["success"]:
-                        st.success(res["message"])
-                        mark_weekly_report_sent(user["id"])
-                    else:
-                        st.error(res["message"])
-                except Exception as e:
-                    st.error(f"Hata: {e}")
+                if _header_weekly["last_sent"]:
+                    st.caption(f"Son gönderim: {_header_weekly['last_sent']}")
+
+                st.markdown("&nbsp;")
+                st.markdown("**Test — Şimdi Gönder**")
+                if st.button("📧 Test Raporu Gönder", key="wr_test_btn"):
+                    try:
+                        from src.analytics import get_current_month_metrics as _gmm, get_top_customers as _gtc
+                        from src.email_service import send_weekly_summary
+                        _metrics = _gmm(user["id"], store_id)
+                        _cmp_data = get_period_comparison(user["id"], store_id, "month")
+                        _top = _gtc(user["id"], n=5, store_id=store_id)
+                        _top_list = [{"musteri": r["musteri"], "ltv": r["ltv"]} for _, r in _top.iterrows()] if not _top.empty else []
+                        stores = st.session_state.get("stores", [])
+                        store_name_wr = next((s["store_name"] for s in stores if s["id"] == store_id), user["store_name"])
+                        with st.spinner("Gönderiliyor…"):
+                            res = send_weekly_summary(
+                                _smtp_cfg, user["email"], store_name_wr,
+                                _metrics, _cmp_data, _top_list,
+                            )
+                        if res["success"]:
+                            st.success(res["message"])
+                            mark_weekly_report_sent(user["id"])
+                        else:
+                            st.error(res["message"])
+                    except Exception as e:
+                        st.error(f"Hata: {e}")
 
     with tab_referral:
         _section("🎁 Arkadaşını Davet Et — Kazan!")
