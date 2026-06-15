@@ -1097,9 +1097,11 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 .hero-pill{display:inline-flex;align-items:center;gap:.35rem;background:#fff0e0;border:1px solid rgba(242,133,0,.3);border-radius:20px;padding:.2rem .7rem;font-size:.67rem;font-weight:700;color:#c05c00;letter-spacing:.05em;margin-bottom:.85rem;}
 .hero-pill::before{content:"";width:5px;height:5px;border-radius:50%;background:#F28500;animation:blink 2s infinite;flex-shrink:0;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
-.hero-h1{font-size:1.85rem;font-weight:900;color:#0f1a35;line-height:1.15;letter-spacing:-.03em;margin-bottom:.55rem;}
+.hero-h1{font-size:1.85rem;font-weight:900;color:#0f1a35;line-height:1.15;letter-spacing:-.03em;margin-bottom:.55rem;transition:opacity .45s ease,transform .45s ease;}
 .hero-h1 em{font-style:normal;background:linear-gradient(135deg,#F28500,#e55f00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.hero-sub{font-size:.81rem;color:#6b7280;line-height:1.65;margin-bottom:1.25rem;max-width:490px;}
+.hero-sub{font-size:.81rem;color:#6b7280;line-height:1.65;margin-bottom:1.25rem;max-width:490px;transition:opacity .45s ease,transform .45s ease;}
+.hero-h1.fade-out,.hero-sub.fade-out{opacity:0;transform:translateY(-6px);}
+.hero-h1.fade-in,.hero-sub.fade-in{opacity:1;transform:translateY(0);}
 .stats{display:flex;background:#fff;border:1px solid #e8edf5;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04);}
 .stat{flex:1;padding:.7rem .9rem;border-right:1px solid #f0f2f7;transition:background .15s;}
 .stat:last-child{border-right:none;}
@@ -1196,8 +1198,8 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
     <div><div class="logo-name">ReOrder</div><div class="logo-tag">Trendyol Retention &amp; Analitik Platformu</div></div>
   </div>
   <div class="hero-pill">Trendyol Ma&#287;azalar&#305; &#304;&#231;in Geli&#351;tirildi</div>
-  <h1 class="hero-h1">M&#252;&#351;terini Geri Kazan.<br><em>Gelirini Art&#305;r.</em></h1>
-  <p class="hero-sub">Cohort retention, RFM segmentasyon, churn tahmini ve profesyonel PDF raporlama &mdash; tek platformda.</p>
+  <h1 class="hero-h1" id="hero-h1">M&#252;&#351;terini Geri Kazan.<br><em>Gelirini Art&#305;r.</em></h1>
+  <p class="hero-sub" id="hero-sub">Cohort retention, RFM segmentasyon, churn tahmini ve profesyonel PDF raporlama &mdash; tek platformda.</p>
   <div class="stats">
     <div class="stat"><div class="sv">+<em>34</em>%</div><div class="sl">Retention Art&#305;&#351;&#305;</div></div>
     <div class="stat"><div class="sv"><em>3.2</em>x</div><div class="sl">LTV Kazan&#305;m&#305;</div></div>
@@ -1205,6 +1207,52 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
     <div class="stat"><div class="sv"><em>150</em>+</div><div class="sl">Aktif Ma&#287;aza</div></div>
   </div>
 </div>
+<script>
+(function(){
+  var slides = [
+    {
+      h: "Müşterini Geri Kazan.<br><em>Gelirini Artır.</em>",
+      s: "Cohort retention, RFM segmentasyon, churn tahmini ve profesyonel PDF raporlama — tek platformda."
+    },
+    {
+      h: "İade Oranını Düşür.<br><em>Kârını Koru.</em>",
+      s: "Ürün bazında iade analizi ile hangi ürünlerin zarar verdiğini gör, kayıpları azalt."
+    },
+    {
+      h: "Sipariş Zamanını Bil.<br><em>Reklamı Doğru Saate Ver.</em>",
+      s: "Saatlik ve günlük sipariş dağılımı ile kampanyalarını en yüksek dönüşüm saatine taşı."
+    },
+    {
+      h: "Stok Bitmeden.<br><em>Haberdar Ol.</em>",
+      s: "Günlük satış hızına göre tükenme tarihini hesapla — renk kodlu uyarılarla hiç şaşırma."
+    },
+    {
+      h: "Şehir Bazında Sat.<br><em>Bölgeye Özel Büyü.</em>",
+      s: "Hangi şehirden ne kadar gelir geliyor? Kargo ve kampanyalarını bölgeye göre optimize et."
+    },
+    {
+      h: "Yorumları Oku.<br><em>Şikayeti Fırsata Çevir.</em>",
+      s: "Müşteri yorumlarını saniyeler içinde analiz et, negatif konuları erkenden yakala ve ürünü iyileştir."
+    }
+  ];
+  var idx = 0;
+  function next(){
+    var h1 = document.getElementById('hero-h1');
+    var sub = document.getElementById('hero-sub');
+    if(!h1 || !sub) return;
+    h1.classList.add('fade-out'); sub.classList.add('fade-out');
+    setTimeout(function(){
+      idx = (idx + 1) % slides.length;
+      h1.innerHTML = slides[idx].h;
+      sub.textContent = slides[idx].s;
+      h1.classList.remove('fade-out'); sub.classList.remove('fade-out');
+      h1.classList.add('fade-in'); sub.classList.add('fade-in');
+      setTimeout(function(){ h1.classList.remove('fade-in'); sub.classList.remove('fade-in'); }, 500);
+    }, 460);
+  }
+  setInterval(next, 5000);
+})();
+</script>
 <!-- LIVE BAR -->
 <div class="live-bar">
   <div class="live-badge">&#129309; 150+ &#304;&#351; Orta&#287;&#305;m&#305;z</div>
