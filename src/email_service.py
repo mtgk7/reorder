@@ -8,6 +8,7 @@ satıcı listeyi kendi kanallarından (WhatsApp, Trendyol mesajlaşma vb.) kulla
 from __future__ import annotations
 
 import smtplib
+import socket
 import ssl
 from dataclasses import dataclass
 from datetime import datetime
@@ -222,15 +223,35 @@ def build_template(template_text: str, musteri_adi: str, gun: int, magaza_adi: s
 # E-posta oluşturma & gönderme
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _ipv4_connect(host: str, port: int, timeout: int, source_address=None) -> socket.socket:
+    """IPv4 üzerinden bağlanır. Bazı barındırma ortamlarında (örn. Render) container'ın
+    IPv6 route'u olmadığı halde DNS AAAA kaydı döndüğünde socket.create_connection
+    önce IPv6'yı deneyip 'Network is unreachable' hatasıyla başarısız olabiliyor."""
+    addr_info = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+    ipv4_addr = addr_info[0][4]
+    return socket.create_connection(ipv4_addr, timeout, source_address=source_address)
+
+
+class _IPv4SMTP(smtplib.SMTP):
+    def _get_socket(self, host, port, timeout):
+        return _ipv4_connect(host, port, timeout, source_address=self.source_address)
+
+
+class _IPv4SMTP_SSL(smtplib.SMTP_SSL):
+    def _get_socket(self, host, port, timeout):
+        sock = _ipv4_connect(host, port, timeout, source_address=self.source_address)
+        return self.context.wrap_socket(sock, server_hostname=self._host)
+
+
 def _send_smtp(config: SMTPConfig, to_email: str, msg: MIMEMultipart) -> None:
     """SMTP üzerinden e-posta gönderir. Port 465 → SSL, diğerleri → STARTTLS."""
     context = ssl.create_default_context()
     if config.port == 465:
-        with smtplib.SMTP_SSL(config.host, config.port, context=context, timeout=20) as srv:
+        with _IPv4SMTP_SSL(config.host, config.port, context=context, timeout=20) as srv:
             srv.login(config.user, config.password)
             srv.sendmail(config.from_email, to_email, msg.as_string())
     else:
-        with smtplib.SMTP(config.host, config.port, timeout=20) as srv:
+        with _IPv4SMTP(config.host, config.port, timeout=20) as srv:
             srv.ehlo()
             if config.use_tls:
                 srv.starttls(context=context)
