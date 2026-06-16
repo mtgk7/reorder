@@ -5,11 +5,17 @@ Güncelleme: 2026-06-07
 """
 from __future__ import annotations
 
-# Lokal geliştirme için .env dosyasını yükle (production'da etkisizdir)
-from dotenv import load_dotenv
-load_dotenv()
-
 import streamlit as st
+
+# Lokal geliştirme için .env dosyasını yükle (production'da etkisizdir).
+# st.cache_resource ile süreç başına 1 kez çalışır — her rerun'da diski tekrar okumaz.
+@st.cache_resource
+def _load_dotenv_once():
+    from dotenv import load_dotenv
+    load_dotenv()
+
+_load_dotenv_once()
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
