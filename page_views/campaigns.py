@@ -102,7 +102,9 @@ def run() -> None:
                     from_email=(smtp_from_email or smtp_user).strip(),
                     from_name=smtp_from_name or user["store_name"],
                 )
-                to_addr = (smtp_from_email or smtp_user).strip()
+                # Test e-postası her zaman hesabın kayıtlı e-postasına gider —
+                # SMTP ayarları başka adres olarak girilse de keyfi adrese gönderim engellenir.
+                to_addr = user["email"]
                 with st.spinner("Test e-postası gönderiliyor…"):
                     result = send_test_email(cfg, to_addr)
                 if result["success"]:
@@ -223,47 +225,42 @@ def run() -> None:
         )
 
         _section("📨 E-posta Raporu Gönder")
+        # Kampanya raporu her zaman hesabın kayıtlı e-postasına gider — keyfi
+        # adrese gönderim için serbest metin alanı kasıtlı olarak yok.
+        recipient = user["email"]
         st.markdown(
-            """<div class="info-box">ℹ️ Kampanya raporu <b>belirttiğiniz e-posta adresine</b> gönderilir.
-            Raporda müşteri listesi ve kişiselleştirilmiş mesaj şablonu yer alır.
-            Müşterilere Trendyol mesajlaşma veya WhatsApp üzerinden ulaşabilirsiniz.</div>""",
+            f"""<div class="info-box">ℹ️ Kampanya raporu hesabınızın kayıtlı e-postasına
+            (<b>{recipient}</b>) gönderilir. Raporda müşteri listesi ve kişiselleştirilmiş
+            mesaj şablonu yer alır. Müşterilere Trendyol mesajlaşma veya WhatsApp üzerinden
+            ulaşabilirsiniz.</div>""",
             unsafe_allow_html=True,
-        )
-
-        recipient = st.text_input(
-            "Rapor alıcısı",
-            value=user["email"],
-            placeholder="ornek@email.com",
         )
 
         send_btn = st.button("🚀 Kampanya Raporu Gönder", type="primary", use_container_width=True)
         if send_btn:
-            if not recipient:
-                st.error("Alıcı e-posta adresi gereklidir.")
+            customers_list = seg_customers.to_dict("records")
+            with st.spinner("Kampanya raporu gönderiliyor…"):
+                result = send_campaign_report(
+                    smtp_cfg,
+                    recipient,
+                    user["store_name"],
+                    chosen_seg,
+                    customers_list,
+                    custom_template,
+                )
+            if result["success"]:
+                st.success(result["message"])
+                save_campaign_log(
+                    user["id"],
+                    chosen_seg,
+                    result["subject"],
+                    recipient,
+                    len(customers_list),
+                    store_id,
+                )
+                st.balloons()
             else:
-                customers_list = seg_customers.to_dict("records")
-                with st.spinner("Kampanya raporu gönderiliyor…"):
-                    result = send_campaign_report(
-                        smtp_cfg,
-                        recipient,
-                        user["store_name"],
-                        chosen_seg,
-                        customers_list,
-                        custom_template,
-                    )
-                if result["success"]:
-                    st.success(result["message"])
-                    save_campaign_log(
-                        user["id"],
-                        chosen_seg,
-                        result["subject"],
-                        recipient,
-                        len(customers_list),
-                        store_id,
-                    )
-                    st.balloons()
-                else:
-                    st.error(result["message"])
+                st.error(result["message"])
 
     with tab_history:
         _section("📋 Kampanya Geçmişi")
