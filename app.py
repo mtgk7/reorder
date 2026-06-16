@@ -84,7 +84,12 @@ _init_db_once(_SCHEMA_VER)
 
 from PIL import Image as _PIL_Image
 from pathlib import Path as _Path
-_favicon = _PIL_Image.open(_Path(__file__).parent / "assets" / "favicon.png")
+
+@st.cache_resource
+def _load_favicon():
+    return _PIL_Image.open(_Path(__file__).parent / "assets" / "favicon.png")
+
+_favicon = _load_favicon()
 st.set_page_config(
     page_title="ReOrder — Trendyol Retention",
     page_icon=_favicon,
@@ -2234,8 +2239,12 @@ def show_sidebar() -> None:
                 key="store_selector",
             )
             if store_ids[selected_idx] != active_store_id:
-                st.session_state.active_store_id = store_ids[selected_idx]
-                st.rerun()
+                # show_sidebar() main()'de sayfa dispatch'inden önce çalıştığı için
+                # rerun yerine yerel değişkenleri güncelliyoruz — aynı script çalışması
+                # doğru mağazayla devam eder (çift rerun'u önler).
+                active_store_id = store_ids[selected_idx]
+                st.session_state.active_store_id = active_store_id
+                current_idx = selected_idx
 
             active_store = stores[current_idx]
             # Trendyol API bilgileri var mı? — session_state'de cache'le, her render'da DB'ye gitme
