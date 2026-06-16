@@ -2167,8 +2167,12 @@ def show_sidebar() -> None:
 
     with st.sidebar:
         # ReOrder başlığı — tıklanınca Genel Bakış açılır
+        # Not: show_sidebar() main()'de sayfa dispatch'inden ÖNCE çalışır, bu yüzden
+        # burada st.rerun() çağırmıyoruz — session_state + yerel current_page güncellemesi
+        # yeterli, aynı script çalışması devam edip doğru sayfayı render eder (çift rerun'u önler).
         if st.button("🔄 ReOrder", key="sidebar_logo_btn", use_container_width=True):
-            _go("dashboard")
+            st.session_state.page = "dashboard"
+            current_page = "dashboard"
         _u_plan = user.get("plan", "Starter")
         _badge_col = _PLAN_BADGE_COLOR.get(_u_plan, "#6B7280")
         st.markdown(
@@ -2331,28 +2335,53 @@ def show_sidebar() -> None:
             ("📧", "Kampanyalar", "campaigns"),
             ("⚙️", "Ayarlar", "settings"),
         ]
+
+        def _nav_active_html(icon: str, label: str) -> str:
+            return f"""<div style="
+                background: linear-gradient(135deg,rgba(242,122,26,.28),rgba(242,122,26,.12));
+                border: 1px solid rgba(242,122,26,.5);
+                border-left: 3px solid #F27A1A;
+                border-radius: 8px;
+                padding: .72rem 1rem;
+                margin-bottom: .25rem;
+                color: #fff;
+                font-weight: 700;
+                font-size: .88rem;
+                letter-spacing: .01em;
+                cursor: default;
+            ">{icon}&nbsp;&nbsp;{label}</div>"""
+
+        # show_sidebar() main()'de sayfa dispatch'inden ÖNCE çalıştığı için, tıklama
+        # anında st.rerun() çağırmak yerine session_state'i güncelleyip aynı script
+        # çalışmasının devam etmesine izin veriyoruz — bu, her navigasyon tıklamasında
+        # oluşan çift full-rerun'u (gereksiz round-trip) ortadan kaldırır.
+        # Sidebar'daki vurgulu/buton görünümünün tutarlı kalması için ilgili öğeleri
+        # st.empty() placeholder'larına yazıp, tıklama sonrası sadece etkilenen iki
+        # öğeyi (eski aktif + yeni aktif) yerinde düzeltiyoruz.
+        nav_slots = {}
+        clicked_key = None
         for icon, label, key in pages:
-            if current_page == key:
-                # Aktif sayfa — tıklanamaz vurgulu div
-                st.markdown(
-                    f"""<div style="
-                        background: linear-gradient(135deg,rgba(242,122,26,.28),rgba(242,122,26,.12));
-                        border: 1px solid rgba(242,122,26,.5);
-                        border-left: 3px solid #F27A1A;
-                        border-radius: 8px;
-                        padding: .72rem 1rem;
-                        margin-bottom: .25rem;
-                        color: #fff;
-                        font-weight: 700;
-                        font-size: .88rem;
-                        letter-spacing: .01em;
-                        cursor: default;
-                    ">{icon}&nbsp;&nbsp;{label}</div>""",
-                    unsafe_allow_html=True,
-                )
-            else:
-                if st.button(f"{icon}  {label}", key=f"nav_{key}", use_container_width=True):
-                    _go(key)
+            slot = st.empty()
+            nav_slots[key] = slot
+            with slot.container():
+                if current_page == key:
+                    st.markdown(_nav_active_html(icon, label), unsafe_allow_html=True)
+                else:
+                    if st.button(f"{icon}  {label}", key=f"nav_{key}", use_container_width=True):
+                        clicked_key = key
+
+        if clicked_key:
+            prev_active_key = current_page
+            st.session_state.page = clicked_key
+            current_page = clicked_key
+            _icon_by_key = {k: (i, l) for i, l, k in pages}
+            with nav_slots[clicked_key].container():
+                _i, _l = _icon_by_key[clicked_key]
+                st.markdown(_nav_active_html(_i, _l), unsafe_allow_html=True)
+            if prev_active_key != clicked_key:
+                with nav_slots[prev_active_key].container():
+                    _i, _l = _icon_by_key[prev_active_key]
+                    st.button(f"{_i}  {_l}", key=f"nav_{prev_active_key}", use_container_width=True)
 
         st.markdown("---")
         if st.button("🚪  Çıkış Yap", use_container_width=True, key="logout_btn"):
