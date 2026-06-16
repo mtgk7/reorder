@@ -46,7 +46,7 @@ _PLAN_PRICES = {
     "y": {"Starter": (2699, "/yıl"), "Pro": (6900, "/yıl"), "Enterprise": (12000, "/yıl")},
 }
 _PLAN_FEATURES = {
-    "Starter":    ["1 Mağaza", "Dashboard & KPI", "Cohort Analizi", "Temel E-posta Desteği"],
+    "Starter":    ["1 Mağaza", "Dashboard & KPI", "Cohort Analizi", "PDF Rapor", "Temel E-posta Desteği"],
     "Pro":        ["3 Mağaza", "Dashboard & KPI", "Cohort + RFM", "PDF Rapor", "E-posta Kampanya", "Öncelikli Destek"],
     "Enterprise": ["Sınırsız Mağaza", "Tüm Pro Özellikler", "Trendyol API Entegrasyonu", "Öncelikli Destek", "Özel Hesap Yöneticisi"],
 }

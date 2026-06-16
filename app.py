@@ -1536,7 +1536,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="pf"><div class="pok">&#10003;</div>Cohort Analizi</div>
       <div class="pf"><div class="pok">&#10003;</div>D&#246;nem Kar&#351;&#305;la&#351;t&#305;rmas&#305;</div>
       <div class="pf"><div class="pok">&#10003;</div>Anl&#305;k Bildirimler</div>
-      <div class="pf"><div class="pno">&#10005;</div><span class="dim">PDF Rapor</span></div>
+      <div class="pf"><div class="pok">&#10003;</div>PDF Rapor</div>
       <div class="pf"><div class="pno">&#10005;</div><span class="dim">Kampanyalar</span></div>
       <div class="pf"><div class="pno">&#10005;</div><span class="dim">Gelir Tahmini</span></div>
       <button class="pcta cout" onclick="goRegister()">Ba&#351;la</button>
@@ -1553,7 +1553,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
       <div class="pf"><div class="pok">&#10003;</div>&#128302; Gelir Tahmini <span style="font-size:.52rem;background:#F28500;color:#fff;border-radius:4px;padding:.05rem .3rem;vertical-align:middle;">YEN&#304;</span></div>
       <div class="pf"><div class="pok">&#10003;</div>&#128279; Cross-Sell Matrisi <span style="font-size:.52rem;background:#F28500;color:#fff;border-radius:4px;padding:.05rem .3rem;vertical-align:middle;">YEN&#304;</span></div>
       <div class="pf"><div class="pok">&#10003;</div>&#128337; Haftal&#305;k Rapor <span style="font-size:.52rem;background:#F28500;color:#fff;border-radius:4px;padding:.05rem .3rem;vertical-align:middle;">YEN&#304;</span></div>
-      <div class="pf"><div class="pok">&#10003;</div>PDF Rapor + Kampanyalar</div>
+      <div class="pf"><div class="pok">&#10003;</div>Kampanyalar</div>
       <button class="pcta cmain" onclick="goRegister()">&#350;imdi Ba&#351;la &#8594;</button>
     </div>
     <div class="plan">
@@ -1863,7 +1863,7 @@ function goRegister(){
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Cohort Analizi</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Dönem Karşılaştırması</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Anlık Bildirimler</div>
-      <div style="font-size:.72rem;color:#c4c9d4;margin-bottom:.28rem;">✗ PDF Rapor</div>
+      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ PDF Rapor</div>
       <div style="font-size:.72rem;color:#c4c9d4;">✗ Gelir Tahmini</div>
     </div>
     <!-- Pro -->
@@ -1875,7 +1875,6 @@ function goRegister(){
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 3 Mağaza</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Dashboard & KPI</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ Cohort + RFM</div>
-      <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ PDF Rapor</div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🔮 Gelir Tahmini <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🔗 Cross-Sell Matrisi <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
       <div style="font-size:.72rem;color:#374151;margin-bottom:.28rem;">✅ 🎯 Aksiyon Önerileri <span style="background:#F28500;color:#fff;font-size:.42rem;font-weight:800;padding:.1rem .3rem;border-radius:3px;margin-left:.2rem;">YENİ</span></div>
