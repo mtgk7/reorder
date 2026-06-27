@@ -103,8 +103,15 @@ class TrendyolClient:
     def get_all_orders(self, start_date: str, end_date: str, status: str = "Delivered") -> list[dict]:
         """
         Belirtilen aralıktaki tüm siparişleri sayfalayarak çeker.
+        status="ALL" verilirse Delivered+Cancelled+Returned hepsini çeker.
         Her sayfa arasında 0.3 s bekler (rate-limit).
         """
+        if status == "ALL":
+            result: list[dict] = []
+            for s in ("Delivered", "Cancelled", "Returned"):
+                result.extend(self.get_all_orders(start_date, end_date, status=s))
+            return result
+
         all_orders: list[dict] = []
         page = 0
         while True:
@@ -164,7 +171,15 @@ def orders_to_dataframe(raw_orders: list[dict]) -> "pd.DataFrame":
             or "Bilinmiyor"
         )
         date_ms = o.get("orderDate") or o.get("createdDate", 0)
-        order_date = datetime.fromtimestamp(date_ms / 1000).strftime("%Y-%m-%d")
+        order_dt = datetime.fromtimestamp(date_ms / 1000)
+        order_date = order_dt.strftime("%Y-%m-%d")
+        order_hour = order_dt.hour
+
+        city = (
+            o.get("shipmentAddress", {}).get("city")
+            or o.get("invoiceAddress", {}).get("city")
+            or ""
+        )
 
         for line in o.get("lines", [o]):
             records.append(
@@ -176,6 +191,8 @@ def orders_to_dataframe(raw_orders: list[dict]) -> "pd.DataFrame":
                     "product_name": line.get("productName", ""),
                     "quantity": int(line.get("quantity", 1)),
                     "status": o.get("status", ""),
+                    "city": city,
+                    "order_hour": order_hour,
                 }
             )
     return pd.DataFrame(records)
@@ -299,7 +316,7 @@ def sync_orders(
 
     try:
         client = TrendyolClient(creds["seller_id"], creds["api_key"], creds["api_secret"])
-        raw_orders = client.get_all_orders(start_date, end_date, status="Delivered")
+        raw_orders = client.get_all_orders(start_date, end_date, status="ALL")
 
         if not raw_orders:
             return {"success": True, "inserted": 0, "skipped": 0, "error": None}
