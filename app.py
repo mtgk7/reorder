@@ -88,12 +88,15 @@ def _init_db_once(_ver: str = _SCHEMA_VER):
 _init_db_once(_SCHEMA_VER)
 
 
-from PIL import Image as _PIL_Image
-from pathlib import Path as _Path
-
-@st.cache_resource
 def _load_favicon():
-    return _PIL_Image.open(_Path(__file__).parent / "assets" / "favicon.png")
+    try:
+        from PIL import Image as _PIL_Image
+        from pathlib import Path as _Path
+        img = _PIL_Image.open(_Path(__file__).parent / "assets" / "favicon.png")
+        img.load()  # dosyanın bütünlüğünü burada doğrula
+        return img
+    except Exception:
+        return "🔄"
 
 _favicon = _load_favicon()
 st.set_page_config(
