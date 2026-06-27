@@ -2352,7 +2352,7 @@ def show_sidebar() -> None:
             ("🔄", "İade Analizi",         "return_analysis"),
             ("⏰", "Sipariş Haritası",     "order_heatmap"),
             ("💬", "Yorum & Puan",        "reviews"),
-            ("🏷️", "Rakip Fiyatlar",      "competitor_prices"),
+
             ("📣", "Kampanya ROI",        "campaign_roi"),
             ("⭐", "Satıcı Skoru",        "seller_scores"),
             ("📧", "Kampanyalar",         "campaigns"),
@@ -2466,8 +2466,7 @@ def main() -> None:
         from page_views.return_analysis import run as _run; _run()
     elif page == "order_heatmap":
         from page_views.order_heatmap import run as _run; _run()
-    elif page == "competitor_prices":
-        from page_views.competitor_prices import run as _run; _run()
+
     elif page == "campaign_roi":
         from page_views.campaign_roi import run as _run; _run()
     elif page == "seller_scores":
