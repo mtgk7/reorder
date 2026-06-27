@@ -88,7 +88,7 @@ def run() -> None:
                                     float(str(row[my_col]).replace(",",".")),
                                     str(row[comp_col]),
                                     float(str(row[cprice_col]).replace(",",".")),
-                                    comp_url="",
+                                    competitor_url="",
                                 )
                                 saved += 1
                             except Exception:
