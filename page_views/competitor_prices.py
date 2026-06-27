@@ -80,6 +80,7 @@ def run() -> None:
                         st.error("Tüm sütunları seçin.")
                     else:
                         saved = 0
+                        errors: list[str] = []
                         for _, row in df_imp.iterrows():
                             try:
                                 save_competitor_price(
@@ -91,10 +92,13 @@ def run() -> None:
                                     competitor_url="",
                                 )
                                 saved += 1
-                            except Exception:
-                                continue
-                        st.success(f"✅ {saved} rakip fiyatı içe aktarıldı!")
-                        st.rerun()
+                            except Exception as e:
+                                errors.append(f"{row.get(pname_col,'?')}: {e}")
+                        if errors:
+                            st.error(f"⚠️ {len(errors)} satır kaydedilemedi:\n" + "\n".join(errors[:5]))
+                        if saved > 0:
+                            st.success(f"✅ {saved} rakip fiyatı içe aktarıldı!")
+                            st.rerun()
             except Exception as e:
                 st.error(f"Dosya okunamadı: {e}")
 
