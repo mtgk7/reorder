@@ -454,6 +454,86 @@ def _migrate_postgres(cur) -> None:
         ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_report_last_sent TIMESTAMPTZ
     """)
 
+    # ── Stok Uyarı Sistemi (v10) ──────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS stock_alerts (
+            id             SERIAL PRIMARY KEY,
+            user_id        INTEGER NOT NULL,
+            store_id       INTEGER,
+            product_name   TEXT NOT NULL,
+            stock_quantity INTEGER NOT NULL DEFAULT 0,
+            created_at     TIMESTAMPTZ DEFAULT NOW(),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_stock_alerts_user ON stock_alerts(user_id)")
+
+    # ── Ürün Yorumları ve Puanları (v10) ─────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS product_reviews (
+            id           SERIAL PRIMARY KEY,
+            user_id      INTEGER NOT NULL,
+            store_id     INTEGER,
+            product_name TEXT NOT NULL,
+            rating       REAL NOT NULL,
+            review_text  TEXT,
+            review_date  DATE,
+            created_at   TIMESTAMPTZ DEFAULT NOW(),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_product_reviews_user ON product_reviews(user_id)")
+
+    # ── Satıcı Skoru Takibi (v10) ─────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS seller_scores (
+            id                 SERIAL PRIMARY KEY,
+            user_id            INTEGER NOT NULL,
+            store_id           INTEGER,
+            score_date         DATE NOT NULL,
+            cargo_score        REAL,
+            return_score       REAL,
+            satisfaction_score REAL,
+            note               TEXT,
+            created_at         TIMESTAMPTZ DEFAULT NOW(),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_seller_scores_user ON seller_scores(user_id)")
+
+    # ── Rakip Fiyat Takibi (v10) ──────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS competitor_prices (
+            id               SERIAL PRIMARY KEY,
+            user_id          INTEGER NOT NULL,
+            store_id         INTEGER,
+            product_name     TEXT NOT NULL,
+            my_price         REAL NOT NULL DEFAULT 0,
+            competitor_name  TEXT,
+            competitor_price REAL NOT NULL DEFAULT 0,
+            competitor_url   TEXT,
+            updated_at       TIMESTAMPTZ DEFAULT NOW(),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_competitor_prices_user ON competitor_prices(user_id)")
+
+    # ── Kampanya ROI (v10) ────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS campaign_roi (
+            id            SERIAL PRIMARY KEY,
+            user_id       INTEGER NOT NULL,
+            store_id      INTEGER,
+            campaign_name TEXT NOT NULL,
+            start_date    DATE NOT NULL,
+            end_date      DATE NOT NULL,
+            discount_pct  REAL NOT NULL DEFAULT 0,
+            created_at    TIMESTAMPTZ DEFAULT NOW(),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_campaign_roi_user ON campaign_roi(user_id)")
+
 def _init_sqlite() -> None:
     os.makedirs(_DB_PATH.parent, exist_ok=True)
     conn = sqlite3.connect(str(_DB_PATH), check_same_thread=False)
@@ -651,6 +731,101 @@ def _migrate_sqlite(cur) -> None:
             cur.execute(f"ALTER TABLE users ADD COLUMN {col_def[0]} {col_def[1]}")
         except Exception:
             pass
+
+    # ── Stok Uyarı Sistemi (v10) ──────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS stock_alerts (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id        INTEGER NOT NULL,
+            store_id       INTEGER,
+            product_name   TEXT NOT NULL,
+            stock_quantity INTEGER NOT NULL DEFAULT 0,
+            created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_stock_alerts_user ON stock_alerts(user_id)")
+    except Exception:
+        pass
+
+    # ── Ürün Yorumları ve Puanları (v10) ─────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS product_reviews (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id      INTEGER NOT NULL,
+            store_id     INTEGER,
+            product_name TEXT NOT NULL,
+            rating       REAL NOT NULL,
+            review_text  TEXT,
+            review_date  DATE,
+            created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_product_reviews_user ON product_reviews(user_id)")
+    except Exception:
+        pass
+
+    # ── Satıcı Skoru Takibi (v10) ─────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS seller_scores (
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id            INTEGER NOT NULL,
+            store_id           INTEGER,
+            score_date         DATE NOT NULL,
+            cargo_score        REAL,
+            return_score       REAL,
+            satisfaction_score REAL,
+            note               TEXT,
+            created_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_seller_scores_user ON seller_scores(user_id)")
+    except Exception:
+        pass
+
+    # ── Rakip Fiyat Takibi (v10) ──────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS competitor_prices (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id          INTEGER NOT NULL,
+            store_id         INTEGER,
+            product_name     TEXT NOT NULL,
+            my_price         REAL NOT NULL DEFAULT 0,
+            competitor_name  TEXT,
+            competitor_price REAL NOT NULL DEFAULT 0,
+            competitor_url   TEXT,
+            updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_competitor_prices_user ON competitor_prices(user_id)")
+    except Exception:
+        pass
+
+    # ── Kampanya ROI (v10) ────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS campaign_roi (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id       INTEGER NOT NULL,
+            store_id      INTEGER,
+            campaign_name TEXT NOT NULL,
+            start_date    DATE NOT NULL,
+            end_date      DATE NOT NULL,
+            discount_pct  REAL NOT NULL DEFAULT 0,
+            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_campaign_roi_user ON campaign_roi(user_id)")
+    except Exception:
+        pass
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS campaigns (
@@ -986,6 +1161,280 @@ def mark_weekly_report_sent(user_id: int) -> None:
             "UPDATE users SET weekly_report_last_sent = datetime('now') WHERE id = ?",
             (user_id,),
         )
+    conn.commit()
+    conn.close()
+
+
+# ─── Stok Uyarı CRUD ────────────────────────────────────────────────────────
+
+def save_stock_alert(user_id: int, store_id: int | None, product_name: str, stock_quantity: int) -> int:
+    """Yeni stok uyarısı kaydeder; id döndürür."""
+    conn = get_connection()
+    db_url = _get_db_url()
+    if db_url:
+        cur = conn.execute(
+            "INSERT INTO stock_alerts (user_id, store_id, product_name, stock_quantity) VALUES (?,?,?,?) RETURNING id",
+            (user_id, store_id, product_name.strip(), int(stock_quantity)),
+        )
+        row_id = cur.lastrowid
+    else:
+        cur = conn.execute(
+            "INSERT INTO stock_alerts (user_id, store_id, product_name, stock_quantity) VALUES (?,?,?,?)",
+            (user_id, store_id, product_name.strip(), int(stock_quantity)),
+        )
+        row_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return row_id or 0
+
+
+def get_stock_alerts(user_id: int, store_id: int | None = None) -> list[dict]:
+    """Kullanıcıya ait stok uyarılarını döndürür."""
+    conn = get_connection()
+    if store_id is not None:
+        rows = conn.execute(
+            "SELECT * FROM stock_alerts WHERE user_id = ? AND store_id = ? ORDER BY created_at DESC",
+            (user_id, store_id),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM stock_alerts WHERE user_id = ? ORDER BY created_at DESC",
+            (user_id,),
+        ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def delete_stock_alert(alert_id: int, user_id: int) -> None:
+    conn = get_connection()
+    conn.execute("DELETE FROM stock_alerts WHERE id = ? AND user_id = ?", (alert_id, user_id))
+    conn.commit()
+    conn.close()
+
+
+# ─── Ürün Yorum CRUD ─────────────────────────────────────────────────────────
+
+def save_product_reviews(user_id: int, store_id: int | None, rows: list[dict]) -> int:
+    """Ürün yorumlarını toplu kaydeder; eklenen satır sayısını döndürür."""
+    conn = get_connection()
+    count = 0
+    for r in rows:
+        conn.execute(
+            """INSERT INTO product_reviews
+               (user_id, store_id, product_name, rating, review_text, review_date)
+               VALUES (?,?,?,?,?,?)""",
+            (
+                user_id,
+                store_id,
+                str(r.get("product_name", "")).strip(),
+                float(r.get("rating", 0)),
+                str(r.get("review_text", "")).strip(),
+                r.get("review_date") or None,
+            ),
+        )
+        count += 1
+    conn.commit()
+    conn.close()
+    return count
+
+
+def get_product_reviews(user_id: int, store_id: int | None = None) -> list[dict]:
+    conn = get_connection()
+    if store_id is not None:
+        rows = conn.execute(
+            "SELECT * FROM product_reviews WHERE user_id = ? AND store_id = ? ORDER BY review_date DESC",
+            (user_id, store_id),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM product_reviews WHERE user_id = ? ORDER BY review_date DESC",
+            (user_id,),
+        ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def delete_all_product_reviews(user_id: int, store_id: int | None = None) -> int:
+    conn = get_connection()
+    if store_id is not None:
+        result = conn.execute(
+            "DELETE FROM product_reviews WHERE user_id = ? AND store_id = ?",
+            (user_id, store_id),
+        )
+    else:
+        result = conn.execute("DELETE FROM product_reviews WHERE user_id = ?", (user_id,))
+    deleted = result.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
+
+
+# ─── Satıcı Skoru CRUD ───────────────────────────────────────────────────────
+
+def save_seller_score(
+    user_id: int,
+    store_id: int | None,
+    score_date: str,
+    cargo_score: float | None,
+    return_score: float | None,
+    satisfaction_score: float | None,
+    note: str = "",
+) -> int:
+    conn = get_connection()
+    db_url = _get_db_url()
+    if db_url:
+        cur = conn.execute(
+            """INSERT INTO seller_scores
+               (user_id, store_id, score_date, cargo_score, return_score, satisfaction_score, note)
+               VALUES (?,?,?,?,?,?,?) RETURNING id""",
+            (user_id, store_id, score_date, cargo_score, return_score, satisfaction_score, note),
+        )
+        row_id = cur.lastrowid
+    else:
+        cur = conn.execute(
+            """INSERT INTO seller_scores
+               (user_id, store_id, score_date, cargo_score, return_score, satisfaction_score, note)
+               VALUES (?,?,?,?,?,?,?)""",
+            (user_id, store_id, score_date, cargo_score, return_score, satisfaction_score, note),
+        )
+        row_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return row_id or 0
+
+
+def get_seller_scores(user_id: int, store_id: int | None = None) -> list[dict]:
+    conn = get_connection()
+    if store_id is not None:
+        rows = conn.execute(
+            "SELECT * FROM seller_scores WHERE user_id = ? AND store_id = ? ORDER BY score_date",
+            (user_id, store_id),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM seller_scores WHERE user_id = ? ORDER BY score_date",
+            (user_id,),
+        ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def delete_seller_score(score_id: int, user_id: int) -> None:
+    conn = get_connection()
+    conn.execute("DELETE FROM seller_scores WHERE id = ? AND user_id = ?", (score_id, user_id))
+    conn.commit()
+    conn.close()
+
+
+# ─── Rakip Fiyat CRUD ────────────────────────────────────────────────────────
+
+def save_competitor_price(
+    user_id: int,
+    store_id: int | None,
+    product_name: str,
+    my_price: float,
+    competitor_name: str,
+    competitor_price: float,
+    competitor_url: str = "",
+) -> int:
+    conn = get_connection()
+    db_url = _get_db_url()
+    if db_url:
+        cur = conn.execute(
+            """INSERT INTO competitor_prices
+               (user_id, store_id, product_name, my_price, competitor_name, competitor_price, competitor_url)
+               VALUES (?,?,?,?,?,?,?) RETURNING id""",
+            (user_id, store_id, product_name.strip(), my_price, competitor_name.strip(), competitor_price, competitor_url.strip()),
+        )
+        row_id = cur.lastrowid
+    else:
+        cur = conn.execute(
+            """INSERT INTO competitor_prices
+               (user_id, store_id, product_name, my_price, competitor_name, competitor_price, competitor_url)
+               VALUES (?,?,?,?,?,?,?)""",
+            (user_id, store_id, product_name.strip(), my_price, competitor_name.strip(), competitor_price, competitor_url.strip()),
+        )
+        row_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return row_id or 0
+
+
+def get_competitor_prices(user_id: int, store_id: int | None = None) -> list[dict]:
+    conn = get_connection()
+    if store_id is not None:
+        rows = conn.execute(
+            "SELECT * FROM competitor_prices WHERE user_id = ? AND store_id = ? ORDER BY product_name, updated_at DESC",
+            (user_id, store_id),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM competitor_prices WHERE user_id = ? ORDER BY product_name, updated_at DESC",
+            (user_id,),
+        ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def delete_competitor_price(price_id: int, user_id: int) -> None:
+    conn = get_connection()
+    conn.execute("DELETE FROM competitor_prices WHERE id = ? AND user_id = ?", (price_id, user_id))
+    conn.commit()
+    conn.close()
+
+
+# ─── Kampanya ROI CRUD ───────────────────────────────────────────────────────
+
+def save_campaign_roi_entry(
+    user_id: int,
+    store_id: int | None,
+    campaign_name: str,
+    start_date: str,
+    end_date: str,
+    discount_pct: float,
+) -> int:
+    conn = get_connection()
+    db_url = _get_db_url()
+    if db_url:
+        cur = conn.execute(
+            """INSERT INTO campaign_roi
+               (user_id, store_id, campaign_name, start_date, end_date, discount_pct)
+               VALUES (?,?,?,?,?,?) RETURNING id""",
+            (user_id, store_id, campaign_name.strip(), start_date, end_date, discount_pct),
+        )
+        row_id = cur.lastrowid
+    else:
+        cur = conn.execute(
+            """INSERT INTO campaign_roi
+               (user_id, store_id, campaign_name, start_date, end_date, discount_pct)
+               VALUES (?,?,?,?,?,?)""",
+            (user_id, store_id, campaign_name.strip(), start_date, end_date, discount_pct),
+        )
+        row_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return row_id or 0
+
+
+def get_campaign_roi_entries(user_id: int, store_id: int | None = None) -> list[dict]:
+    conn = get_connection()
+    if store_id is not None:
+        rows = conn.execute(
+            "SELECT * FROM campaign_roi WHERE user_id = ? AND store_id = ? ORDER BY start_date DESC",
+            (user_id, store_id),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM campaign_roi WHERE user_id = ? ORDER BY start_date DESC",
+            (user_id,),
+        ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def delete_campaign_roi_entry(entry_id: int, user_id: int) -> None:
+    conn = get_connection()
+    conn.execute("DELETE FROM campaign_roi WHERE id = ? AND user_id = ?", (entry_id, user_id))
     conn.commit()
     conn.close()
 

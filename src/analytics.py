@@ -1132,20 +1132,234 @@ def get_stock_velocity(user_id: int, store_id: int | None = None) -> pd.DataFram
     # Sadece teslim edilen siparişler
     delivered = df[df["status"].str.contains("Teslim", na=False, case=False)].copy()
     if delivered.empty:
-        return pd.DataFrame()
+        # İade dışı tüm siparişleri kullan
+        delivered = df[~df["status"].str.contains("İade|Return|iade|return", na=False)].copy()
+    if delivered.empty:
+        delivered = df.copy()
 
     date_range = (delivered["order_date"].max() - delivered["order_date"].min()).days
-    if date_range < 1:
-        date_range = 1
+    if date_range < 7:
+        date_range = 7
+
+    # Miktar sütunu yoksa 1 say
+    if "quantity" not in delivered.columns or delivered["quantity"].isna().all():
+        delivered["quantity"] = 1
+    delivered["quantity"] = pd.to_numeric(delivered["quantity"], errors="coerce").fillna(1)
 
     velocity = delivered.groupby("product_name").agg(
         toplam_adet=("quantity", "sum"),
-        siparis_sayisi=("order_number", "count"),
+        siparis_sayisi=("id", "count"),
         son_siparis=("order_date", "max"),
     ).reset_index()
 
-    velocity["gunluk_satis"] = (velocity["toplam_adet"] / date_range).round(2)
-    velocity["gunluk_satis"] = velocity["gunluk_satis"].clip(lower=0.01)
+    velocity["gunluk_satis"] = (velocity["toplam_adet"] / date_range).round(3)
+    velocity["gunluk_satis"] = velocity["gunluk_satis"].clip(lower=0.001)
     velocity = velocity.sort_values("gunluk_satis", ascending=False)
 
     return velocity
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stok Tükenme Tahmini (v10)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_stock_burnout(user_id: int, store_id: int | None, stock_alerts: list[dict]) -> list[dict]:
+    """
+    Her ürün için mevcut stok miktarı ve satış hızından tükenme günü hesaplar.
+
+    Dönüş: list[dict] — her kayıt:
+        product_name, stock_quantity, daily_rate, days_remaining, status
+        status: "kritik" (<7 gün), "uyari" (7-14 gün), "normal" (>14 gün)
+    """
+    velocity_df = get_stock_velocity(user_id, store_id)
+    velocity_map: dict[str, float] = {}
+    if not velocity_df.empty:
+        for _, row in velocity_df.iterrows():
+            velocity_map[row["product_name"].lower()] = float(row["gunluk_satis"])
+
+    result = []
+    for alert in stock_alerts:
+        pname = alert["product_name"]
+        qty   = int(alert["stock_quantity"])
+
+        # Ürün adıyla eşleştir (kısmi eşleşme de kabul et)
+        daily_rate = 0.0
+        pname_lower = pname.lower()
+        if pname_lower in velocity_map:
+            daily_rate = velocity_map[pname_lower]
+        else:
+            # Kısmi eşleşme
+            for vname, vrate in velocity_map.items():
+                if pname_lower[:10] in vname or vname[:10] in pname_lower:
+                    daily_rate = vrate
+                    break
+
+        if daily_rate > 0:
+            days_remaining = round(qty / daily_rate, 0)
+        else:
+            days_remaining = None  # satış verisi yok
+
+        if days_remaining is None:
+            status = "bilinmiyor"
+        elif days_remaining < 7:
+            status = "kritik"
+        elif days_remaining <= 14:
+            status = "uyari"
+        else:
+            status = "normal"
+
+        result.append({
+            "id":             alert["id"],
+            "product_name":   pname,
+            "stock_quantity": qty,
+            "daily_rate":     round(daily_rate, 3),
+            "days_remaining": days_remaining,
+            "status":         status,
+        })
+
+    # Kritikler önce
+    _order = {"kritik": 0, "uyari": 1, "normal": 2, "bilinmiyor": 3}
+    result.sort(key=lambda x: _order.get(x["status"], 3))
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Kampanya ROI Analizi (v10)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_campaign_roi_analysis(
+    user_id: int,
+    store_id: int | None,
+    start_date: str,
+    end_date: str,
+    discount_pct: float,
+) -> dict:
+    """
+    Kampanya dönemi ile bir önceki aynı uzunluktaki dönem karşılaştırır.
+
+    ROI = (kampanya_ciro - normal_ciro) / (kampanya_ciro * discount_pct/100)
+    """
+    df = _fetch_orders(user_id, store_id)
+    if df.empty:
+        return {"has_data": False}
+
+    camp_start = pd.Timestamp(start_date)
+    camp_end   = pd.Timestamp(end_date)
+    delta      = camp_end - camp_start
+    prev_end   = camp_start - pd.Timedelta(days=1)
+    prev_start = prev_end - delta
+
+    camp_df = df[(df["order_date"] >= camp_start) & (df["order_date"] <= camp_end)]
+    prev_df = df[(df["order_date"] >= prev_start) & (df["order_date"] <= prev_end)]
+
+    camp_rev  = float(camp_df["total_amount"].sum())
+    prev_rev  = float(prev_df["total_amount"].sum())
+    camp_ord  = len(camp_df)
+    prev_ord  = len(prev_df)
+    delta_rev = camp_rev - prev_rev
+    delta_pct = round((delta_rev / prev_rev * 100), 1) if prev_rev > 0 else 0.0
+
+    # İndirim tutarı tahmini: indirim kampanya cirosu üzerinden hesaplanır
+    discount_amount = camp_rev * (discount_pct / 100)
+    roi = round((delta_rev / discount_amount * 100), 1) if discount_amount > 0 else 0.0
+
+    # Günlük trend (kampanya + önceki dönem)
+    def _daily(d: pd.DataFrame, label: str) -> pd.DataFrame:
+        if d.empty:
+            return pd.DataFrame()
+        dd = d.groupby(d["order_date"].dt.date)["total_amount"].sum().reset_index()
+        dd.columns = ["tarih", "gelir"]
+        dd["seri"] = label
+        dd["gun_no"] = range(1, len(dd) + 1)
+        return dd
+
+    daily_camp = _daily(camp_df, "Kampanya Dönemi")
+    daily_prev = _daily(prev_df, "Önceki Dönem")
+
+    return {
+        "has_data":       True,
+        "camp_rev":       round(camp_rev, 2),
+        "prev_rev":       round(prev_rev, 2),
+        "camp_orders":    camp_ord,
+        "prev_orders":    prev_ord,
+        "delta_rev":      round(delta_rev, 2),
+        "delta_pct":      delta_pct,
+        "discount_pct":   discount_pct,
+        "discount_amount": round(discount_amount, 2),
+        "roi":            roi,
+        "daily_camp":     daily_camp,
+        "daily_prev":     daily_prev,
+        "camp_start":     start_date,
+        "camp_end":       end_date,
+        "prev_start":     prev_start.strftime("%Y-%m-%d"),
+        "prev_end":       prev_end.strftime("%Y-%m-%d"),
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ürün Puan Analizi (v10)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def analyze_product_reviews(reviews: list[dict]) -> dict:
+    """
+    Yüklenen ürün yorumlarından analiz üretir.
+
+    reviews: [{"product_name": ..., "rating": ..., "review_text": ..., "review_date": ...}]
+    """
+    if not reviews:
+        return {"has_data": False}
+
+    df = pd.DataFrame(reviews)
+    df["rating"] = pd.to_numeric(df.get("rating", 0), errors="coerce").fillna(0)
+
+    # Ürün bazlı ortalama puan
+    by_product = (
+        df.groupby("product_name")
+        .agg(
+            ort_puan=("rating", "mean"),
+            yorum_sayisi=("rating", "count"),
+            negatif=("rating", lambda x: (x < 3).sum()),
+        )
+        .reset_index()
+    )
+    by_product["ort_puan"] = by_product["ort_puan"].round(2)
+    by_product["negatif_oran"] = (by_product["negatif"] / by_product["yorum_sayisi"] * 100).round(1)
+    by_product = by_product.sort_values("ort_puan")
+
+    # Puan dağılımı (1-5)
+    dist = df["rating"].round(0).astype(int).clip(1, 5).value_counts().sort_index().reset_index()
+    dist.columns = ["puan", "adet"]
+
+    # Negatif yorumlardaki anahtar kelimeler
+    neg_df = df[df["rating"] < 3]
+    neg_text = " ".join(neg_df["review_text"].fillna("").tolist()).lower() if not neg_df.empty else ""
+    import re as _re
+    from collections import Counter as _Counter
+    stop = {
+        "ürün", "çok", "ama", "için", "beni", "daha", "gibi", "bile",
+        "çünkü", "veya", "olan", "değil", "bunu", "çıktı", "geldi", "bir",
+        "bu", "ve", "da", "de", "ile", "ben", "her", "hem",
+    }
+    words = [w for w in _re.findall(r"\b[a-züğışçöı]{4,}\b", neg_text) if w not in stop]
+    neg_keywords = pd.DataFrame(_Counter(words).most_common(15), columns=["kelime", "adet"]) if words else pd.DataFrame()
+
+    # Puan trendi (eğer tarih varsa)
+    trend_df = pd.DataFrame()
+    if "review_date" in df.columns and df["review_date"].notna().any():
+        df["review_date"] = pd.to_datetime(df["review_date"], errors="coerce")
+        df2 = df.dropna(subset=["review_date"]).copy()
+        if not df2.empty:
+            df2["ay"] = df2["review_date"].dt.to_period("M").astype(str)
+            trend_df = df2.groupby("ay")["rating"].mean().round(2).reset_index()
+            trend_df.columns = ["ay", "ort_puan"]
+
+    return {
+        "has_data":     True,
+        "total":        len(df),
+        "avg_rating":   round(float(df["rating"].mean()), 2),
+        "neg_count":    int((df["rating"] < 3).sum()),
+        "by_product":   by_product,
+        "dist":         dist,
+        "neg_keywords": neg_keywords,
+        "trend":        trend_df,
+    }

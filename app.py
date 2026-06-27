@@ -77,7 +77,7 @@ from src.ui_helpers import (
 # _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
 # Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
-_SCHEMA_VER = "v9"  # referrals + weekly_report + yeni özellikler
+_SCHEMA_VER = "v10"  # stok_alerts, product_reviews, seller_scores, competitor_prices, campaign_roi
 
 
 @st.cache_resource
@@ -2341,13 +2341,19 @@ def show_sidebar() -> None:
         st.markdown("&nbsp;")
 
         pages = [
-            ("📊", "Genel Bakış", "dashboard"),
-            ("📁", "Veri Yükle", "upload"),
-            ("📈", "Analitik", "analytics"),
+            ("📊", "Genel Bakış",        "dashboard"),
+            ("📁", "Veri Yükle",          "upload"),
+            ("📈", "Analitik",            "analytics"),
             ("👥", "Müşteri Segmentleri", "segments"),
-            ("💬", "Yorum Analizi", "reviews"),
-            ("📧", "Kampanyalar", "campaigns"),
-            ("⚙️", "Ayarlar", "settings"),
+            ("📦", "Stok Uyarıları",      "stock_alerts"),
+            ("🔄", "İade Analizi",         "return_analysis"),
+            ("⏰", "Sipariş Haritası",     "order_heatmap"),
+            ("💬", "Yorum & Puan",        "reviews"),
+            ("🏷️", "Rakip Fiyatlar",      "competitor_prices"),
+            ("📣", "Kampanya ROI",        "campaign_roi"),
+            ("⭐", "Satıcı Skoru",        "seller_scores"),
+            ("📧", "Kampanyalar",         "campaigns"),
+            ("⚙️", "Ayarlar",            "settings"),
         ]
 
         def _nav_active_html(icon: str, label: str) -> str:
@@ -2450,6 +2456,19 @@ def main() -> None:
         from page_views.reviews import run as _run; _run()
     elif page == "settings":
         from page_views.settings import run as _run; _run()
+    # ── v10 Yeni Sayfalar ──────────────────────────────────────────────────
+    elif page == "stock_alerts":
+        from page_views.stock_alerts import run as _run; _run()
+    elif page == "return_analysis":
+        from page_views.return_analysis import run as _run; _run()
+    elif page == "order_heatmap":
+        from page_views.order_heatmap import run as _run; _run()
+    elif page == "competitor_prices":
+        from page_views.competitor_prices import run as _run; _run()
+    elif page == "campaign_roi":
+        from page_views.campaign_roi import run as _run; _run()
+    elif page == "seller_scores":
+        from page_views.seller_scores import run as _run; _run()
     else:
         from page_views.dashboard import run as _run; _run()
 
