@@ -137,6 +137,68 @@ class TrendyolClient:
         """Satıcının ürün listesini getirir."""
         return self._get("products", params={"page": page, "size": size})
 
+    def get_all_products(self) -> list[dict]:
+        """Tüm ürünleri sayfalayarak çeker."""
+        products: list[dict] = []
+        page = 0
+        while True:
+            data = self.get_products(page=page, size=200)
+            content = data.get("content", [])
+            products.extend(content)
+            if page >= data.get("totalPages", 1) - 1 or not content:
+                break
+            page += 1
+            time.sleep(0.3)
+        return products
+
+    # ── Ürün Soruları / Yorumları ─────────────────────────────────────────────
+
+    def get_questions(self, page: int = 0, size: int = 50, status: str = "WaitingForAnswer") -> dict:
+        """
+        Ürün sorularını getirir.
+        status: WaitingForAnswer | Answered | All
+        """
+        return self._get("questions", params={"page": page, "size": size, "status": status})
+
+    def get_all_questions(self) -> list[dict]:
+        """Tüm soruları sayfalayarak çeker (tüm statüler)."""
+        questions: list[dict] = []
+        for status in ("WaitingForAnswer", "Answered"):
+            page = 0
+            while True:
+                data = self.get_questions(page=page, size=50, status=status)
+                content = data.get("content", [])
+                questions.extend(content)
+                if page >= data.get("totalPages", 1) - 1 or not content:
+                    break
+                page += 1
+                time.sleep(0.3)
+        return questions
+
+    def get_reviews(self, page: int = 0, size: int = 50) -> dict:
+        """
+        Ürün değerlendirmelerini getirir.
+        Trendyol Satıcı API'de belgelenmiş endpoint: /reviews
+        """
+        return self._get("reviews", params={"page": page, "size": size})
+
+    def get_all_reviews(self, max_pages: int = 10) -> list[dict]:
+        """Ürün yorumlarını sayfalayarak çeker."""
+        reviews: list[dict] = []
+        for page in range(max_pages):
+            try:
+                data = self.get_reviews(page=page, size=50)
+                content = data.get("content", [])
+                if not content:
+                    break
+                reviews.extend(content)
+                if page >= data.get("totalPages", 1) - 1:
+                    break
+                time.sleep(0.3)
+            except TrendyolAPIError:
+                break
+        return reviews
+
     # ── Bağlantı Testi ───────────────────────────────────────────────────────
 
     def test_connection(self) -> bool:

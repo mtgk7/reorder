@@ -30,43 +30,109 @@ def run() -> None:
 
     _header("🏷️", "Rakip Fiyat Takibi", "Kendi fiyatınızı rakiplerinizle karşılaştırın")
 
-    # ── Yeni Rakip Ekle ───────────────────────────────────────────────────────
-    _section("➕ Yeni Rakip Fiyatı Gir")
+    tab_manual, tab_import = st.tabs(["✏️ Manuel Giriş", "📂 Trendyol'dan İçe Aktar"])
 
-    st.markdown(
-        """<div class="info-box">
-        Rakip ürün URL'si ve fiyatını manuel olarak girin. Sistem fiyat pozisyonunuzu
-        (en ucuz / orta / pahalı) hesaplar ve zaman içinde değişimi takip eder.
-        </div>""",
-        unsafe_allow_html=True,
-    )
+    with tab_import:
+        st.markdown(
+            """<div class="info-box">
+            Trendyol Satıcı Paneli'nden rakip fiyat listesini indirip buraya yükleyin.<br><br>
+            1️⃣ <a href="https://partner.trendyol.com" target="_blank"><b>partner.trendyol.com</b></a> → Giriş Yap<br>
+            2️⃣ <b>Ürünlerim → Fiyat Güncelleme</b> ya da <b>Rakip Fiyatları</b> menüsüne git<br>
+            3️⃣ <b>Excel'e Aktar</b> → İndirilen dosyayı aşağıya yükle<br><br>
+            <b>Desteklenen sütunlar:</b> <code>ürün adı</code>, <code>benim fiyatım</code>,
+            <code>rakip adı</code>, <code>rakip fiyatı</code>
+            </div>""",
+            unsafe_allow_html=True,
+        )
 
-    with st.form("competitor_form", border=False):
-        c1, c2 = st.columns(2)
-        with c1:
-            product_name = st.text_input("Ürün Adı", placeholder="örn: Çocuk Bisikleti 24\"")
-            my_price     = st.number_input("Benim Fiyatım (₺)", min_value=0.0, value=0.0, step=0.01, format="%.2f")
-        with c2:
-            comp_name    = st.text_input("Rakip Mağaza Adı", placeholder="örn: ABC Mağazası")
-            comp_price   = st.number_input("Rakip Fiyatı (₺)", min_value=0.0, value=0.0, step=0.01, format="%.2f")
+        uploaded = st.file_uploader("Fiyat dosyası (.csv / .xlsx)", type=["csv","xlsx","xls"],
+                                    key="price_import_file", label_visibility="collapsed")
+        if uploaded:
+            try:
+                if uploaded.name.endswith(".csv"):
+                    df_imp = pd.read_csv(uploaded)
+                else:
+                    df_imp = pd.read_excel(uploaded)
 
-        comp_url = st.text_input("Rakip Ürün URL (Opsiyonel)", placeholder="https://www.trendyol.com/...")
+                df_imp.columns = [str(c).strip().lower() for c in df_imp.columns]
 
-        submitted = st.form_submit_button("Kaydet", type="primary", use_container_width=True)
+                def _find(candidates):
+                    for c in candidates:
+                        if c in df_imp.columns:
+                            return c
+                    return None
 
-    if submitted:
-        if not product_name.strip():
-            st.error("Ürün adı boş olamaz.")
-        elif my_price <= 0 or comp_price <= 0:
-            st.error("Fiyatlar sıfırdan büyük olmalı.")
-        elif not comp_name.strip():
-            st.error("Rakip mağaza adı girin.")
-        else:
-            save_competitor_price(
-                user["id"], store_id, product_name, my_price, comp_name, comp_price, comp_url or ""
-            )
-            st.success(f"✅ '{product_name}' için rakip fiyatı kaydedildi!")
-            st.rerun()
+                pname_col  = _find(["ürün adı","urun adi","product_name","ürün","urun","product"])
+                my_col     = _find(["benim fiyatım","benim fiyatim","my_price","kendi fiyat","satış fiyatı","satis fiyati"])
+                comp_col   = _find(["rakip adı","rakip adi","competitor_name","rakip mağaza","rakip magaza","satici"])
+                cprice_col = _find(["rakip fiyatı","rakip fiyati","competitor_price","rakip fiyat"])
+
+                st.caption(f"{len(df_imp):,} satır bulundu. Sütunlar: {list(df_imp.columns)}")
+
+                c1, c2, c3, c4 = st.columns(4)
+                pname_col  = c1.selectbox("Ürün Adı", [None]+list(df_imp.columns), index=(list(df_imp.columns).index(pname_col)+1 if pname_col else 0))
+                my_col     = c2.selectbox("Benim Fiyatım", [None]+list(df_imp.columns), index=(list(df_imp.columns).index(my_col)+1 if my_col else 0))
+                comp_col   = c3.selectbox("Rakip Adı", [None]+list(df_imp.columns), index=(list(df_imp.columns).index(comp_col)+1 if comp_col else 0))
+                cprice_col = c4.selectbox("Rakip Fiyatı", [None]+list(df_imp.columns), index=(list(df_imp.columns).index(cprice_col)+1 if cprice_col else 0))
+
+                if st.button("💾 İçe Aktar", type="primary", key="import_prices"):
+                    if not all([pname_col, my_col, comp_col, cprice_col]):
+                        st.error("Tüm sütunları seçin.")
+                    else:
+                        saved = 0
+                        for _, row in df_imp.iterrows():
+                            try:
+                                save_competitor_price(
+                                    user["id"], store_id,
+                                    str(row[pname_col]),
+                                    float(str(row[my_col]).replace(",",".")),
+                                    str(row[comp_col]),
+                                    float(str(row[cprice_col]).replace(",",".")),
+                                    comp_url="",
+                                )
+                                saved += 1
+                            except Exception:
+                                continue
+                        st.success(f"✅ {saved} rakip fiyatı içe aktarıldı!")
+                        st.rerun()
+            except Exception as e:
+                st.error(f"Dosya okunamadı: {e}")
+
+    with tab_manual:
+        _section("➕ Yeni Rakip Fiyatı Gir")
+        st.markdown(
+            """<div class="info-box">
+            Rakip ürün URL'si ve fiyatını manuel olarak girin. Sistem fiyat pozisyonunuzu
+            (en ucuz / orta / pahalı) hesaplar ve zaman içinde değişimi takip eder.
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+        with st.form("competitor_form", border=False):
+            c1, c2 = st.columns(2)
+            with c1:
+                product_name = st.text_input("Ürün Adı", placeholder="örn: Çocuk Bisikleti 24\"")
+                my_price     = st.number_input("Benim Fiyatım (₺)", min_value=0.0, value=0.0, step=0.01, format="%.2f")
+            with c2:
+                comp_name    = st.text_input("Rakip Mağaza Adı", placeholder="örn: ABC Mağazası")
+                comp_price   = st.number_input("Rakip Fiyatı (₺)", min_value=0.0, value=0.0, step=0.01, format="%.2f")
+
+            comp_url = st.text_input("Rakip Ürün URL (Opsiyonel)", placeholder="https://www.trendyol.com/...")
+            submitted = st.form_submit_button("Kaydet", type="primary", use_container_width=True)
+
+        if submitted:
+            if not product_name.strip():
+                st.error("Ürün adı boş olamaz.")
+            elif my_price <= 0 or comp_price <= 0:
+                st.error("Fiyatlar sıfırdan büyük olmalı.")
+            elif not comp_name.strip():
+                st.error("Rakip mağaza adı girin.")
+            else:
+                save_competitor_price(
+                    user["id"], store_id, product_name, my_price, comp_name, comp_price, comp_url or ""
+                )
+                st.success(f"✅ '{product_name}' için rakip fiyatı kaydedildi!")
+                st.rerun()
 
     # ── Mevcut Karşılaştırma Tablosu ──────────────────────────────────────────
     prices = get_competitor_prices(user["id"], store_id)

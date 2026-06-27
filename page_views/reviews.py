@@ -81,7 +81,122 @@ def run() -> None:
 
     _header("💬", "Yorum & Puan Analizi", "Ürün yorumlarından içgörü çıkarın")
 
-    tab1, tab2 = st.tabs(["📂 CSV/Excel Import", "✏️ Manuel Yapıştır"])
+    tab0, tab1, tab2 = st.tabs(["🔗 Trendyol API'den Çek", "📂 CSV/Excel Import", "✏️ Manuel Yapıştır"])
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # TAB 0: Trendyol API'den Çek
+    # ─────────────────────────────────────────────────────────────────────────
+    with tab0:
+        from src.trendyol_api import load_credentials, TrendyolClient, TrendyolAPIError
+
+        creds = load_credentials(user["id"], store_id)
+        if not creds:
+            st.markdown(
+                """<div class="warn-box">
+                ⚠️ <b>Trendyol API bağlantısı kurulmamış.</b><br>
+                <b>Ayarlar → Trendyol API</b> sekmesine gidip API bilgilerinizi girin.
+                Ardından bu sayfaya dönün.
+                </div>""",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f"""<div class="success-box">
+                ✅ <b>Trendyol API bağlı</b> — Satıcı ID: <code>{creds['seller_id']}</code>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                """<div class="info-box">
+                Trendyol Satıcı API üzerinden ürün <b>sorularını</b> ve <b>değerlendirmelerini</b>
+                otomatik çeker. Çekilen veriler analiz ekranında gösterilir ve isteğe bağlı
+                olarak veritabanına kaydedilebilir.
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+            col_a, col_b = st.columns(2)
+            with col_a:
+                fetch_reviews_btn = st.button("📥 Değerlendirmeleri Çek", type="primary",
+                                              key="fetch_ty_reviews", use_container_width=True)
+            with col_b:
+                fetch_questions_btn = st.button("❓ Soruları Çek", key="fetch_ty_questions",
+                                                use_container_width=True)
+
+            if fetch_reviews_btn:
+                with st.spinner("Trendyol'dan değerlendirmeler çekiliyor…"):
+                    try:
+                        client = TrendyolClient(creds["seller_id"], creds["api_key"], creds["api_secret"])
+                        raw = client.get_all_reviews(max_pages=20)
+                        if not raw:
+                            st.warning("Henüz değerlendirme bulunamadı veya bu endpoint desteklenmiyor.")
+                        else:
+                            rows = []
+                            for rv in raw:
+                                rows.append({
+                                    "product_name": rv.get("productName") or rv.get("productCode", "Bilinmiyor"),
+                                    "rating":       int(rv.get("rate") or rv.get("rating") or rv.get("star", 0)),
+                                    "review_text":  rv.get("comment") or rv.get("text") or "",
+                                    "review_date":  str(rv.get("createdDate", ""))[:10] or None,
+                                })
+                            st.session_state["_review_rows"] = rows
+                            result = analyze_product_reviews(rows)
+                            st.session_state["_review_result"] = result
+                            st.success(f"✅ {len(rows)} değerlendirme çekildi!")
+
+                            if st.button("💾 Veritabanına Kaydet", key="save_ty_reviews"):
+                                cnt = save_product_reviews(user["id"], store_id, rows)
+                                st.success(f"✅ {cnt} değerlendirme kaydedildi!")
+                    except TrendyolAPIError as e:
+                        st.error(f"API Hatası: {e}")
+                    except Exception as e:
+                        st.error(f"Hata: {e}")
+
+            if fetch_questions_btn:
+                with st.spinner("Trendyol'dan sorular çekiliyor…"):
+                    try:
+                        client = TrendyolClient(creds["seller_id"], creds["api_key"], creds["api_secret"])
+                        raw = client.get_all_questions()
+                        if not raw:
+                            st.warning("Soru bulunamadı.")
+                        else:
+                            rows = []
+                            for q in raw:
+                                rows.append({
+                                    "product_name": q.get("productName") or q.get("productCode", "Bilinmiyor"),
+                                    "rating":       3,
+                                    "review_text":  (q.get("text") or q.get("customerQuestion") or "")
+                                                    + (" → " + (q.get("answer") or q.get("supplierAnswer") or "") if q.get("answer") or q.get("supplierAnswer") else ""),
+                                    "review_date":  str(q.get("createdDate", ""))[:10] or None,
+                                })
+                            st.success(f"✅ {len(rows)} soru çekildi!")
+                            df_q = pd.DataFrame([{
+                                "Ürün": r["product_name"],
+                                "Soru": r["review_text"].split(" → ")[0],
+                                "Cevap": r["review_text"].split(" → ")[1] if " → " in r["review_text"] else "—",
+                            } for r in rows])
+                            st.dataframe(df_q, use_container_width=True, hide_index=True)
+                    except TrendyolAPIError as e:
+                        st.error(f"API Hatası: {e}")
+                    except Exception as e:
+                        st.error(f"Hata: {e}")
+
+            st.markdown("---")
+            _section("📋 Trendyol Satıcı Panelinden Manuel İndirme (B Planı)")
+            st.markdown(
+                """<div class="info-box">
+                API desteklemiyorsa Trendyol Satıcı Paneli'nden Excel olarak indirip yükleyebilirsiniz:<br><br>
+                1️⃣ <a href="https://partner.trendyol.com" target="_blank"><b>partner.trendyol.com</b></a> → Giriş Yap<br>
+                2️⃣ <b>Ürünlerim → Ürün Değerlendirmeleri</b> menüsüne git<br>
+                3️⃣ Filtreleri ayarla → <b>Excel'e Aktar</b> butonuna tıkla<br>
+                4️⃣ İndirilen dosyayı <b>CSV/Excel Import</b> sekmesinden yükle
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+        result = st.session_state.get("_review_result")
+        if result and result.get("has_data"):
+            _show_analysis_results(result)
 
     # ─────────────────────────────────────────────────────────────────────────
     # TAB 1: CSV / Excel Import
