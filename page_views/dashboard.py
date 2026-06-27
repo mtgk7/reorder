@@ -12,7 +12,7 @@ from src.analytics import (
     get_current_month_metrics, get_anomalies, get_period_comparison,
 )
 from src.database import load_goals
-from src.ui_helpers import _fmt_tl, _kpi, _header, _section, _go
+from src.ui_helpers import _fmt_tl, _kpi, _header, _section, _go, _plan_gate
 
 
 def run() -> None:
@@ -462,6 +462,8 @@ def run() -> None:
         pass
 
     _section("📄 PDF Rapor")
+    if not _plan_gate("pdf_report"):
+        return
     st.markdown(
         """<div class="info-box">Tüm metrikleri, cohort (müşteri grubu) matrisini ve müşteri segmentlerini
         tek sayfalık PDF raporu olarak indirin. Mağaza raporlaması veya arşivleme için idealdir.</div>""",

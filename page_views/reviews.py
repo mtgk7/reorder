@@ -73,7 +73,7 @@ def _detect_columns(df: pd.DataFrame) -> dict:
 
 
 def run() -> None:
-    if not _plan_gate("campaigns"):  # Pro+ için
+    if not _plan_gate("product_reviews"):  # Pro+ için
         return
 
     user     = st.session_state.user
