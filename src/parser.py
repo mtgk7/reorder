@@ -401,13 +401,14 @@ def generate_sample_orders(
         for _ in range(n_customers)
     ]
 
-    base_date = datetime(2025, 5, 1)
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    base_date = today - pd.Timedelta(days=365)
     records = []
 
     for cust in customers:
         # İlk alışveriş: 0-11 ay önce (farklı cohort'lar)
         first_offset = int(rng.integers(0, 365))
-        first_date = base_date + pd.Timedelta(days=-first_offset + 365)
+        first_date = base_date + pd.Timedelta(days=first_offset)
 
         # Ortalama 1-4 sipariş
         n_orders = int(rng.choice([1, 1, 2, 2, 3, 4], p=[0.35, 0.20, 0.20, 0.10, 0.10, 0.05]))
@@ -419,7 +420,7 @@ def generate_sample_orders(
         for _ in range(n_orders):
             delta = int(rng.integers(0, 90))
             order_date = prev_date + pd.Timedelta(days=delta)
-            if order_date > datetime(2026, 5, 26):
+            if order_date > today:
                 break
             amount = round(float(rng.uniform(50, 800)), 2)
             order_hour = int(rng.choice(range(24), p=HOUR_WEIGHTS))
@@ -431,8 +432,8 @@ def generate_sample_orders(
                 "product_name": rng.choice(products),
                 "quantity": int(rng.choice([1, 1, 1, 2, 3])),
                 "status": rng.choice(
-                    ["Teslim Edildi", "Teslim Edildi", "Teslim Edildi", "İptal"],
-                    p=[0.88, 0.05, 0.05, 0.02],
+                    ["Teslim Edildi", "İptal", "İade Edildi"],
+                    p=[0.87, 0.06, 0.07],
                 ),
                 "city": cust_city,
                 "order_hour": order_hour,

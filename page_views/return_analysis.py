@@ -122,13 +122,16 @@ def run() -> None:
             line=dict(color="#F59E0B", width=2),
             marker=dict(size=6),
         ))
+        max_rate = float(monthly["iade_oran"].max()) if not monthly.empty else 1.0
         fig2.update_layout(
             barmode="group",
+            yaxis=dict(rangemode="nonnegative"),
             yaxis2=dict(
                 title="İade Oranı (%)",
                 overlaying="y",
                 side="right",
                 showgrid=False,
+                range=[0, max(max_rate * 1.3, 1)],
             ),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
