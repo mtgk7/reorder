@@ -1,0 +1,48 @@
+name: Supabase DB Keep Alive
+
+# Supabase free tier ~1 hafta inaktivite sonrası projeyi PAUSE eder.
+# Render health-ping'i yalnızca web sunucusunu uyandırır, DB'ye DOKUNMAZ.
+# Bu iş günde bir kez DB'ye bağlanıp SELECT 1 çalıştırarak projeyi aktif tutar.
+#
+# GEREKLİ: Repo → Settings → Secrets and variables → Actions → New repository secret
+#   Name:  DATABASE_URL
+#   Value: postgresql://postgres.<PROJE_ID>:<YENİ_SIFRE>@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # her gün 06:17 UTC
+  workflow_dispatch:
+
+jobs:
+  keep-db-warm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install psycopg2
+        run: pip install --quiet "psycopg2-binary>=2.9.0"
+
+      - name: Ping database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret tanımlı değil. Repo Settings → Secrets → Actions'tan ekleyin."
+            exit 1
+          fi
+          python - <<'PY'
+          import os, sys, psycopg2
+          url = os.environ["DATABASE_URL"]
+          try:
+              conn = psycopg2.connect(url, connect_timeout=15)
+              cur = conn.cursor()
+              cur.execute("SELECT 1")
+              print("DB keep-alive OK:", cur.fetchone())
+              conn.close()
+          except Exception as e:
+              print("DB keep-alive FAILED:", type(e).__name__, str(e)[:200], file=sys.stderr)
+              sys.exit(1)
+          PY
