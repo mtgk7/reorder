@@ -227,32 +227,40 @@ def orders_to_dataframe(raw_orders: list[dict]) -> "pd.DataFrame":
 
     records = []
     for o in raw_orders:
-        customer_name = (
-            o.get("shipmentAddress", {}).get("fullName")
-            or o.get("invoiceAddress", {}).get("fullName")
-            or "Bilinmiyor"
-        )
-        date_ms = o.get("orderDate") or o.get("createdDate", 0)
-        order_dt = datetime.fromtimestamp(date_ms / 1000)
+        o = o or {}
+        # shipmentAddress/invoiceAddress null gelebilir → `or {}` ile güvene al
+        shp = o.get("shipmentAddress") or {}
+        inv = o.get("invoiceAddress") or {}
+        customer_name = shp.get("fullName") or inv.get("fullName") or "Bilinmiyor"
+        city = shp.get("city") or inv.get("city") or ""
+
+        # Trendyol bazı siparişlerde tarihi null gönderebilir → güvenli dönüşüm
+        date_ms = o.get("orderDate") or o.get("createdDate") or 0
+        try:
+            order_dt = datetime.fromtimestamp(float(date_ms) / 1000)
+        except (TypeError, ValueError, OSError, OverflowError):
+            order_dt = datetime.now()
         order_date = order_dt.strftime("%Y-%m-%d")
         order_hour = order_dt.hour
 
-        city = (
-            o.get("shipmentAddress", {}).get("city")
-            or o.get("invoiceAddress", {}).get("city")
-            or ""
-        )
+        def _num(val, default, cast):
+            """None/'' /geçersiz değerleri güvenle sayıya çevirir."""
+            try:
+                return cast(val)
+            except (TypeError, ValueError):
+                return default
 
-        for line in o.get("lines", [o]):
+        for line in (o.get("lines") or [o]):
+            line = line or {}
             records.append(
                 {
-                    "order_number": str(o.get("orderNumber", "")),
+                    "order_number": str(o.get("orderNumber") or ""),
                     "customer_identifier": customer_name,
                     "order_date": order_date,
-                    "total_amount": float(line.get("amount", 0)),
-                    "product_name": line.get("productName", ""),
-                    "quantity": int(line.get("quantity", 1)),
-                    "status": o.get("status", ""),
+                    "total_amount": _num(line.get("amount"), 0.0, float),
+                    "product_name": line.get("productName") or "",
+                    "quantity": _num(line.get("quantity"), 1, int),
+                    "status": o.get("status") or "",
                     "city": city,
                     "order_hour": order_hour,
                 }
