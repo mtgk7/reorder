@@ -1,5 +1,6 @@
 """pages/settings.py — Ayarlar sayfası"""
 from __future__ import annotations
+import html
 import streamlit as st
 
 from src.auth import update_store_name, change_password
@@ -124,14 +125,14 @@ def run() -> None:
             if creds_s:
                 st.markdown(
                     f"""<div class="success-box">
-                    ✅ API bağlantısı kayıtlı — Satıcı ID: <b>{creds_s['seller_id']}</b><br>
-                    Son senkronizasyon: {creds_s['last_sync_at'] or 'Henüz yapılmadı'}
+                    ✅ API bağlantısı kayıtlı — Satıcı ID: <b>{html.escape(str(creds_s['seller_id']))}</b><br>
+                    Son senkronizasyon: {html.escape(str(creds_s['last_sync_at'] or 'Henüz yapılmadı'))}
                     </div>""",
                     unsafe_allow_html=True,
                 )
             with st.form("api_settings_form"):
                 s_seller = st.text_input("Satıcı ID",  value=creds_s["seller_id"]  if creds_s else "")
-                s_key    = st.text_input("API Key",    value=creds_s["api_key"]    if creds_s else "")
+                s_key    = st.text_input("API Key",    value=creds_s["api_key"]    if creds_s else "", type="password")
                 s_secret = st.text_input("API Secret", value=creds_s["api_secret"] if creds_s else "", type="password")
                 col1, col2 = st.columns(2)
                 with col1:

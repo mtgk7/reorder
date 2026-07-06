@@ -3,9 +3,42 @@ auth.py — Kullanıcı kaydı, giriş ve bcrypt tabanlı şifreleme.
 PostgreSQL ve SQLite ile uyumludur.
 """
 import re
+import time
 import secrets
+import threading
 import bcrypt
 from src.database import get_connection
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Basit hız sınırlama (brute-force önleme)
+# Process-global; Render tek instance'da etkilidir. Restart'ta sıfırlanır.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_RL_LOCK = threading.Lock()
+_RL_ATTEMPTS: dict[str, list[float]] = {}
+
+
+def _rate_limit_check(key: str, max_attempts: int = 5, window_sec: int = 300) -> bool:
+    """
+    Verilen anahtar için son `window_sec` içindeki deneme sayısı `max_attempts`'i
+    aşmadıysa True (izin ver) döner ve denemeyi kaydeder; aştıysa False döner.
+    """
+    now = time.time()
+    with _RL_LOCK:
+        attempts = [t for t in _RL_ATTEMPTS.get(key, []) if now - t < window_sec]
+        if len(attempts) >= max_attempts:
+            _RL_ATTEMPTS[key] = attempts  # eski kayıtları temizle
+            return False
+        attempts.append(now)
+        _RL_ATTEMPTS[key] = attempts
+        return True
+
+
+def _rate_limit_reset(key: str) -> None:
+    """Başarılı işlem sonrası anahtarın deneme sayacını sıfırlar."""
+    with _RL_LOCK:
+        _RL_ATTEMPTS.pop(key, None)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -104,7 +137,9 @@ def register_user(email: str, password: str, store_name: str) -> dict:
         msg = str(exc).lower()
         if "unique" in msg or "duplicate" in msg or "already exists" in msg:
             return {"success": False, "error": "Bu e-posta adresi zaten kayıtlı."}
-        return {"success": False, "error": f"Kayıt sırasında hata: {exc}"}
+        # Ham hata detayını istemciye sızdırma — yalnızca sunucu log'una yaz
+        print(f"[REGISTER][error] {exc}", flush=True)
+        return {"success": False, "error": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin."}
 
 
 def login_user(email: str, password: str) -> dict:
@@ -117,6 +152,13 @@ def login_user(email: str, password: str) -> dict:
     """
     email = email.strip().lower()
 
+    # Brute-force koruması: e-posta başına 5 dk'da 5 başarısız deneme
+    if not _rate_limit_check(f"login:{email}", max_attempts=5, window_sec=300):
+        return {
+            "success": False,
+            "error": "Çok fazla başarısız giriş denemesi. Lütfen birkaç dakika sonra tekrar deneyin.",
+        }
+
     conn = get_connection()
     row = conn.execute(
         "SELECT id, email, password_hash, store_name, plan, plan_period FROM users WHERE email = ?",
@@ -126,6 +168,9 @@ def login_user(email: str, password: str) -> dict:
 
     if row is None or not verify_password(password, row["password_hash"]):
         return {"success": False, "error": "E-posta veya şifre hatalı."}
+
+    # Başarılı giriş — sayaç sıfırlanır
+    _rate_limit_reset(f"login:{email}")
 
     return {
         "success": True,

@@ -262,7 +262,53 @@ def orders_to_dataframe(raw_orders: list[dict]) -> "pd.DataFrame":
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Credential yönetimi (DB'de şifreli saklama)
+#
+# CREDENTIALS_KEY env var'ı (Fernet anahtarı) ayarlıysa API secret'ları at-rest
+# şifrelenir. Ayarlı değilse eskisi gibi düz metin saklanır (geriye dönük uyumlu).
+# Mevcut düz-metin kayıtlar okunmaya devam eder — yalnızca yeni kayıtlar şifrelenir.
 # ─────────────────────────────────────────────────────────────────────────────
+
+_ENC_PREFIX = "enc:v1:"
+
+
+def _get_fernet():
+    """CREDENTIALS_KEY ayarlı ve cryptography kuruluysa Fernet nesnesi döner, yoksa None."""
+    import os
+    key = os.environ.get("CREDENTIALS_KEY", "").strip()
+    if not key:
+        return None
+    try:
+        from cryptography.fernet import Fernet
+        return Fernet(key.encode())
+    except Exception:
+        return None
+
+
+def _enc(value: str) -> str:
+    """Değeri şifreler (anahtar yoksa olduğu gibi döner)."""
+    if not value:
+        return value
+    f = _get_fernet()
+    if not f:
+        return value
+    try:
+        return _ENC_PREFIX + f.encrypt(value.encode()).decode()
+    except Exception:
+        return value
+
+
+def _dec(value):
+    """Şifreli değeri çözer; düz metin ise olduğu gibi döner."""
+    if not value or not isinstance(value, str) or not value.startswith(_ENC_PREFIX):
+        return value
+    f = _get_fernet()
+    if not f:
+        return value  # anahtar kaybolduysa ham veriyi döndürme yerine olduğu gibi bırak
+    try:
+        return f.decrypt(value[len(_ENC_PREFIX):].encode()).decode()
+    except Exception:
+        return value
+
 
 def save_credentials(
     user_id: int,
@@ -274,10 +320,13 @@ def save_credentials(
     """API kimlik bilgilerini veritabanına kaydeder (mağaza veya kullanıcı bazında)."""
     from src.database import get_connection
     conn = get_connection()
+    _sid = str(seller_id).strip()
+    _key = _enc(str(api_key).strip())
+    _sec = _enc(str(api_secret).strip())
     if store_id is not None:
         conn.execute(
             "UPDATE stores SET ty_seller_id=?, ty_api_key=?, ty_api_secret=? WHERE id=? AND user_id=?",
-            (str(seller_id).strip(), str(api_key).strip(), str(api_secret).strip(), store_id, user_id),
+            (_sid, _key, _sec, store_id, user_id),
         )
     else:
         conn.execute("""
@@ -287,7 +336,7 @@ def save_credentials(
                 trendyol_seller_id  = excluded.trendyol_seller_id,
                 trendyol_api_key    = excluded.trendyol_api_key,
                 trendyol_api_secret = excluded.trendyol_api_secret
-        """, (user_id, str(seller_id).strip(), str(api_key).strip(), str(api_secret).strip()))
+        """, (user_id, _sid, _key, _sec))
     conn.commit()
     conn.close()
 
@@ -311,8 +360,8 @@ def load_credentials(user_id: int, store_id: int | None = None) -> dict | None:
             return None
         return {
             "seller_id":       row["ty_seller_id"],
-            "api_key":         row["ty_api_key"],
-            "api_secret":      row["ty_api_secret"],
+            "api_key":         _dec(row["ty_api_key"]),
+            "api_secret":      _dec(row["ty_api_secret"]),
             "last_sync_at":    row["last_sync_at"],
             "last_sync_count": row["last_sync_count"] or 0,
         }
@@ -323,8 +372,8 @@ def load_credentials(user_id: int, store_id: int | None = None) -> dict | None:
             return None
         return {
             "seller_id":       row["trendyol_seller_id"],
-            "api_key":         row["trendyol_api_key"],
-            "api_secret":      row["trendyol_api_secret"],
+            "api_key":         _dec(row["trendyol_api_key"]),
+            "api_secret":      _dec(row["trendyol_api_secret"]),
             "last_sync_at":    row["last_sync_at"],
             "last_sync_count": row["last_sync_count"] or 0,
         }

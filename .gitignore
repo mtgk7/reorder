@@ -18,6 +18,18 @@ env/
 # ── Kişisel notlar ───────────────────────────────────────────────
 hesaplar.txt
 
+# ── Yönetici/geliştirici script'leri (HARDCODED CREDENTIAL İÇERİR!) ─
+set_plan.py
+create_test_data.py
+
+# ── Tasarım taslak dosyaları ─────────────────────────────────────
+login_alternatives.html
+login_alternatives_2.html
+login_final_v3.html
+
+# ── Claude worktree/geçici ───────────────────────────────────────
+.claude/
+
 # ── SQLite (sadece lokal geliştirme) ─────────────────────────────
 data/reorder.db
 data/*.db

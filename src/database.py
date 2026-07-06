@@ -1072,6 +1072,14 @@ def use_referral_code(code: str, referee_id: int) -> dict:
     """Referral kodu kullanır. Başarılıysa {'success': True, 'bonus_days': N} döner."""
     code = code.strip().upper()
     conn = get_connection()
+    # Kötüye kullanım önleme: her kullanıcı yalnızca bir kez referral kodu kullanabilir
+    already = conn.execute(
+        "SELECT 1 FROM referrals WHERE referee_id = ? LIMIT 1",
+        (referee_id,),
+    ).fetchone()
+    if already:
+        conn.close()
+        return {"success": False, "error": "Zaten bir referral kodu kullandınız."}
     row = conn.execute(
         "SELECT id, referrer_id FROM referrals WHERE referral_code = ? AND referee_id IS NULL AND used_at IS NULL",
         (code,),

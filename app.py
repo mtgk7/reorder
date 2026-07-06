@@ -32,7 +32,7 @@ from src.database import (
 from src.auth import (
     login_user, register_user, update_store_name, change_password,
     create_session_token, verify_session_token, delete_session_token,
-    send_reset_email, reset_password_with_token,
+    send_reset_email, reset_password_with_token, _rate_limit_check,
 )
 from src.parser import parse_trendyol_file, import_to_db, generate_sample_orders
 # generate_report imported lazily inside show_analytics() to avoid loading fpdf2 at startup
@@ -1688,28 +1688,35 @@ function goRegister(){
                 if sub_forgot:
                     if not forgot_email.strip():
                         st.error("E-posta adresini girin.")
+                    elif not _rate_limit_check(
+                        f"reset:{forgot_email.strip().lower()}",
+                        max_attempts=3, window_sec=900,
+                    ):
+                        st.warning(
+                            "⏳ Çok fazla sıfırlama talebi gönderdiniz. "
+                            "Lütfen 15 dakika sonra tekrar deneyin."
+                        )
                     else:
                         token = create_reset_token(forgot_email.strip().lower())
+                        # GÜVENLİK: E-posta kayıtlı olsun olmasın, token gönderilebilsin
+                        # gönderilemesin — kullanıcıya HER ZAMAN aynı genel mesaj gösterilir.
+                        # Token asla ekranda gösterilmez (hesap ele geçirme / e-posta
+                        # enumerasyonu önlenir). SMTP yoksa token yalnızca sunucu log'una
+                        # yazılır (Render logs — sadece yöneticiye görünür).
                         if token:
                             res = send_reset_email(forgot_email.strip().lower(), token)
-                            if res["success"]:
-                                st.success("✅ Sıfırlama bağlantısı e-postanıza gönderildi. "
-                                           "Gelen kutunuzu kontrol edin (spam klasörünü de).")
-                            elif res.get("error") == "no_smtp":
-                                # SMTP yapılandırılmamış — geliştirici/admin modu
+                            if res.get("error") == "no_smtp":
                                 import os as _os
                                 app_url = _os.environ.get("APP_URL",
-                                    "https://reorder-81nz.onrender.com").rstrip("/")
-                                st.warning(
-                                    "⚠️ SMTP yapılandırılmamış. "
-                                    "Yönetici olarak aşağıdaki bağlantıyı kullanın:"
-                                )
-                                st.code(f"{app_url}/?reset_token={token}")
-                            else:
-                                st.error(f"E-posta gönderilemedi: {res['error']}")
-                        else:
-                            # Güvenlik: email yoksa da aynı mesajı göster
-                            st.success("✅ Bu e-posta kayıtlıysa sıfırlama bağlantısı gönderildi.")
+                                    "https://reorderpanel.com").rstrip("/")
+                                # Yalnızca sunucu konsoluna yaz — istemciye asla gönderilmez
+                                print(f"[RESET][no_smtp] {forgot_email.strip().lower()} "
+                                      f"-> {app_url}/?reset_token={token}", flush=True)
+                            elif not res["success"]:
+                                # Gerçek gönderim hatasını da yalnızca log'a yaz
+                                print(f"[RESET][send_error] {res.get('error')}", flush=True)
+                        st.success("✅ Bu e-posta kayıtlıysa sıfırlama bağlantısı gönderildi. "
+                                   "Gelen kutunuzu kontrol edin (spam klasörünü de).")
                 if st.button("← Giriş'e Dön", key="back_to_login"):
                     st.session_state.show_forgot = False
                     st.rerun()
@@ -2027,8 +2034,9 @@ def show_plan_selection() -> None:
     """Yeni kayıt sonrası plan seçim ekranı."""
     st.markdown(_ONBOARDING_BG + _ONBOARDING_CSS, unsafe_allow_html=True)
 
+    import html as _html
     user = st.session_state.user
-    store_name = user.get("store_name", "") if user else ""
+    store_name = _html.escape(user.get("store_name", "") if user else "")
     st.markdown(
         f'<div class="ob-head"><h1>Hoş Geldin{", " + store_name if store_name else ""}! 🎉</h1>'
         '<p>Mağazanız için en uygun planı seçin. İstediğiniz zaman değiştirebilirsiniz.</p></div>',
@@ -2191,7 +2199,7 @@ def show_sidebar() -> None:
         st.markdown(
             f"""
             <div style="padding:.1rem .2rem 1.1rem; border-bottom:1px solid rgba(255,255,255,.1); text-align:center;">
-                <div style="font-size:.72rem; opacity:.5; margin-top:.2rem;">{user['email']}</div>
+                <div style="font-size:.72rem; opacity:.5; margin-top:.2rem;">{__import__('html').escape(str(user['email']))}</div>
                 <div style="margin-top:.5rem;">
                     <span style="
                         display:inline-block;
