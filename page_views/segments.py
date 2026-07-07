@@ -1,5 +1,6 @@
 """pages/segments.py — Müşteri Segmentleri sayfası"""
 from __future__ import annotations
+import html as _html
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
@@ -174,12 +175,14 @@ def run() -> None:
             seg_color = seg_colors.get(detail["segment"], "#6B7280")
             action = detail.get("action", {})
 
-            # Başlık
-            city_txt = f" · 📍 {detail['city']}" if detail.get("city") else ""
+            # Başlık — kullanıcı verisi HTML'e girmeden önce escape edilmeli
+            _safe_name = _html.escape(selected_cust)
+            _safe_city = _html.escape(detail.get("city") or "")
+            city_txt = f" · 📍 {_safe_city}" if _safe_city else ""
             cadence_txt = f" · 🔁 Ort. her {detail['avg_cadence']} günde sipariş" if detail.get("avg_cadence") else ""
             st.markdown(
                 f"""<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.8rem;">
-                <span style="font-size:1.15rem;font-weight:800;color:#1e293b;">👤 {selected_cust}</span>
+                <span style="font-size:1.15rem;font-weight:800;color:#1e293b;">👤 {_safe_name}</span>
                 <span style="background:{seg_color}22;color:{seg_color};padding:4px 12px;border-radius:20px;font-weight:700;font-size:.82rem;border:1px solid {seg_color}55;">{detail['segment']}</span>
                 <span style="background:{churn_color}22;color:{churn_color};padding:4px 12px;border-radius:20px;font-weight:700;font-size:.82rem;border:1px solid {churn_color}55;">🔥 Churn: {churn}/100</span>
                 <span style="font-size:.78rem;color:#6B7280;">{city_txt}{cadence_txt}</span>
