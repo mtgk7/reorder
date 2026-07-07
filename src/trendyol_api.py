@@ -17,8 +17,27 @@ import requests
 # ─────────────────────────────────────────────────────────────────────────────
 # Sabitler
 # ─────────────────────────────────────────────────────────────────────────────
-API_BASE = "https://api.trendyol.com/sapigw/suppliers"
+# Eski gateway (hâlâ aktif, ama Trendyol yeni gateway'e taşıyor)
+_SAPIGW_BASE = "https://api.trendyol.com/sapigw/suppliers"
+
+# Yeni gateway — kaynak türüne göre farklı alt yol
+# Örnek: orders → https://apigw.trendyol.com/integration/order/sellers/{id}/orders
+_APIGW_BASE = "https://apigw.trendyol.com/integration"
+_APIGW_CATEGORY = {
+    "orders":             "order",
+    "shipment-packages":  "order",
+    "products":           "product",
+    "questions":          "product",
+    "reviews":            "product",
+}
+
 _DEFAULT_TIMEOUT = 15  # saniye
+
+# sapigw başarısız olduğunda apigw'ye geçmeyi tetikleyen HTTP kodları
+# 401 = yanlış kimlik bilgisi → fallback YAPMA (apigw da 401 döner)
+_FALLBACK_ON_STATUS = {404, 405, 410, 500, 502, 503, 504}
+
+API_BASE = _SAPIGW_BASE  # geriye dönük uyumluluk için bırakıldı
 
 
 class TrendyolAPIError(Exception):
@@ -49,17 +68,51 @@ class TrendyolClient:
                 "Content-Type": "application/json",
             }
         )
+        # None = henüz test edilmedi, "sapigw" veya "apigw" = onaylandı
+        self._gateway: str | None = None
+
+    def _build_url(self, endpoint: str, gateway: str) -> str:
+        """Endpoint ve gateway türüne göre tam URL oluşturur."""
+        resource = endpoint.split("/")[0]  # "orders", "products" vb.
+        if gateway == "apigw":
+            category = _APIGW_CATEGORY.get(resource, "order")
+            return f"{_APIGW_BASE}/{category}/sellers/{self.seller_id}/{endpoint}"
+        return f"{_SAPIGW_BASE}/{self.seller_id}/{endpoint}"
 
     def _get(self, endpoint: str, params: dict | None = None) -> Any:
-        url = f"{API_BASE}/{self.seller_id}/{endpoint}"
-        try:
-            resp = self._session.get(url, params=params, timeout=_DEFAULT_TIMEOUT)
-            resp.raise_for_status()
-            return resp.json()
-        except requests.HTTPError as exc:
-            raise TrendyolAPIError(f"HTTP {exc.response.status_code}: {exc.response.text}") from exc
-        except requests.RequestException as exc:
-            raise TrendyolAPIError(f"İstek hatası: {exc}") from exc
+        """İstek yapar; sapigw başarısız olursa otomatik apigw'ye düşer."""
+        gateways = (
+            [self._gateway] if self._gateway
+            else ["sapigw", "apigw"]
+        )
+        last_exc: Exception | None = None
+        for gw in gateways:
+            url = self._build_url(endpoint, gw)
+            try:
+                resp = self._session.get(url, params=params, timeout=_DEFAULT_TIMEOUT)
+                if resp.status_code == 401:
+                    raise TrendyolAPIError(f"HTTP 401: Geçersiz API kimlik bilgileri.")
+                if resp.status_code in _FALLBACK_ON_STATUS and gw == "sapigw" and not self._gateway:
+                    # sapigw bu endpoint için çalışmıyor → apigw'yi dene
+                    last_exc = TrendyolAPIError(f"HTTP {resp.status_code}: sapigw")
+                    continue
+                resp.raise_for_status()
+                self._gateway = gw  # çalışan gateway'i önbelleğe al
+                return resp.json()
+            except requests.HTTPError as exc:
+                code = exc.response.status_code
+                if code == 401:
+                    raise TrendyolAPIError("HTTP 401: Geçersiz API kimlik bilgileri.") from exc
+                if code in _FALLBACK_ON_STATUS and gw == "sapigw" and not self._gateway:
+                    last_exc = exc
+                    continue
+                raise TrendyolAPIError(f"HTTP {code}: {exc.response.text}") from exc
+            except requests.RequestException as exc:
+                if gw == "sapigw" and not self._gateway:
+                    last_exc = exc
+                    continue
+                raise TrendyolAPIError(f"İstek hatası: {exc}") from exc
+        raise TrendyolAPIError(f"Her iki gateway de başarısız oldu: {last_exc}")
 
     # ── Sipariş Yönetimi ─────────────────────────────────────────────────────
 
@@ -209,6 +262,7 @@ class TrendyolClient:
                 end_date=datetime.now().strftime("%Y-%m-%d"),
                 size=1,
             )
+            print(f"[TrendyolClient] Bağlantı başarılı, gateway: {self._gateway}", flush=True)
             return True
         except TrendyolAPIError:
             return False
