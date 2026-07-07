@@ -64,13 +64,14 @@ def run() -> None:
     table.columns = ["Segment", "Müşteri Sayısı", "Toplam Gelir"]
     st.dataframe(table, use_container_width=True, hide_index=True)
 
-    _section("Müşteri Listesi — Churn Risk Skoru (İlk 100)")
+    # ── Müşteri Listesi (tıklanabilir) ───────────────────────────────────────
+    _section("Müşteri Listesi — Churn Risk Skoru")
     st.markdown(
         """<div class="info-box" style="font-size:.82rem;">
         🔴 <b>70+</b> Yüksek Risk &nbsp;·&nbsp;
         🟡 <b>40-69</b> Orta Risk &nbsp;·&nbsp;
         🟢 <b>0-39</b> Düşük Risk &nbsp;·&nbsp;
-        Skor yükseldikçe müşteri kaybetme ihtimali artar.
+        Bir müşteriye tıklayarak detayını görün.
         </div>""",
         unsafe_allow_html=True,
     )
@@ -83,10 +84,8 @@ def run() -> None:
     }
     display = (
         segments_df[show_cols].rename(columns=col_rename)
-        .sort_values("Churn Risk", ascending=False).head(100).reset_index(drop=True)
+        .sort_values("Churn Risk", ascending=False).head(200).reset_index(drop=True)
     )
-    display["Toplam Harcama"] = display["Toplam Harcama"].apply(_fmt_tl)
-    display["Ort. Sipariş"]   = display["Ort. Sipariş"].apply(_fmt_tl)
 
     def _color_churn(val):
         if val >= 70:
@@ -95,21 +94,43 @@ def run() -> None:
             return "background-color:#FEF9C3;color:#854D0E;font-weight:700;"
         return "background-color:#DCFCE7;color:#166534;font-weight:700;"
 
+    display_fmt = display.copy()
+    display_fmt["Toplam Harcama"] = display_fmt["Toplam Harcama"].apply(_fmt_tl)
+    display_fmt["Ort. Sipariş"]   = display_fmt["Ort. Sipariş"].apply(_fmt_tl)
     try:
-        styled = display.style.map(_color_churn, subset=["Churn Risk"])
+        styled = display_fmt.style.map(_color_churn, subset=["Churn Risk"])
     except AttributeError:
-        styled = display.style.applymap(_color_churn, subset=["Churn Risk"])
-    st.dataframe(styled, use_container_width=True, hide_index=True)
+        styled = display_fmt.style.applymap(_color_churn, subset=["Churn Risk"])
 
+    # Streamlit 1.35+ satır seçimi
+    try:
+        sel = st.dataframe(
+            styled, use_container_width=True, hide_index=True,
+            on_select="rerun", selection_mode="single-row",
+            key="cust_table_sel",
+        )
+        selected_rows = sel.selection.rows if hasattr(sel, "selection") else []
+    except Exception:
+        st.dataframe(styled, use_container_width=True, hide_index=True)
+        selected_rows = []
+
+    # Seçili satırdan müşteri adını al
+    selected_cust: str | None = None
+    if selected_rows:
+        idx = selected_rows[0]
+        if idx < len(display):
+            selected_cust = display.iloc[idx]["Müşteri"]
+
+    # Selectbox fallback (satır tıklaması çalışmazsa)
+    if not selected_cust:
+        all_customers = sorted(segments_df["customer_identifier"].tolist())
+        fb = st.selectbox("veya müşteri ara:", options=["— Seçin —"] + all_customers, key="cust_detail_fb")
+        if fb and fb != "— Seçin —":
+            selected_cust = fb
+
+    # ── Aksiyon Önerileri — Segmentlere Göre ────────────────────────────────
     st.markdown('<hr style="border:none;border-top:1px solid rgba(242,122,26,.18);margin:1.6rem 0 1rem;">', unsafe_allow_html=True)
     _section("🎯 Aksiyon Önerileri — Segmentlere Göre")
-    st.markdown(
-        """<div class="info-box" style="font-size:.82rem;">
-        Her segment için yapay zeka destekli öncelikli aksiyon listesi.
-        En kritik segmentler önce gösterilir.
-        </div>""",
-        unsafe_allow_html=True,
-    )
     try:
         recs = get_segment_recommendations(user["id"], store_id)
         if recs:
@@ -138,12 +159,9 @@ def run() -> None:
     except Exception:
         pass
 
-    st.markdown("&nbsp;")
-    _section("👤 Müşteri Detay")
-    all_customers = sorted(segments_df["customer_identifier"].tolist())
-    selected_cust = st.selectbox("Müşteri seç", options=["— Seçin —"] + all_customers, key="cust_detail_select")
-
-    if selected_cust and selected_cust != "— Seçin —":
+    # ── Müşteri Detay Paneli ─────────────────────────────────────────────────
+    if selected_cust:
+        st.markdown('<hr style="border:none;border-top:1px solid rgba(242,122,26,.18);margin:1.6rem 0 1rem;">', unsafe_allow_html=True)
         detail = get_customer_detail(user["id"], selected_cust, store_id)
         if detail:
             churn = detail["churn_score"]
@@ -154,7 +172,22 @@ def run() -> None:
                 "Tek Alışveriş": "#9CA3AF", "Kaybolma Riski": "#6B7280",
             }
             seg_color = seg_colors.get(detail["segment"], "#6B7280")
+            action = detail.get("action", {})
 
+            # Başlık
+            city_txt = f" · 📍 {detail['city']}" if detail.get("city") else ""
+            cadence_txt = f" · 🔁 Ort. her {detail['avg_cadence']} günde sipariş" if detail.get("avg_cadence") else ""
+            st.markdown(
+                f"""<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.8rem;">
+                <span style="font-size:1.15rem;font-weight:800;color:#1e293b;">👤 {selected_cust}</span>
+                <span style="background:{seg_color}22;color:{seg_color};padding:4px 12px;border-radius:20px;font-weight:700;font-size:.82rem;border:1px solid {seg_color}55;">{detail['segment']}</span>
+                <span style="background:{churn_color}22;color:{churn_color};padding:4px 12px;border-radius:20px;font-weight:700;font-size:.82rem;border:1px solid {churn_color}55;">🔥 Churn: {churn}/100</span>
+                <span style="font-size:.78rem;color:#6B7280;">{city_txt}{cadence_txt}</span>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+            # KPI satırı
             d1, d2, d3, d4, d5 = st.columns(5)
             d1.metric("Toplam Sipariş",  f"{detail['total_orders']}")
             d2.metric("Toplam Harcama",  _fmt_tl(detail["total_revenue"]))
@@ -162,19 +195,18 @@ def run() -> None:
             d4.metric("Son Alışveriş",   f"{detail['days_since']} gün önce")
             d5.metric("İlk Alışveriş",   detail["first_date"])
 
-            st.markdown(
-                f"""<div style="margin:.6rem 0;">
-                <span style="background:{seg_color}22;color:{seg_color};padding:5px 14px;border-radius:20px;font-weight:700;font-size:.88rem;border:1px solid {seg_color}55;">
-                    {detail['segment']}
-                </span>
-                &nbsp;
-                <span style="background:{churn_color}22;color:{churn_color};padding:5px 14px;border-radius:20px;font-weight:700;font-size:.88rem;border:1px solid {churn_color}55;">
-                    🔥 Churn Risk: {churn}/100
-                </span>
-                </div>""",
-                unsafe_allow_html=True,
-            )
+            # Aksiyon kartı
+            if action:
+                st.markdown(
+                    f"""<div style="background:{action['color']}12;border:1.5px solid {action['color']}40;
+                    border-radius:12px;padding:14px 18px;margin:.8rem 0;">
+                    <span style="font-size:1rem;font-weight:700;color:{action['color']};">{action['icon']} {action['title']}</span>
+                    <p style="margin:.4rem 0 0;font-size:.84rem;color:#374151;">{action['text']}</p>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
 
+            # Grafikler
             gc1, gc2 = st.columns(2)
             with gc1:
                 _section("📈 Kümülatif LTV Trendi")
@@ -187,7 +219,7 @@ def run() -> None:
                     hovertemplate="<b>%{x}</b><br>Kümülatif: ₺%{y:,.2f}<extra></extra>",
                 ))
                 fig_ltv.update_layout(
-                    height=260, margin=dict(l=0, r=0, t=8, b=0),
+                    height=240, margin=dict(l=0, r=0, t=8, b=0),
                     xaxis=dict(title="", tickangle=-30, tickfont=dict(size=10)),
                     yaxis=dict(title="₺", tickprefix="₺", tickformat=",.0f"),
                     template="plotly_white",
@@ -196,19 +228,33 @@ def run() -> None:
 
             with gc2:
                 _section("📅 Aylık Harcama")
-                import plotly.express as _px
-                fig_m = _px.bar(
+                fig_m = px.bar(
                     detail["monthly"], x="month_str", y="revenue",
                     color_discrete_sequence=["#3B82F6"],
                     labels={"month_str": "Ay", "revenue": "₺"},
                     template="plotly_white",
                 )
-                fig_m.update_layout(height=260, margin=dict(l=0, r=0, t=8, b=0))
+                fig_m.update_layout(height=240, margin=dict(l=0, r=0, t=8, b=0))
                 fig_m.update_xaxes(type="category")
                 st.plotly_chart(fig_m, use_container_width=True)
 
-            _section("📋 Tüm Siparişler")
-            ord_tbl = detail["orders"][["date_str", "order_number", "product_name", "quantity", "total_amount", "status"]].copy()
-            ord_tbl.columns = ["Tarih", "Sipariş No", "Ürün", "Adet", "Tutar (₺)", "Durum"]
-            ord_tbl["Tutar (₺)"] = ord_tbl["Tutar (₺)"].apply(_fmt_tl)
-            st.dataframe(ord_tbl.sort_values("Tarih", ascending=False), use_container_width=True, hide_index=True)
+            # Alt bölüm: en çok alınan ürünler + sipariş tablosu
+            tp1, tp2 = st.columns([1, 2])
+            with tp1:
+                _section("🛒 En Çok Aldığı Ürünler")
+                if not detail["top_products"].empty:
+                    tp_fmt = detail["top_products"].copy()
+                    tp_fmt["Toplam (₺)"] = tp_fmt["Toplam (₺)"].apply(_fmt_tl)
+                    st.dataframe(tp_fmt, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Ürün verisi yok.")
+
+            with tp2:
+                _section("📋 Tüm Siparişler")
+                ord_cols = ["date_str", "order_number", "product_name", "quantity", "total_amount", "status"]
+                available = [c for c in ord_cols if c in detail["orders"].columns]
+                ord_tbl = detail["orders"][available].copy()
+                ord_tbl.columns = ["Tarih", "Sipariş No", "Ürün", "Adet", "Tutar (₺)", "Durum"][:len(available)]
+                if "Tutar (₺)" in ord_tbl.columns:
+                    ord_tbl["Tutar (₺)"] = ord_tbl["Tutar (₺)"].apply(_fmt_tl)
+                st.dataframe(ord_tbl.sort_values("Tarih", ascending=False), use_container_width=True, hide_index=True)

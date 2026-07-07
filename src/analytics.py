@@ -445,9 +445,53 @@ def get_customer_detail(
     monthly.columns = ["month", "revenue"]
     monthly["month_str"] = monthly["month"].astype(str)
 
+    # En çok aldığı ürünler
+    top_products = (
+        cdf.groupby("product_name")["total_amount"]
+        .agg(siparis_sayisi="count", toplam_gelir="sum")
+        .reset_index()
+        .sort_values("siparis_sayisi", ascending=False)
+        .head(5)
+        .reset_index(drop=True)
+    )
+    top_products.columns = ["Ürün", "Sipariş", "Toplam (₺)"]
+
+    # Alışveriş kadansı — siparişler arası ortalama gün
+    if total_orders >= 2:
+        order_dates = cdf["order_date"].sort_values().reset_index(drop=True)
+        gaps = [(order_dates[i] - order_dates[i - 1]).days for i in range(1, len(order_dates))]
+        avg_cadence = round(sum(gaps) / len(gaps))
+    else:
+        avg_cadence = None
+
+    # Şehir bilgisi (varsa)
+    city = ""
+    if "city" in cdf.columns:
+        cities = cdf["city"].dropna()
+        if not cities.empty:
+            city = cities.mode().iloc[0] if not cities.mode().empty else ""
+
+    # Kişiselleştirilmiş aksiyon önerisi
+    if churn_score >= 70:
+        action = {"icon": "🚨", "title": "Acil Geri Kazanım", "color": "#EF4444",
+                  "text": f"Bu müşteri {days_since} gündür alışveriş yapmıyor. %15-20 indirim kuponu veya özel teklif gönderin."}
+    elif churn_score >= 40:
+        action = {"icon": "⚠️", "title": "Risk Altında", "color": "#F59E0B",
+                  "text": "Orta risk. Yeni koleksiyon bildirimi veya ücretsiz kargo teklifi ile müşterinin ilgisini çekin."}
+    elif segment == "Sadık Müşteri":
+        action = {"icon": "⭐", "title": "Sadakat Ödüllendirme", "color": "#10B981",
+                  "text": "Sadık müşteri! Özel üyelik avantajı veya erken erişim teklifi ile bağlılığı güçlendirin."}
+    elif segment == "Yeni Müşteri":
+        action = {"icon": "🎉", "title": "İlk Alışveriş Takibi", "color": "#3B82F6",
+                  "text": "Yeni müşteri! İkinci alışveriş için hoş geldin indirimi veya ürün önerisi gönderin."}
+    else:
+        action = {"icon": "📈", "title": "Büyüme Fırsatı", "color": "#6366F1",
+                  "text": "Gelişen müşteri. Sık aldığı ürün kategorisinde çapraz satış önerisi gönderin."}
+
     return {
         "orders":        cdf,
         "monthly":       monthly,
+        "top_products":  top_products,
         "total_orders":  total_orders,
         "total_revenue": total_revenue,
         "avg_order":     avg_order,
@@ -455,8 +499,11 @@ def get_customer_detail(
         "last_date":     last_date.strftime("%d.%m.%Y"),
         "days_since":    days_since,
         "span_days":     span_days,
+        "avg_cadence":   avg_cadence,
+        "city":          city,
         "segment":       segment,
         "churn_score":   churn_score,
+        "action":        action,
     }
 
 
