@@ -4,15 +4,16 @@ name: Supabase DB Keep Alive
 # Render health-ping'i yalnızca web sunucusunu uyandırır, DB'ye DOKUNMAZ.
 #
 # 2026-07-06'daki ilk sürüm sadece günde 1 kez ham psycopg2 SELECT 1 atıyordu.
-# 14-21 Temmuz arası proje yine pause oldu — çıplak Postgres pooler bağlantısı
-# Supabase'in aktiflik sayacını sıfırlamıyor gibi görünüyor (o sayaç Data API/
-# Studio trafiğine bakıyor olabilir). Bu yüzden artık HEM Data API'ye (REST) HEM
-# de doğrudan Postgres'e ping atıyoruz, günde 1 yerine 4 saatte bir.
+# 14-21 Temmuz arası proje yine pause oldu — günde 1 ping inaktivite penceresini
+# kapatmaya yetmiyordu. Sıklık 4 saate düşürüldü.
 #
-# GEREKLİ Repo Secrets (Settings → Secrets and variables → Actions):
-#   DATABASE_URL      postgresql://postgres.<PROJE_ID>:<SIFRE>@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres
-#   SUPABASE_URL       https://<PROJE_ID>.supabase.co
-#   SUPABASE_ANON_KEY  Supabase anon/public API anahtarı
+# NOT: Data API (REST) üzerinden de ping denendi ama .env'deki SUPABASE_ANON_KEY
+# "Invalid API key" hatası veriyor (muhtemelen eskimiş/rotate edilmiş) — bu adım
+# şimdilik kaldırıldı. Doğru anon key Supabase Dashboard → Settings → API'den
+# alınıp secret güncellenirse tekrar eklenebilir.
+#
+# GEREKLİ Repo Secret (Settings → Secrets and variables → Actions):
+#   DATABASE_URL   postgresql://postgres.<PROJE_ID>:<SIFRE>@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres
 
 on:
   schedule:
@@ -30,24 +31,6 @@ jobs:
 
       - name: Install psycopg2
         run: pip install --quiet "psycopg2-binary>=2.9.0"
-
-      - name: Ping Data API (aktiflik sayacını sıfırlar)
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "::warning::SUPABASE_URL/SUPABASE_ANON_KEY tanımlı değil, Data API ping atlanıyor."
-          else
-            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
-              -H "apikey: $SUPABASE_ANON_KEY" \
-              "$SUPABASE_URL/rest/v1/?select=1")
-            echo "Data API HTTP status: $code"
-            if [ "$code" -ge 500 ]; then
-              echo "::error::Data API 5xx döndü"
-              exit 1
-            fi
-          fi
 
       - name: Ping database (doğrudan Postgres)
         env:
