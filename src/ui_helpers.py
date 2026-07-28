@@ -69,6 +69,24 @@ _PLAN_FEATURES = {
     "Enterprise": ["Sınırsız Mağaza", "Tüm Pro Özellikler", "Trendyol API Entegrasyonu", "Öncelikli Destek", "Özel Hesap Yöneticisi"],
 }
 
+# ─── Pazaryeri sabitleri ──────────────────────────────────────────────────────
+
+MARKETPLACES = {
+    "trendyol":    {"label": "Trendyol",       "icon": "🛍️"},
+    "hepsiburada": {"label": "Hepsiburada",     "icon": "🧡"},
+    "amazon":      {"label": "Amazon Türkiye",  "icon": "📦"},
+    "other":       {"label": "Diğer Pazaryeri", "icon": "🏪"},
+}
+
+
+def marketplace_label(marketplace: str | None) -> str:
+    return MARKETPLACES.get(marketplace or "trendyol", MARKETPLACES["trendyol"])["label"]
+
+
+def marketplace_icon(marketplace: str | None) -> str:
+    return MARKETPLACES.get(marketplace or "trendyol", MARKETPLACES["trendyol"])["icon"]
+
+
 _ONBOARDING_BG = """
 <div id="ob-bg" style="position:fixed;top:0;left:0;width:100vw;height:100vh;
 background:linear-gradient(145deg,#0a2533,#0d3a4b,#134e5e,#0a2e3d);z-index:-1;pointer-events:none;"></div>

@@ -9,7 +9,7 @@ import streamlit as st
 import pandas as pd
 
 from src.database import save_seller_score, get_seller_scores, delete_seller_score
-from src.ui_helpers import _header, _section, _kpi, _plan_gate
+from src.ui_helpers import _header, _section, _kpi, _plan_gate, marketplace_label
 
 
 _SCORE_COLORS = {
@@ -50,12 +50,15 @@ def run() -> None:
 
     user     = st.session_state.user
     store_id = st.session_state.get("active_store_id")
+    stores = st.session_state.get("stores", [])
+    active_store = next((s for s in stores if s["id"] == store_id), None)
+    mp_label = marketplace_label(active_store.get("marketplace") if active_store else None)
 
-    _header("⭐", "Satıcı Skoru Takibi", "Trendyol satıcı paneli puanlarınızı takip edin")
+    _header("⭐", "Satıcı Skoru Takibi", f"{mp_label} satıcı paneli puanlarınızı takip edin")
 
     st.markdown(
-        """<div class="info-box">
-        Trendyol Satıcı Paneli'nden kargo, iade ve müşteri memnuniyeti puanlarınızı manuel olarak girin.
+        f"""<div class="info-box">
+        {mp_label} Satıcı Paneli'nden kargo, iade ve müşteri memnuniyeti puanlarınızı manuel olarak girin.
         Sistem tarihsel trend grafiği oluşturur ve hedef belirlemenize yardımcı olur.
         </div>""",
         unsafe_allow_html=True,
@@ -99,8 +102,8 @@ def run() -> None:
 
     if not scores:
         st.markdown(
-            """<div class="info-box">📭 Henüz satıcı puanı girilmedi.
-            Yukarıdaki formu kullanarak Trendyol Satıcı Paneli'nden puanlarınızı düzenli aralıklarla girin.</div>""",
+            f"""<div class="info-box">📭 Henüz satıcı puanı girilmedi.
+            Yukarıdaki formu kullanarak {mp_label} Satıcı Paneli'nden puanlarınızı düzenli aralıklarla girin.</div>""",
             unsafe_allow_html=True,
         )
         return

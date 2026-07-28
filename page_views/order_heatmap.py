@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 from src.analytics import get_hourly_distribution
-from src.ui_helpers import _header, _section, _kpi, _plan_gate
+from src.ui_helpers import _header, _section, _kpi, _plan_gate, marketplace_label
 
 
 def run() -> None:
@@ -17,6 +17,9 @@ def run() -> None:
 
     user     = st.session_state.user
     store_id = st.session_state.get("active_store_id")
+    stores = st.session_state.get("stores", [])
+    active_store = next((s for s in stores if s["id"] == store_id), None)
+    mp_label = marketplace_label(active_store.get("marketplace") if active_store else None)
 
     _header("⏰", "Sipariş Zaman Haritası", "En yoğun sipariş saatlerini ve günlerini keşfedin")
 
@@ -166,9 +169,9 @@ def run() -> None:
     else:
         _section("🕐 Saate Göre Dağılım")
         st.markdown(
-            """<div class="warn-box">⚠️ Sipariş saati verisi mevcut değil.
-            Bu grafik için Trendyol API entegrasyonu ile senkronizasyon yapılması
-            veya siparişlerde <b>sipariş_saati</b> sütununun bulunması gerekir.</div>""",
+            f"""<div class="warn-box">⚠️ Sipariş saati verisi mevcut değil.
+            Bu grafik için canlı API senkronizasyonu (şu an sadece Trendyol'da mevcut)
+            veya {mp_label} export dosyanızda <b>sipariş_saati</b> sütununun bulunması gerekir.</div>""",
             unsafe_allow_html=True,
         )
 

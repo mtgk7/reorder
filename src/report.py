@@ -23,6 +23,7 @@ from src.analytics import (
     get_summary_metrics,
     get_top_customers,
 )
+from src.ui_helpers import marketplace_label
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Renk sabitleri (RGB tuple)
@@ -56,9 +57,10 @@ def _tr(text: str) -> str:
 # PDF sınıfı
 # ─────────────────────────────────────────────────────────────────────────────
 class _ReOrderPDF(FPDF):
-    def __init__(self, store_name: str) -> None:
+    def __init__(self, store_name: str, marketplace: str = "trendyol") -> None:
         super().__init__(orientation="P", unit="mm", format="A4")
         self.store_name  = _tr(store_name)[:28]
+        self.report_title = _tr(f"{marketplace_label(marketplace)} Retention Raporu")
         self.report_date = datetime.now().strftime("%d.%m.%Y %H:%M")
         self.set_auto_page_break(auto=True, margin=15)
         self.set_margins(left=15, top=22, right=15)
@@ -74,7 +76,7 @@ class _ReOrderPDF(FPDF):
         self.cell(w=50, h=8, text="ReOrder")
         # Orta: Rapor başlığı — ortalı
         self.set_xy(55, 4.5)
-        self.cell(w=100, h=8, text="Trendyol Retention Raporu", align="C")
+        self.cell(w=100, h=8, text=self.report_title, align="C")
         # Sağ: Mağaza adı
         self.set_xy(155, 4.5)
         self.cell(w=40, h=8, text=self.store_name[:14], align="R")
@@ -214,7 +216,7 @@ def _chart_segments(seg_df: pd.DataFrame) -> bytes:
 # Ana üretici fonksiyon
 # ─────────────────────────────────────────────────────────────────────────────
 
-def generate_report(user_id: int, store_name: str, store_id: int | None = None) -> bytes:
+def generate_report(user_id: int, store_name: str, store_id: int | None = None, marketplace: str = "trendyol") -> bytes:
     """
     Kullanıcı (veya aktif mağaza) için tam analitik PDF raporu üretir.
 
@@ -228,7 +230,7 @@ def generate_report(user_id: int, store_name: str, store_id: int | None = None) 
     seg_df   = get_customer_segments(user_id, store_id)
     top10    = get_top_customers(user_id, n=10, store_id=store_id)
 
-    pdf = _ReOrderPDF(store_name)
+    pdf = _ReOrderPDF(store_name, marketplace)
     pdf.add_page()
     M = 15  # sol margin
 

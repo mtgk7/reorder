@@ -11,7 +11,7 @@ from src.email_service import (
     save_campaign_log, load_campaign_history,
     build_template, SEGMENT_TEMPLATES, SMTPConfig,
 )
-from src.ui_helpers import _section, _header, _plan_gate
+from src.ui_helpers import _section, _header, _plan_gate, marketplace_label
 
 
 def run() -> None:
@@ -19,6 +19,9 @@ def run() -> None:
         return
     user = st.session_state.user
     store_id = st.session_state.get("active_store_id")
+    stores = st.session_state.get("stores", [])
+    active_store = next((s for s in stores if s["id"] == store_id), None)
+    mp_label = marketplace_label(active_store.get("marketplace") if active_store else None)
     _header("📧", "E-posta Kampanyaları", "Segment bazlı müşteri iletişimi")
 
     tab_smtp, tab_send, tab_history = st.tabs([
@@ -194,7 +197,7 @@ def run() -> None:
         _section("💬 WhatsApp Şablonu")
         wa_msg = tmpl_c["whatsapp"].replace("{magaza_adi}", user["store_name"])
         st.code(wa_msg, language=None)
-        st.caption("Kopyalayıp Trendyol Sohbet veya WhatsApp Business'tan gönderebilirsiniz.")
+        st.caption(f"Kopyalayıp {mp_label} Mesajlaşma veya WhatsApp Business'tan gönderebilirsiniz.")
 
         _section("📥 Müşteri Listesi")
         export_df = seg_customers[
@@ -231,7 +234,7 @@ def run() -> None:
         st.markdown(
             f"""<div class="info-box">ℹ️ Kampanya raporu hesabınızın kayıtlı e-postasına
             (<b>{recipient}</b>) gönderilir. Raporda müşteri listesi ve kişiselleştirilmiş
-            mesaj şablonu yer alır. Müşterilere Trendyol mesajlaşma veya WhatsApp üzerinden
+            mesaj şablonu yer alır. Müşterilere {mp_label} mesajlaşma veya WhatsApp üzerinden
             ulaşabilirsiniz.</div>""",
             unsafe_allow_html=True,
         )
@@ -247,6 +250,7 @@ def run() -> None:
                     chosen_seg,
                     customers_list,
                     custom_template,
+                    marketplace=(active_store.get("marketplace") if active_store else "trendyol"),
                 )
             if result["success"]:
                 st.success(result["message"])

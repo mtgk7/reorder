@@ -12,7 +12,7 @@ from src.analytics import analyze_product_reviews
 from src.database import (
     save_product_reviews, get_product_reviews, delete_all_product_reviews,
 )
-from src.ui_helpers import _header, _section, _kpi, _plan_gate
+from src.ui_helpers import _header, _section, _kpi, _plan_gate, marketplace_label
 
 # ─── Türkçe sentiment keyword'leri ───────────────────────────────────────────
 POSITIVE_WORDS = [
@@ -78,6 +78,11 @@ def run() -> None:
 
     user     = st.session_state.user
     store_id = st.session_state.get("active_store_id")
+    stores = st.session_state.get("stores", [])
+    active_store = next((s for s in stores if s["id"] == store_id), None)
+    marketplace = active_store.get("marketplace") if active_store else "trendyol"
+    mp_label = marketplace_label(marketplace)
+    is_trendyol = marketplace == "trendyol"
 
     _header("💬", "Yorum & Puan Analizi", "Ürün yorumlarından içgörü çıkarın")
 
@@ -87,6 +92,16 @@ def run() -> None:
     # TAB 0: Trendyol API'den Çek
     # ─────────────────────────────────────────────────────────────────────────
     with tab0:
+      if not is_trendyol:
+        st.markdown(
+            f"""<div class="info-box">
+            🔗 <b>Otomatik değerlendirme çekme şu an sadece Trendyol için destekleniyor.</b><br>
+            {mp_label} yorumlarınızı 📂 <b>CSV/Excel Import</b> veya ✏️ <b>Manuel Yapıştır</b>
+            sekmesinden analiz edebilirsiniz.
+            </div>""",
+            unsafe_allow_html=True,
+        )
+      else:
         from src.trendyol_api import load_credentials, TrendyolClient, TrendyolAPIError
 
         creds = load_credentials(user["id"], store_id)
@@ -317,8 +332,8 @@ def run() -> None:
     # ─────────────────────────────────────────────────────────────────────────
     with tab2:
         st.markdown(
-            """<div class="info-box">
-            Trendyol ürün sayfanızdaki müşteri yorumlarını kopyalayıp yapıştırın.
+            f"""<div class="info-box">
+            {mp_label} ürün sayfanızdaki müşteri yorumlarını kopyalayıp yapıştırın.
             Her yorum ayrı satırda olmalı. Sistem otomatik duygu analizi yapar.
             </div>""",
             unsafe_allow_html=True,

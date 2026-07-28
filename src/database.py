@@ -359,6 +359,7 @@ def _migrate_postgres(cur) -> None:
         )
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_stores_user ON stores(user_id)")
+    cur.execute("ALTER TABLE stores ADD COLUMN IF NOT EXISTS marketplace TEXT NOT NULL DEFAULT 'trendyol'")
 
     # campaigns tablosunu store_id eklenmeden ÖNCE oluştur
     cur.execute("""
@@ -633,6 +634,10 @@ def _migrate_sqlite(cur) -> None:
     """)
     try:
         cur.execute("CREATE INDEX IF NOT EXISTS idx_stores_user ON stores(user_id)")
+    except Exception:
+        pass
+    try:
+        cur.execute("ALTER TABLE stores ADD COLUMN marketplace TEXT NOT NULL DEFAULT 'trendyol'")
     except Exception:
         pass
 
@@ -924,7 +929,7 @@ def get_stores(user_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def create_store(user_id: int, store_name: str) -> int:
+def create_store(user_id: int, store_name: str, marketplace: str = "trendyol") -> int:
     """Yeni mağaza oluşturur; store_id döndürür.
     İlk mağaza oluşturulurken mevcut store_id=NULL siparişleri bu mağazaya bağlar."""
     conn = get_connection()
@@ -935,14 +940,14 @@ def create_store(user_id: int, store_name: str) -> int:
     if db_url:
         # PostgreSQL: RETURNING ile id'yi güvenilir şekilde al
         cur = conn.execute(
-            "INSERT INTO stores (user_id, store_name) VALUES (?, ?) RETURNING id",
-            (user_id, store_name.strip()),
+            "INSERT INTO stores (user_id, store_name, marketplace) VALUES (?, ?, ?) RETURNING id",
+            (user_id, store_name.strip(), marketplace),
         )
         store_id = cur.lastrowid
     else:
         cur = conn.execute(
-            "INSERT INTO stores (user_id, store_name) VALUES (?, ?)",
-            (user_id, store_name.strip()),
+            "INSERT INTO stores (user_id, store_name, marketplace) VALUES (?, ?, ?)",
+            (user_id, store_name.strip(), marketplace),
         )
         store_id = cur.lastrowid
 

@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from src.analytics import get_return_analysis
-from src.ui_helpers import _header, _section, _kpi, _fmt_tl, _plan_gate
+from src.ui_helpers import _header, _section, _kpi, _fmt_tl, _plan_gate, marketplace_label
 
 
 def run() -> None:
@@ -15,6 +15,9 @@ def run() -> None:
 
     user     = st.session_state.user
     store_id = st.session_state.get("active_store_id")
+    stores = st.session_state.get("stores", [])
+    active_store = next((s for s in stores if s["id"] == store_id), None)
+    mp_label = marketplace_label(active_store.get("marketplace") if active_store else None)
 
     _header("🔄", "İade Analizi", "İade oranı yüksek ürünleri tespit edin")
 
@@ -22,8 +25,8 @@ def run() -> None:
 
     if not result.get("has_data"):
         st.markdown(
-            """<div class="info-box">📂 İade analizi için sipariş verisi bulunamadı.
-            Veri Yükle sayfasından Trendyol sipariş raporunuzu yükleyin.
+            f"""<div class="info-box">📂 İade analizi için sipariş verisi bulunamadı.
+            Veri Yükle sayfasından {mp_label} sipariş raporunuzu yükleyin.
             Siparişlerdeki <b>durum</b> sütununda "İade", "Returned", "iade" gibi
             değerler varsa sistem otomatik olarak analiz eder.</div>""",
             unsafe_allow_html=True,

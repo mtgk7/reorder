@@ -17,6 +17,7 @@ from email.mime.text import MIMEText
 from typing import Optional
 
 from src.database import get_connection
+from src.ui_helpers import marketplace_label
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -296,6 +297,7 @@ def _campaign_html(
     segment: str,
     customers: list[dict],
     template_text: str,
+    marketplace: str = "trendyol",
 ) -> str:
     """Kampanya raporu için HTML e-posta içeriği üretir."""
     tmpl = SEGMENT_TEMPLATES.get(segment, {})
@@ -387,7 +389,7 @@ def _campaign_html(
   <!-- Footer -->
   <div style="padding:14px 30px;background:#1a1a2e;text-align:center;">
     <p style="color:rgba(255,255,255,.4);margin:0;font-size:.78rem;">
-      ReOrder · Trendyol Müşteri Retention Platformu
+      ReOrder · {marketplace_label(marketplace)} Müşteri Retention Platformu
     </p>
   </div>
 </div>
@@ -401,6 +403,7 @@ def send_campaign_report(
     segment: str,
     customers: list[dict],
     custom_template: str,
+    marketplace: str = "trendyol",
 ) -> dict:
     """
     Kampanya raporunu mağaza sahibine e-posta ile gönderir.
@@ -415,7 +418,7 @@ def send_campaign_report(
         msg["From"] = f"{config.from_name} <{config.from_email}>"
         msg["To"] = to_email
 
-        html = _campaign_html(store_name, segment, customers, custom_template)
+        html = _campaign_html(store_name, segment, customers, custom_template, marketplace)
         msg.attach(MIMEText(html, "html", "utf-8"))
 
         _send_smtp(config, to_email, msg)

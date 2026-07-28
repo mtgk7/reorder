@@ -12,12 +12,15 @@ from src.analytics import (
     get_product_analysis, get_revenue_forecast, get_cross_sell_matrix,
     get_return_analysis, get_hourly_distribution, get_city_distribution,
 )
-from src.ui_helpers import _fmt_tl, _header, _section, _plan_limits
+from src.ui_helpers import _fmt_tl, _header, _section, _plan_limits, marketplace_label
 
 
 def run() -> None:
     user = st.session_state.user
     store_id = st.session_state.get("active_store_id")
+    stores = st.session_state.get("stores", [])
+    active_store = next((s for s in stores if s["id"] == store_id), None)
+    mp_label = marketplace_label(active_store.get("marketplace") if active_store else None)
     _header("📈", "Analitik", "Cohort (Müşteri Grubu) Retention, LTV ve Müşteri Davranışı")
 
     m = get_summary_metrics(user["id"], store_id)
@@ -414,7 +417,7 @@ def run() -> None:
                         unsafe_allow_html=True,
                     )
                 else:
-                    st.info("Sipariş saati verisi bulunmuyor. Trendyol export dosyanızda saat bilgisi içeren tarih sütunu olduğunda bu grafik dolar.")
+                    st.info(f"Sipariş saati verisi bulunmuyor. {mp_label} export dosyanızda saat bilgisi içeren tarih sütunu olduğunda bu grafik dolar.")
 
                 if not hourly_data["weekday"].empty:
                     _section("Haftanın Günü Dağılımı")
@@ -433,7 +436,7 @@ def run() -> None:
             if not city_data.get("has_data"):
                 if city_data.get("no_city_data"):
                     st.info(
-                        "Şehir verisi bulunamadı. Trendyol export dosyanızda 'İl' veya 'Teslimat İli' "
+                        f"Şehir verisi bulunamadı. {mp_label} export dosyanızda 'İl' veya 'Teslimat İli' "
                         "sütunu olduğunda bu analiz otomatik olarak dolar. "
                         "Örnek veriler için Veri Yükle sayfasından örnek oluşturabilirsiniz."
                     )

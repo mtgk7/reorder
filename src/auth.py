@@ -312,7 +312,7 @@ background:#f0f4fa;margin:0;padding:20px;">
     </p>
   </div>
   <div style="background:#f8faff;border-top:1px solid #e8edf5;padding:14px 32px;text-align:center;">
-    <p style="color:#9ca3af;font-size:.7rem;margin:0;">ReOrder © 2026 — Trendyol Retention Platformu</p>
+    <p style="color:#9ca3af;font-size:.7rem;margin:0;">ReOrder © 2026 — Pazaryeri Retention Platformu</p>
   </div>
 </div>
 </body></html>

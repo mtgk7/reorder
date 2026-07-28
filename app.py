@@ -70,6 +70,7 @@ from src.analytics import (
 from src.ui_helpers import (
     _PLAN_LIMITS, _PLAN_BADGE_COLOR, _PLAN_UPGRADE, _PLAN_PRICES, _PLAN_FEATURES,
     _ONBOARDING_BG, _plan_limits, _plan_gate, _fmt_tl, _kpi, _header, _section, _go,
+    MARKETPLACES, marketplace_label, marketplace_icon,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -77,7 +78,7 @@ from src.ui_helpers import (
 # _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
 # Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
-_SCHEMA_VER = "v10"  # stok_alerts, product_reviews, seller_scores, competitor_prices, campaign_roi
+_SCHEMA_VER = "v11"  # stores.marketplace (Trendyol dışı pazaryeri desteği)
 
 
 @st.cache_resource
@@ -100,7 +101,7 @@ def _load_favicon():
 
 _favicon = _load_favicon()
 st.set_page_config(
-    page_title="ReOrder — Trendyol Retention",
+    page_title="ReOrder — Pazaryeri Retention",
     page_icon=_favicon,
     layout="wide",
     initial_sidebar_state="auto",   # mobilde kapalı, masaüstünde açık
@@ -751,7 +752,7 @@ def _contact_dialog() -> None:
         )
         message = st.text_area(
             "Mesajınız",
-            placeholder="Trendyol mağazanız hakkında kısa bilgi verin...",
+            placeholder="Mağazanız hakkında kısa bilgi verin...",
             height=90,
         )
         submitted = st.form_submit_button(
@@ -1075,7 +1076,7 @@ body,html{overflow-x:hidden;}
         font-size:1.15rem;box-shadow:0 4px 14px rgba(242,133,0,.35);">&#x1F504;</div>
     <div>
       <div style="font-size:1.2rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;">ReOrder</div>
-      <div style="font-size:.63rem;color:#9ca3af;">Trendyol Retention Platformu</div>
+      <div style="font-size:.63rem;color:#9ca3af;">Pazaryeri Retention Platformu</div>
     </div>
   </div>
   <div style="font-size:.82rem;font-weight:600;color:#374151;margin-bottom:.7rem;">
@@ -1210,9 +1211,9 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 <div class="hero">
   <div class="logo-row">
     <div class="logo-icon">&#x1F504;</div>
-    <div><div class="logo-name">ReOrder</div><div class="logo-tag">Trendyol Retention &amp; Analitik Platformu</div></div>
+    <div><div class="logo-name">ReOrder</div><div class="logo-tag">Pazaryeri Retention &amp; Analitik Platformu</div></div>
   </div>
-  <div class="hero-pill">Trendyol Ma&#287;azalar&#305; &#304;&#231;in Geli&#351;tirildi</div>
+  <div class="hero-pill">T&#252;m Pazaryerleri &#304;&#231;in Geli&#351;tirildi</div>
   <h1 class="hero-h1" id="hero-h1">M&#252;&#351;terini Geri Kazan.<br><em>Gelirini Art&#305;r.</em></h1>
   <p class="hero-sub" id="hero-sub">Cohort retention, RFM segmentasyon, churn tahmini ve profesyonel PDF raporlama &mdash; tek platformda.</p>
   <div class="stats hero-stats" id="hero-stats">
@@ -1403,7 +1404,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
 <div class="features">
   <div class="sec-tag">&#214;zellikler</div>
   <div class="sec-title">Her &#351;ey tek yerden</div>
-  <div class="sec-sub">Trendyol ma&#287;azan&#305; b&#252;y&#252;tmek i&#231;in ihtiya&#231; duydu&#287;un t&#252;m ara&#231;lar. <span style="background:linear-gradient(135deg,#F28500,#D46000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">12 yeni &#246;zellik eklendi!</span></div>
+  <div class="sec-sub">Pazaryeri ma&#287;azan&#305; b&#252;y&#252;tmek i&#231;in ihtiya&#231; duydu&#287;un t&#252;m ara&#231;lar. <span style="background:linear-gradient(135deg,#F28500,#D46000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">12 yeni &#246;zellik eklendi!</span></div>
   <div class="feat-grid">
     <div class="feat">
       <div class="feat-top"><div class="fi fi-or">&#128202;</div><div class="ft">Anl&#305;k Dashboard</div></div>
@@ -1432,7 +1433,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
     </div>
     <div class="feat">
       <div class="feat-top"><div class="fi fi-te">&#127978;</div><div class="ft">&#199;oklu Ma&#287;aza</div></div>
-      <div class="fd">Birden fazla Trendyol ma&#287;azan&#305; tek hesaptan y&#246;net. Ba&#287;&#305;ms&#305;z API.</div>
+      <div class="fd">Birden fazla ma&#287;azan&#305; (farkl&#305; pazaryerlerinden) tek hesaptan y&#246;net.</div>
       <div class="ftags"><span class="tag tt">&#199;oklu Ma&#287;aza</span><span class="tag tb">API</span></div>
     </div>
     <div class="feat" style="border-color:rgba(242,133,0,.3);background:linear-gradient(135deg,#fffbf5,#fff);">
@@ -1513,7 +1514,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;bac
     <div class="soc-av-more">+496</div>
   </div>
   <div class="soc-text">
-    <strong>150+ Trendyol ma&#287;azas&#305;</strong> ReOrder ile retention'&#305;n&#305; art&#305;rd&#305;.
+    <strong>150+ pazaryeri ma&#287;azas&#305;</strong> ReOrder ile retention'&#305;n&#305; art&#305;rd&#305;.
     <div style="font-size:.65rem;color:#9ca3af;margin-top:.12rem;">Ortalama 34% daha fazla geri d&#246;nen m&#252;&#351;teri</div>
   </div>
   <div class="soc-rating"><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><div class="rating-val">4.9</div></div>
@@ -1771,7 +1772,7 @@ function goRegister(){
   <div style="padding:1.6rem 1rem 0;">
     <div style="font-size:.6rem;font-weight:700;color:#F28500;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.3rem;">&#10022; Özellikler</div>
     <div style="font-size:1.15rem;font-weight:900;color:#0f1a35;letter-spacing:-.02em;margin-bottom:.2rem;">Her şey tek yerden</div>
-    <div style="font-size:.79rem;color:#9ca3af;line-height:1.6;margin-bottom:.4rem;">Trendyol mağazanı büyütmek için ihtiyaç duyduğun tüm araçlar.</div>
+    <div style="font-size:.79rem;color:#9ca3af;line-height:1.6;margin-bottom:.4rem;">Pazaryeri mağazanı büyütmek için ihtiyaç duyduğun tüm araçlar.</div>
     <div style="font-size:.72rem;font-weight:800;background:linear-gradient(90deg,#F28500,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.85rem;">&#10024; 12 yeni özellik eklendi!</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem;">
       <div style="background:#fff;border:1px solid #e8edf5;border-radius:12px;padding:.9rem;box-shadow:0 1px 4px rgba(0,0,0,.04);">
@@ -1852,7 +1853,7 @@ function goRegister(){
       <div style="width:28px;height:28px;border-radius:50%;background:#e8edf5;border:2px solid #fff;margin-left:-7px;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#6b7280;">+496</div>
     </div>
     <div style="flex:1;">
-      <div style="font-size:.75rem;font-weight:700;color:#0f1a35;">150+ Trendyol mağazası</div>
+      <div style="font-size:.75rem;font-weight:700;color:#0f1a35;">150+ pazaryeri mağazası</div>
       <div style="font-size:.65rem;color:#9ca3af;margin-top:.1rem;">Ortalama +34% geri dönen müşteri</div>
     </div>
     <div style="font-size:.7rem;font-weight:700;color:#0f1a35;">⭐ 4.9</div>
@@ -2239,7 +2240,9 @@ def show_sidebar() -> None:
         )
 
         if stores:
-            store_names = [s["store_name"] for s in stores]
+            store_names = [
+                f"{marketplace_icon(s.get('marketplace'))} {s['store_name']}" for s in stores
+            ]
             store_ids   = [s["id"] for s in stores]
             try:
                 current_idx = store_ids.index(active_store_id) if active_store_id in store_ids else 0
@@ -2323,9 +2326,16 @@ def show_sidebar() -> None:
                 )
             else:
                 new_store_name = st.text_input("Yeni Mağaza Adı", placeholder="Mağaza adı", key="new_store_input")
+                _mp_keys = list(MARKETPLACES.keys())
+                new_store_marketplace = st.selectbox(
+                    "Pazaryeri",
+                    options=_mp_keys,
+                    format_func=lambda k: f"{MARKETPLACES[k]['icon']} {MARKETPLACES[k]['label']}",
+                    key="new_store_marketplace",
+                )
                 if st.button("Ekle", key="add_store_btn", use_container_width=True):
                     if new_store_name.strip():
-                        new_id = create_store(user["id"], new_store_name.strip())
+                        new_id = create_store(user["id"], new_store_name.strip(), new_store_marketplace)
                         st.session_state.stores = get_stores(user["id"])
                         st.session_state.active_store_id = new_id
                         st.success(f"'{new_store_name}' eklendi!")

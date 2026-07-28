@@ -12,22 +12,24 @@ from src.analytics import (
     get_current_month_metrics, get_anomalies, get_period_comparison,
 )
 from src.database import load_goals
-from src.ui_helpers import _fmt_tl, _kpi, _header, _section, _go, _plan_gate
+from src.ui_helpers import _fmt_tl, _kpi, _header, _section, _go, _plan_gate, marketplace_label
 
 
 def run() -> None:
     user = st.session_state.user
     store_id = st.session_state.get("active_store_id")
     stores = st.session_state.get("stores", [])
-    store_name = next((s["store_name"] for s in stores if s["id"] == store_id), user["store_name"])
+    active_store = next((s for s in stores if s["id"] == store_id), None)
+    store_name = active_store["store_name"] if active_store else user["store_name"]
+    mp_label = marketplace_label(active_store.get("marketplace") if active_store else None)
     _header("📊", "Genel Bakış", f"{store_name} — Müşteri Metrikleri")
 
     m = get_summary_metrics(user["id"], store_id)
 
     if not m["has_data"]:
         st.markdown(
-            """<div class="info-box">📂 <b>Henüz veri yüklenmedi.</b> Analitikleri görmek için
-            <b>Veri Yükle</b> sayfasından Trendyol sipariş raporu yükleyin veya örnek veri oluşturun.</div>""",
+            f"""<div class="info-box">📂 <b>Henüz veri yüklenmedi.</b> Analitikleri görmek için
+            <b>Veri Yükle</b> sayfasından {mp_label} sipariş raporu yükleyin veya örnek veri oluşturun.</div>""",
             unsafe_allow_html=True,
         )
         if st.button("📁 Veri Yükle Sayfasına Git"):
@@ -473,7 +475,10 @@ def run() -> None:
         with st.spinner("PDF hazırlanıyor…"):
             try:
                 from src.report import generate_report
-                pdf_bytes = generate_report(user["id"], store_name, store_id)
+                pdf_bytes = generate_report(
+                    user["id"], store_name, store_id,
+                    marketplace=(active_store.get("marketplace") if active_store else "trendyol"),
+                )
                 st.session_state["pdf_report"] = {
                     "bytes": bytes(pdf_bytes),
                     "store": store_name,
