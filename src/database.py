@@ -360,6 +360,9 @@ def _migrate_postgres(cur) -> None:
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_stores_user ON stores(user_id)")
     cur.execute("ALTER TABLE stores ADD COLUMN IF NOT EXISTS marketplace TEXT NOT NULL DEFAULT 'trendyol'")
+    cur.execute("ALTER TABLE stores ADD COLUMN IF NOT EXISTS hb_merchant_id TEXT")
+    cur.execute("ALTER TABLE stores ADD COLUMN IF NOT EXISTS hb_username TEXT")
+    cur.execute("ALTER TABLE stores ADD COLUMN IF NOT EXISTS hb_password TEXT")
 
     # campaigns tablosunu store_id eklenmeden ÖNCE oluştur
     cur.execute("""
@@ -640,6 +643,11 @@ def _migrate_sqlite(cur) -> None:
         cur.execute("ALTER TABLE stores ADD COLUMN marketplace TEXT NOT NULL DEFAULT 'trendyol'")
     except Exception:
         pass
+    for col in ("hb_merchant_id", "hb_username", "hb_password"):
+        try:
+            cur.execute(f"ALTER TABLE stores ADD COLUMN {col} TEXT")
+        except Exception:
+            pass
 
     for col in ("store_id",):
         try:

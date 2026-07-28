@@ -323,53 +323,10 @@ def orders_to_dataframe(raw_orders: list[dict]) -> "pd.DataFrame":
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Credential yönetimi (DB'de şifreli saklama)
-#
-# CREDENTIALS_KEY env var'ı (Fernet anahtarı) ayarlıysa API secret'ları at-rest
-# şifrelenir. Ayarlı değilse eskisi gibi düz metin saklanır (geriye dönük uyumlu).
-# Mevcut düz-metin kayıtlar okunmaya devam eder — yalnızca yeni kayıtlar şifrelenir.
+# Credential yönetimi (DB'de şifreli saklama) — ortak yardımcı: credentials_crypto.py
 # ─────────────────────────────────────────────────────────────────────────────
 
-_ENC_PREFIX = "enc:v1:"
-
-
-def _get_fernet():
-    """CREDENTIALS_KEY ayarlı ve cryptography kuruluysa Fernet nesnesi döner, yoksa None."""
-    import os
-    key = os.environ.get("CREDENTIALS_KEY", "").strip()
-    if not key:
-        return None
-    try:
-        from cryptography.fernet import Fernet
-        return Fernet(key.encode())
-    except Exception:
-        return None
-
-
-def _enc(value: str) -> str:
-    """Değeri şifreler (anahtar yoksa olduğu gibi döner)."""
-    if not value:
-        return value
-    f = _get_fernet()
-    if not f:
-        return value
-    try:
-        return _ENC_PREFIX + f.encrypt(value.encode()).decode()
-    except Exception:
-        return value
-
-
-def _dec(value):
-    """Şifreli değeri çözer; düz metin ise olduğu gibi döner."""
-    if not value or not isinstance(value, str) or not value.startswith(_ENC_PREFIX):
-        return value
-    f = _get_fernet()
-    if not f:
-        return value  # anahtar kaybolduysa ham veriyi döndürme yerine olduğu gibi bırak
-    try:
-        return f.decrypt(value[len(_ENC_PREFIX):].encode()).decode()
-    except Exception:
-        return value
+from src.credentials_crypto import enc as _enc, dec as _dec
 
 
 def save_credentials(

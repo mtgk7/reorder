@@ -78,7 +78,7 @@ from src.ui_helpers import (
 # _SCHEMA_VER değiştiğinde cache kırılır ve init_db() yeniden çalışır.
 # Yeni tablo/sütun eklendiğinde bu sabiti artır!
 # ─────────────────────────────────────────────────────────────────────────────
-_SCHEMA_VER = "v11"  # stores.marketplace (Trendyol dışı pazaryeri desteği)
+_SCHEMA_VER = "v12"  # stores.hb_merchant_id/hb_username/hb_password (Hepsiburada API)
 
 
 @st.cache_resource
@@ -2266,15 +2266,27 @@ def show_sidebar() -> None:
                 current_idx = selected_idx
 
             active_store = stores[current_idx]
-            # Trendyol API bilgileri var mı? — session_state'de cache'le, her render'da DB'ye gitme
-            _cred_key = f"_ty_creds_{user['id']}_{active_store['id']}"
-            if _cred_key not in st.session_state:
-                try:
-                    from src.trendyol_api import load_credentials as _lc
-                    st.session_state[_cred_key] = _lc(user["id"], active_store["id"])
-                except Exception:
-                    st.session_state[_cred_key] = None
-            creds = st.session_state[_cred_key]
+            # Mağazanın pazaryerine göre doğru API modülünü seç (Trendyol/Hepsiburada
+            # birbirinin kimlik bilgilerine/senkron akışına asla karışmaz)
+            _active_mp = active_store.get("marketplace") or "trendyol"
+            if _active_mp == "trendyol":
+                from src.trendyol_api import load_credentials as _lc, sync_orders as _so
+            elif _active_mp == "hepsiburada":
+                from src.hepsiburada_api import load_credentials as _lc, sync_orders as _so
+            else:
+                _lc = _so = None
+
+            _cred_key_prefix = "_ty_creds" if _active_mp == "trendyol" else "_hb_creds"
+            _cred_key = f"{_cred_key_prefix}_{user['id']}_{active_store['id']}"
+            if _lc is None:
+                creds = None
+            else:
+                if _cred_key not in st.session_state:
+                    try:
+                        st.session_state[_cred_key] = _lc(user["id"], active_store["id"])
+                    except Exception:
+                        st.session_state[_cred_key] = None
+                creds = st.session_state[_cred_key]
 
             if creds:
                 last_sync = creds.get("last_sync_at")
@@ -2301,7 +2313,6 @@ def show_sidebar() -> None:
                     start = (today - _dt.timedelta(days=7)).strftime("%Y-%m-%d")
                     end   = today.strftime("%Y-%m-%d")
                     with st.spinner("Senkronize ediliyor…"):
-                        from src.trendyol_api import sync_orders as _so
                         res = _so(user["id"], start, end, active_store["id"])
                     if res["success"]:
                         st.success(f"✅ {res['inserted']} yeni sipariş eklendi.")

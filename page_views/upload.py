@@ -4,6 +4,12 @@ import streamlit as st
 
 from src.parser import parse_trendyol_file, import_to_db, generate_sample_orders
 from src.trendyol_api import save_credentials, load_credentials, sync_orders, TrendyolClient
+from src.hepsiburada_api import (
+    save_credentials as hb_save_credentials,
+    load_credentials as hb_load_credentials,
+    sync_orders as hb_sync_orders,
+    HepsiburadaClient,
+)
 from src.analytics import get_summary_metrics
 from src.database import delete_all_orders
 from src.ui_helpers import _section, _header, _go, marketplace_label
@@ -91,7 +97,7 @@ def run() -> None:
                     _go("dashboard")
 
     with tab_api:
-        if not is_trendyol:
+        if marketplace not in ("trendyol", "hepsiburada"):
             st.markdown(
                 f"""<div class="info-box">
                 🔌 <b>{mp_label} için otomatik senkronizasyon henüz desteklenmiyor.</b><br>
@@ -100,7 +106,7 @@ def run() -> None:
                 </div>""",
                 unsafe_allow_html=True,
             )
-        else:
+        elif is_trendyol:
             creds = load_credentials(user["id"], store_id)
 
             if not creds:
@@ -216,6 +222,123 @@ def run() -> None:
                                     _go("dashboard")
                         else:
                             st.error(f"❌ Hata: {result['error']}")
+
+        elif marketplace == "hepsiburada":
+            hb_creds = hb_load_credentials(user["id"], store_id)
+
+            if not hb_creds:
+                st.markdown(
+                    """<div class="warn-box">
+                    🔌 <b>API bağlantısı kurulmamış.</b>
+                    Aşağıya Hepsiburada Satıcı Paneli'nden aldığınız bilgileri girerek bağlantıyı kurun.
+                    <br><br>
+                    <b>Nasıl alınır?</b> Hepsiburada Satıcı Paneli →
+                    <b>Entegrasyonlar</b> → <b>API Bilgileri</b>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+
+            with st.expander("🔑 API Kimlik Bilgileri" + (" (Kayıtlı ✅)" if hb_creds else ""), expanded=not bool(hb_creds)):
+                with st.form("hb_api_creds_form"):
+                    hb_merchant_id = st.text_input("Merchant ID", value=hb_creds["merchant_id"] if hb_creds else "", placeholder="Örn: 550e8400-e29b-...")
+                    hb_username    = st.text_input("Kullanıcı Adı", value=hb_creds["username"] if hb_creds else "", placeholder="Hepsiburada Satıcı Paneli kullanıcı adı")
+                    hb_password    = st.text_input("Şifre", value=hb_creds["password"] if hb_creds else "", type="password", placeholder="Hepsiburada Satıcı Paneli şifresi")
+
+                    col_save, col_test = st.columns(2)
+                    with col_save:
+                        hb_save_btn = st.form_submit_button("💾 Kaydet", use_container_width=True)
+                    with col_test:
+                        hb_test_btn = st.form_submit_button("🔗 Bağlantıyı Test Et", use_container_width=True)
+
+                if hb_save_btn:
+                    if not (hb_merchant_id and hb_username and hb_password):
+                        st.error("Tüm alanları doldurun.")
+                    else:
+                        hb_save_credentials(user["id"], hb_merchant_id, hb_username, hb_password, store_id)
+                        st.session_state.pop(f"_hb_creds_{user['id']}_{store_id}", None)
+                        st.success("✅ API bilgileri kaydedildi!")
+                        st.rerun()
+
+                if hb_test_btn:
+                    if not (hb_merchant_id and hb_username and hb_password):
+                        st.error("Önce bilgileri girin.")
+                    else:
+                        with st.spinner("Bağlantı test ediliyor…"):
+                            try:
+                                client = HepsiburadaClient(hb_merchant_id, hb_username, hb_password)
+                                ok = client.test_connection()
+                            except Exception:
+                                ok = False
+                        if ok:
+                            st.success("✅ Bağlantı başarılı! API bilgileri doğru.")
+                        else:
+                            st.error("❌ Bağlantı kurulamadı. Bilgilerinizi kontrol edin.")
+
+            if hb_creds:
+                st.markdown("---")
+                _section("📥 Sipariş Senkronizasyonu")
+
+                if hb_creds["last_sync_at"]:
+                    st.markdown(
+                        f"""<div class="success-box">
+                        ⏱️ Son senkronizasyon: <b>{hb_creds['last_sync_at']}</b>
+                        — {hb_creds['last_sync_count']:,} sipariş eklendi
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+
+                st.markdown("Hepsiburada'dan çekilecek tarih aralığını seçin:")
+
+                col1, col2, col3 = st.columns([1, 1, 1])
+                with col1:
+                    if st.button("Son 7 Gün",  key="hb_sync_7",  use_container_width=True):
+                        st.session_state["hb_sync_preset"] = 7
+                with col2:
+                    if st.button("Son 30 Gün", key="hb_sync_30", use_container_width=True):
+                        st.session_state["hb_sync_preset"] = 30
+                with col3:
+                    if st.button("Son 90 Gün", key="hb_sync_90", use_container_width=True):
+                        st.session_state["hb_sync_preset"] = 90
+
+                import datetime as _dt
+                hb_preset_days = st.session_state.get("hb_sync_preset", 30)
+                hb_default_start = _dt.date.today() - _dt.timedelta(days=hb_preset_days)
+                hb_default_end   = _dt.date.today()
+
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    hb_sync_start = st.date_input("Başlangıç", value=hb_default_start, key="hb_sync_start")
+                with col_d2:
+                    hb_sync_end   = st.date_input("Bitiş",     value=hb_default_end,   key="hb_sync_end")
+
+                if st.button("🔄 Siparişleri Senkronize Et", type="primary", use_container_width=True, key="hb_sync_btn"):
+                    if hb_sync_start > hb_sync_end:
+                        st.error("Başlangıç tarihi bitiş tarihinden büyük olamaz.")
+                    else:
+                        with st.spinner(f"Hepsiburada'dan siparişler çekiliyor ({hb_sync_start} → {hb_sync_end})…"):
+                            hb_result = hb_sync_orders(
+                                user["id"],
+                                hb_sync_start.strftime("%Y-%m-%d"),
+                                hb_sync_end.strftime("%Y-%m-%d"),
+                                store_id,
+                            )
+
+                        if hb_result["success"]:
+                            if hb_result["inserted"] == 0 and hb_result["skipped"] == 0:
+                                st.info("Bu tarih aralığında yeni sipariş bulunamadı.")
+                            else:
+                                st.markdown(
+                                    f"""<div class="success-box">
+                                    ✅ Senkronizasyon tamamlandı!<br>
+                                    <b>{hb_result['inserted']:,} yeni sipariş</b> eklendi.
+                                    {f"({hb_result['skipped']:,} tekrar atlandı.)" if hb_result['skipped'] else ""}
+                                    </div>""",
+                                    unsafe_allow_html=True,
+                                )
+                                if st.button("📊 Dashboard'a Git", key="hb_api_goto_dash"):
+                                    _go("dashboard")
+                        else:
+                            st.error(f"❌ Hata: {hb_result['error']}")
 
     with tab_sample:
         st.markdown(
