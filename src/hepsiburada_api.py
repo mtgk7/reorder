@@ -14,7 +14,7 @@ da aynı şekilde ilerlenmişti).
 from __future__ import annotations
 
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import requests
@@ -56,7 +56,7 @@ class HepsiburadaClient:
     def get_orders(
         self,
         offset: int = 0,
-        limit: int = 100,
+        limit: int = 50,
         begin_date: str | None = None,
         end_date: str | None = None,
     ) -> list[dict]:
@@ -65,12 +65,14 @@ class HepsiburadaClient:
 
         Args:
             offset     : Sayfalama başlangıcı
-            limit      : Sayfa başına kayıt
+            limit      : Sayfa başına kayıt (resmi dokümana göre limit-offset ile
+                         birlikte kullanılırken maksimum 50)
             begin_date : "YYYY-MM-DD HH:MM" formatında başlangıç tarihi (opsiyonel)
             end_date   : "YYYY-MM-DD HH:MM" formatında bitiş tarihi (opsiyonel)
 
         Dönüş:
-            Hepsiburada API'den gelen ham sipariş listesi
+            Hepsiburada API'den gelen ham sipariş listesi (her eleman bir sipariş
+            KALEMİ — API yanıtı düz/flat, "items"/"lines" gibi bir sarmalayıcı yok)
         """
         params: dict[str, Any] = {"offset": offset, "limit": limit}
         if begin_date:
@@ -100,22 +102,37 @@ class HepsiburadaClient:
     def get_all_orders(self, start_date: str, end_date: str) -> list[dict]:
         """
         Belirtilen aralıktaki tüm siparişleri sayfalayarak çeker.
-        Dönen kayıt sayısı `limit`'ten azsa son sayfa kabul edilir.
+
+        Resmi dokümana göre servis tek istekte yalnızca son ~1 aylık veriyi
+        döndürüyor — bu yüzden geniş tarih aralıkları 30 günlük dilimlere
+        bölünüp ayrı ayrı sorgulanır (Trendyol'daki status="ALL" döngüsüyle
+        aynı desen).
         """
-        begin = f"{start_date} 00:00"
-        end = f"{end_date} 23:59"
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
 
         all_orders: list[dict] = []
-        offset = 0
-        limit = 100
-        while True:
-            page = self.get_orders(offset=offset, limit=limit, begin_date=begin, end_date=end)
-            if not page:
+        chunk_start = start_dt
+        while chunk_start <= end_dt:
+            chunk_end = min(chunk_start + timedelta(days=30), end_dt)
+            begin = f"{chunk_start.strftime('%Y-%m-%d')} 00:00"
+            end = f"{chunk_end.strftime('%Y-%m-%d')} 23:59"
+
+            offset = 0
+            limit = 50
+            while True:
+                page = self.get_orders(offset=offset, limit=limit, begin_date=begin, end_date=end)
+                if not page:
+                    break
+                all_orders.extend(page)
+                if len(page) < limit:
+                    break
+                offset += limit
+
+            chunk_end_next = chunk_end + timedelta(days=1)
+            if chunk_end_next <= chunk_start:
                 break
-            all_orders.extend(page)
-            if len(page) < limit:
-                break
-            offset += limit
+            chunk_start = chunk_end_next
         return all_orders
 
     def test_connection(self) -> bool:
@@ -133,54 +150,86 @@ class HepsiburadaClient:
 # Yardımcı: API verisini DB formatına dönüştür
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _parse_hb_date(date_raw: Any) -> tuple[str, int | None]:
+    """
+    Hepsiburada tarihleri resmi örnekte ISO8601 + milisaniye olarak geliyor
+    (örn. "2020-06-24T09:15:17.735"). `datetime.fromisoformat` bunu doğrudan
+    ayrıştırabilir; olmazsa alternatif formatlara düşülür.
+    """
+    if not date_raw:
+        return datetime.now().strftime("%Y-%m-%d"), None
+    raw = str(date_raw).replace("Z", "")
+    try:
+        dt = datetime.fromisoformat(raw)
+        return dt.strftime("%Y-%m-%d"), dt.hour
+    except ValueError:
+        pass
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            dt = datetime.strptime(raw[: len(fmt)], fmt)
+            return dt.strftime("%Y-%m-%d"), dt.hour
+        except ValueError:
+            continue
+    return datetime.now().strftime("%Y-%m-%d"), None
+
+
+def _num(val, default, cast):
+    try:
+        return cast(val)
+    except (TypeError, ValueError):
+        return default
+
+
 def orders_to_dataframe(raw_orders: list[dict]) -> "pd.DataFrame":
     """
     Hepsiburada API'den gelen sipariş listesini parser.py ile uyumlu
     normalleştirilmiş DataFrame'e çevirir.
+
+    Not: Resmi dokümandaki örnek yanıta göre `/orders/merchantid/{id}` DÜZ
+    (flat) bir liste döndürüyor — her eleman zaten bir sipariş KALEMİ
+    (dueDate, id, sku, orderId, orderNumber, orderDate, quantity, merchantId,
+    totalPrice:{currency,amount} gibi alanlarla), "items"/"lines" içeren bir
+    sipariş sarmalayıcısı DEĞİL. `totalPrice` iç içe bir obje olduğu için
+    doğrudan sayıya çevrilemez — `amount` alanı okunur. Müşteri adı/şehir
+    alan adları resmi örnekte görünmüyor (muhtemelen ayrı bir "customer"
+    objesinde) — kesin doğrulama gerçek veriyle yapılmalı, bkz. sync sonrası
+    UI'daki "🔍 Ham API Yanıtı" paneli.
     """
     import pandas as pd
 
     records = []
     for o in raw_orders:
         o = o or {}
-        customer_name = o.get("customerName") or o.get("recipientName") or o.get("customerFullName") or "Bilinmiyor"
-        city = o.get("city") or o.get("shippingCity") or ""
+        customer_obj = o.get("customer") or {}
+        customer_name = (
+            o.get("customerName") or customer_obj.get("name")
+            or o.get("recipientName") or o.get("customerFullName") or "Bilinmiyor"
+        )
+        address_obj = o.get("shippingAddress") or o.get("shipping_address") or {}
+        city = o.get("city") or o.get("shippingCity") or address_obj.get("city") or ""
 
-        date_raw = o.get("orderDate") or o.get("createdDate") or o.get("dueDate")
-        order_date, order_hour = None, None
-        if date_raw:
-            for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
-                try:
-                    dt = datetime.strptime(str(date_raw)[: len(fmt) + 2], fmt)
-                    order_date, order_hour = dt.strftime("%Y-%m-%d"), dt.hour
-                    break
-                except ValueError:
-                    continue
-        if not order_date:
-            order_date = datetime.now().strftime("%Y-%m-%d")
+        date_raw = o.get("orderDate") or o.get("dueDate") or o.get("createdDate")
+        order_date, order_hour = _parse_hb_date(date_raw)
 
-        def _num(val, default, cast):
-            try:
-                return cast(val)
-            except (TypeError, ValueError):
-                return default
+        total_price = o.get("totalPrice")
+        if isinstance(total_price, dict):
+            amount = total_price.get("amount")
+        else:
+            amount = total_price if total_price is not None else (o.get("price") or o.get("amount"))
 
-        lines = o.get("items") or o.get("lines") or [o]
-        for line in lines:
-            line = line or {}
-            records.append(
-                {
-                    "order_number": str(o.get("orderNumber") or o.get("id") or ""),
-                    "customer_identifier": customer_name,
-                    "order_date": order_date,
-                    "total_amount": _num(line.get("totalPrice") or line.get("price") or line.get("amount"), 0.0, float),
-                    "product_name": line.get("productName") or line.get("name") or "",
-                    "quantity": _num(line.get("quantity"), 1, int),
-                    "status": o.get("status") or o.get("orderStatus") or "",
-                    "city": city,
-                    "order_hour": order_hour,
-                }
-            )
+        records.append(
+            {
+                "order_number": str(o.get("orderNumber") or o.get("orderId") or o.get("id") or ""),
+                "customer_identifier": customer_name,
+                "order_date": order_date,
+                "total_amount": _num(amount, 0.0, float),
+                "product_name": o.get("productName") or o.get("name") or "",
+                "quantity": _num(o.get("quantity"), 1, int),
+                "status": o.get("status") or o.get("orderStatus") or "",
+                "city": city,
+                "order_hour": order_hour,
+            }
+        )
     return pd.DataFrame(records)
 
 
