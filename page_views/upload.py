@@ -337,6 +337,15 @@ def run() -> None:
                                 )
                                 if st.button("📊 Dashboard'a Git", key="hb_api_goto_dash"):
                                     _go("dashboard")
+
+                            if hb_result.get("raw_sample"):
+                                with st.expander("🔍 Ham API Yanıtı (alan adı doğrulama için)"):
+                                    st.caption(
+                                        "Hepsiburada API alan adları henüz resmi dokümandan doğrulanamadı. "
+                                        "Müşteri adı, tarih veya tutar bilgileri yanlış görünüyorsa bu ham "
+                                        "yanıttaki gerçek alan adlarını geliştiriciyle paylaşın."
+                                    )
+                                    st.json(hb_result["raw_sample"])
                         else:
                             st.error(f"❌ Hata: {hb_result['error']}")
 

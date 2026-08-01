@@ -121,7 +121,9 @@ class HepsiburadaClient:
     def test_connection(self) -> bool:
         """API kimlik bilgilerinin geçerli olduğunu doğrular."""
         try:
-            self.get_orders(offset=0, limit=1)
+            sample = self.get_orders(offset=0, limit=1)
+            print(f"[HepsiburadaClient] Bağlantı başarılı. Örnek kayıt anahtarları: "
+                  f"{list(sample[0].keys()) if sample else '(sipariş yok)'}", flush=True)
             return True
         except HepsiburadaAPIError:
             return False
@@ -253,20 +255,28 @@ def sync_orders(user_id: int, start_date: str, end_date: str, store_id: int) -> 
         client = HepsiburadaClient(creds["merchant_id"], creds["username"], creds["password"])
         raw_orders = client.get_all_orders(start_date, end_date)
 
+        # Alan adı doğrulaması henüz yapılamadı (bkz. modül docstring'i) — ilk gerçek
+        # senkronda ham veriyi UI'da gösterebilmek için bir örnek kaydı sonuca ekliyoruz.
+        raw_sample = raw_orders[0] if raw_orders else None
+
         if not raw_orders:
-            return {"success": True, "inserted": 0, "skipped": 0, "error": None}
+            return {"success": True, "inserted": 0, "skipped": 0, "error": None, "raw_sample": None}
 
         df = orders_to_dataframe(raw_orders)
         result = import_to_db(df, user_id, batch=f"hb_api_{start_date}_{end_date}", store_id=store_id)
         update_sync_time(store_id, user_id, result["inserted"])
+
+        print(f"[hepsiburada_api.sync_orders] {len(raw_orders)} ham sipariş alındı. "
+              f"Örnek anahtarlar: {list(raw_sample.keys()) if raw_sample else '(yok)'}", flush=True)
 
         return {
             "success": True,
             "inserted": result["inserted"],
             "skipped":  result["skipped"],
             "error":    None,
+            "raw_sample": raw_sample,
         }
     except HepsiburadaAPIError as exc:
-        return {"success": False, "inserted": 0, "skipped": 0, "error": str(exc)}
+        return {"success": False, "inserted": 0, "skipped": 0, "error": str(exc), "raw_sample": None}
     except Exception as exc:
-        return {"success": False, "inserted": 0, "skipped": 0, "error": f"Beklenmeyen hata: {exc}"}
+        return {"success": False, "inserted": 0, "skipped": 0, "error": f"Beklenmeyen hata: {exc}", "raw_sample": None}
