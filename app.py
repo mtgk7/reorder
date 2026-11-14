@@ -22,28 +22,50 @@ _load_dotenv_once()
 # başına bir kez monkeypatch'liyoruz.
 @st.cache_resource
 def _install_security_headers_once():
+    # Streamlit >=1.5x Starlette/ASGI tabanlı (eski Tornado sürümlerinde
+    # RequestHandler.set_default_headers kullanılırdı). Her iki durumu da
+    # dene; hiçbiri uymazsa sessizce atla — header eklenemese de uygulama
+    # bu yüzden asla çökmemeli.
+    try:
+        from starlette.responses import Response
+
+        _orig_init_headers = Response.init_headers
+
+        def _init_headers(self, headers=None):
+            _orig_init_headers(self, headers)
+            try:
+                self.raw_headers.append((b"x-content-type-options", b"nosniff"))
+                self.raw_headers.append((b"x-frame-options", b"DENY"))
+                self.raw_headers.append((b"content-security-policy", b"frame-ancestors 'none'"))
+                self.raw_headers.append((b"referrer-policy", b"strict-origin-when-cross-origin"))
+                self.raw_headers.append((b"strict-transport-security", b"max-age=63072000; includeSubDomains"))
+            except Exception:
+                pass
+
+        Response.init_headers = _init_headers
+        return
+    except Exception:
+        pass
+
     try:
         from tornado.web import RequestHandler
+
+        _orig_set_default_headers = RequestHandler.set_default_headers
+
+        def _set_default_headers(self):
+            _orig_set_default_headers(self)
+            try:
+                self.set_header("X-Content-Type-Options", "nosniff")
+                self.set_header("X-Frame-Options", "DENY")
+                self.set_header("Content-Security-Policy", "frame-ancestors 'none'")
+                self.set_header("Referrer-Policy", "strict-origin-when-cross-origin")
+                self.set_header("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+            except Exception:
+                pass
+
+        RequestHandler.set_default_headers = _set_default_headers
     except Exception:
-        # Bu Streamlit sürümünde Tornado doğrudan import edilemiyor olabilir
-        # (farklı bir ASGI sunucusu kullanılıyor olabilir) — sessizce atla,
-        # header eklenemese de uygulama asla bu yüzden çökmemeli.
-        return
-
-    _orig_set_default_headers = RequestHandler.set_default_headers
-
-    def _set_default_headers(self):
-        _orig_set_default_headers(self)
-        try:
-            self.set_header("X-Content-Type-Options", "nosniff")
-            self.set_header("X-Frame-Options", "DENY")
-            self.set_header("Content-Security-Policy", "frame-ancestors 'none'")
-            self.set_header("Referrer-Policy", "strict-origin-when-cross-origin")
-            self.set_header("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-        except Exception:
-            pass
-
-    RequestHandler.set_default_headers = _set_default_headers
+        pass
 
 try:
     _install_security_headers_once()
