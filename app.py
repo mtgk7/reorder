@@ -22,21 +22,33 @@ _load_dotenv_once()
 # başına bir kez monkeypatch'liyoruz.
 @st.cache_resource
 def _install_security_headers_once():
-    from tornado.web import RequestHandler
+    try:
+        from tornado.web import RequestHandler
+    except Exception:
+        # Bu Streamlit sürümünde Tornado doğrudan import edilemiyor olabilir
+        # (farklı bir ASGI sunucusu kullanılıyor olabilir) — sessizce atla,
+        # header eklenemese de uygulama asla bu yüzden çökmemeli.
+        return
 
     _orig_set_default_headers = RequestHandler.set_default_headers
 
     def _set_default_headers(self):
         _orig_set_default_headers(self)
-        self.set_header("X-Content-Type-Options", "nosniff")
-        self.set_header("X-Frame-Options", "DENY")
-        self.set_header("Content-Security-Policy", "frame-ancestors 'none'")
-        self.set_header("Referrer-Policy", "strict-origin-when-cross-origin")
-        self.set_header("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+        try:
+            self.set_header("X-Content-Type-Options", "nosniff")
+            self.set_header("X-Frame-Options", "DENY")
+            self.set_header("Content-Security-Policy", "frame-ancestors 'none'")
+            self.set_header("Referrer-Policy", "strict-origin-when-cross-origin")
+            self.set_header("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+        except Exception:
+            pass
 
     RequestHandler.set_default_headers = _set_default_headers
 
-_install_security_headers_once()
+try:
+    _install_security_headers_once()
+except Exception:
+    pass
 
 import pandas as pd
 import plotly.express as px
