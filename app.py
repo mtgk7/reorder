@@ -146,12 +146,16 @@ _init_db_once(_SCHEMA_VER)
 
 
 def _load_favicon():
+    # Dosya yolunu (string) doğrudan page_icon'a veriyoruz — Streamlit bu durumda
+    # ham PNG byte'larını olduğu gibi okur. Bir PIL.Image nesnesi verilseydi
+    # Streamlit onu Pillow ile yeniden encode ederdi (image.save(...)); bu adım
+    # Render'ın Linux/Pillow build'inde 500 hatasına yol açtı (2026-11-14),
+    # yerelde (Windows) ise sorunsuzdu — platform'a özgü bir Pillow davranış
+    # farkı. Dosya yolu vermek bu re-encode adımını tamamen atlıyor.
     try:
-        from PIL import Image as _PIL_Image
         from pathlib import Path as _Path
-        img = _PIL_Image.open(_Path(__file__).parent / "assets" / "favicon.png")
-        img.load()  # dosyanın bütünlüğünü burada doğrula
-        return img
+        path = _Path(__file__).parent / "assets" / "favicon.png"
+        return str(path) if path.is_file() else "🔄"
     except Exception:
         return "🔄"
 
