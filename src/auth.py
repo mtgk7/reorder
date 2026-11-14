@@ -97,6 +97,12 @@ def register_user(email: str, password: str, store_name: str) -> dict:
     if not store_name:
         return {"success": False, "error": "Mağaza adı boş bırakılamaz."}
 
+    # Bot/toplu kayıt önleme: aynı e-posta için sık deneme + genel kayıt hızı sınırı.
+    if not _rate_limit_check(f"register:{email}", max_attempts=3, window_sec=600):
+        return {"success": False, "error": "Çok fazla kayıt denemesi. Lütfen daha sonra tekrar deneyin."}
+    if not _rate_limit_check("register:global", max_attempts=20, window_sec=3600):
+        return {"success": False, "error": "Şu anda çok fazla kayıt isteği var. Lütfen daha sonra tekrar deneyin."}
+
     err = _validate_email(email)
     if err:
         return {"success": False, "error": err}

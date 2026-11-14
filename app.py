@@ -16,6 +16,28 @@ def _load_dotenv_once():
 
 _load_dotenv_once()
 
+# Streamlit/Tornado çıktı header'larına temel güvenlik header'ları ekler
+# (clickjacking, MIME-sniffing, referrer sızıntısı). Streamlit'in kendisi
+# bunu yapılandırmaya açmadığı için Tornado'nun RequestHandler'ını process
+# başına bir kez monkeypatch'liyoruz.
+@st.cache_resource
+def _install_security_headers_once():
+    from tornado.web import RequestHandler
+
+    _orig_set_default_headers = RequestHandler.set_default_headers
+
+    def _set_default_headers(self):
+        _orig_set_default_headers(self)
+        self.set_header("X-Content-Type-Options", "nosniff")
+        self.set_header("X-Frame-Options", "DENY")
+        self.set_header("Content-Security-Policy", "frame-ancestors 'none'")
+        self.set_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.set_header("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+
+    RequestHandler.set_default_headers = _set_default_headers
+
+_install_security_headers_once()
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -24,7 +46,7 @@ from datetime import datetime
 
 from src.database import (
     init_db as _init_db, get_stores, create_store, rename_store, delete_store,
-    save_goals, load_goals, link_null_orders, save_user_plan,
+    save_goals, load_goals, link_null_orders,
     create_reset_token, verify_reset_token, use_reset_token,
     get_or_create_referral_code, use_referral_code, get_referral_stats,
     get_weekly_report_settings, save_weekly_report_settings, mark_weekly_report_sent,
@@ -2160,16 +2182,28 @@ def show_payment() -> None:
             if not all([cardholder.strip(), card_no.strip(), expiry.strip(), cvv.strip()]):
                 st.error("Lütfen tüm kart bilgilerini doldurun.")
             else:
-                period = st.session_state.get("plan_period", "m")
-                user_id = st.session_state.user["id"]
-                save_user_plan(user_id, plan_name, period)
-                st.session_state.user["plan"] = plan_name
-                st.session_state.user["plan_period"] = period
+                # Kart ödeme altyapısı (Paycell) henüz entegre değil — bu formun
+                # arkasında gerçek bir ödeme işlemi yok. Kart bilgisi ne olursa
+                # olsun burada plan AKTİFLEŞTİRİLMEZ; aksi halde herkes sahte
+                # kart bilgisiyle ücretli plan alabilir. Kullanıcı Starter
+                # (varsayılan plan) ile devam eder, talebi not edilir.
+                print(
+                    f"[PLAN_REQUEST] user_id={st.session_state.user['id']} "
+                    f"email={st.session_state.user.get('email')} "
+                    f"requested_plan={plan_name} period={st.session_state.get('plan_period', 'm')}",
+                    flush=True,
+                )
                 st.session_state.new_user = False
                 st.session_state.selected_plan = None
-                st.success(f"✅ {plan_name} planınız aktifleştirildi! Yönlendiriliyorsunuz…")
-                import time; time.sleep(1.2)
-                st.rerun()
+                st.info(
+                    f"📝 {plan_name} planı talebiniz alındı. Online kart ödeme sistemimiz şu anda "
+                    "entegrasyon aşamasında — kartınızdan hiçbir ücret alınmadı. Planınızı aktifleştirmek "
+                    "için lütfen bizimle iletişime geçin, size yardımcı olalım."
+                )
+                if st.button("✉️  Bizimle İletişime Geçin", use_container_width=True, key="payment_contact"):
+                    _contact_dialog()
+                if st.button("Starter ile devam et →", use_container_width=True, key="continue_starter"):
+                    st.rerun()
 
         if st.button("← Plan Değiştir", key="back_to_plans"):
             st.session_state.selected_plan = None

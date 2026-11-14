@@ -403,9 +403,12 @@ def _migrate_postgres(cur) -> None:
     """)
 
     # ── Plan sistemi ──────────────────────────────────────────────────────────
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Pro'")
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Starter'")
     cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_period TEXT DEFAULT 'm'")
-    cur.execute("UPDATE users SET plan = 'Pro' WHERE plan IS NULL")
+    # ADD COLUMN IF NOT EXISTS is a no-op once the column exists — SET DEFAULT
+    # is required to actually change the default for a pre-existing column.
+    cur.execute("ALTER TABLE users ALTER COLUMN plan SET DEFAULT 'Starter'")
+    cur.execute("UPDATE users SET plan = 'Starter' WHERE plan IS NULL")
     cur.execute("UPDATE users SET plan_period = 'm' WHERE plan_period IS NULL")
 
     # ── Şifre Sıfırlama Token'ları ────────────────────────────────────────────
@@ -682,12 +685,12 @@ def _migrate_sqlite(cur) -> None:
     """)
 
     # ── Plan sistemi ──────────────────────────────────────────────────────────
-    for col_def in [("plan", "TEXT DEFAULT 'Pro'"), ("plan_period", "TEXT DEFAULT 'm'")]:
+    for col_def in [("plan", "TEXT DEFAULT 'Starter'"), ("plan_period", "TEXT DEFAULT 'm'")]:
         try:
             cur.execute(f"ALTER TABLE users ADD COLUMN {col_def[0]} {col_def[1]}")
         except Exception:
             pass
-    cur.execute("UPDATE users SET plan = 'Pro' WHERE plan IS NULL")
+    cur.execute("UPDATE users SET plan = 'Starter' WHERE plan IS NULL")
     cur.execute("UPDATE users SET plan_period = 'm' WHERE plan_period IS NULL")
 
     # ── Şifre Sıfırlama Token'ları ────────────────────────────────────────────
