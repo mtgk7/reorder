@@ -145,24 +145,13 @@ def _init_db_once(_ver: str = _SCHEMA_VER):
 _init_db_once(_SCHEMA_VER)
 
 
-def _load_favicon():
-    # Dosya yolunu (string) doğrudan page_icon'a veriyoruz — Streamlit bu durumda
-    # ham PNG byte'larını olduğu gibi okur. Bir PIL.Image nesnesi verilseydi
-    # Streamlit onu Pillow ile yeniden encode ederdi (image.save(...)); bu adım
-    # Render'ın Linux/Pillow build'inde 500 hatasına yol açtı (2026-11-14),
-    # yerelde (Windows) ise sorunsuzdu — platform'a özgü bir Pillow davranış
-    # farkı. Dosya yolu vermek bu re-encode adımını tamamen atlıyor.
-    try:
-        from pathlib import Path as _Path
-        path = _Path(__file__).parent / "assets" / "favicon.png"
-        return str(path) if path.is_file() else "🔄"
-    except Exception:
-        return "🔄"
-
-_favicon = _load_favicon()
+# Özel favicon.png dosyası, Render'ın medya sunum katmanında (MemoryMediaFileStorage,
+# tamamen bellek-içi) sebebi tespit edilemeyen bir 500 hatasına yol açıyordu
+# (2026-11-14, yerelde hiç tekrarlanmadı). Dosya tabanlı page_icon yerine sabit
+# emoji kullanmak bu kod yolunu tamamen devre dışı bırakıyor.
 st.set_page_config(
     page_title="ReOrder — Pazaryeri Retention",
-    page_icon=_favicon,
+    page_icon="🔄",
     layout="wide",
     initial_sidebar_state="auto",   # mobilde kapalı, masaüstünde açık
 )
