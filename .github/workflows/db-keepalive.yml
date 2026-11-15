@@ -20,10 +20,34 @@ on:
     - cron: "17 */4 * * *"   # her 4 saatte bir
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   keep-db-warm:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      # GitHub, 60 gün repo aktivitesi yoksa zamanlanmış workflow'ları OTOMATİK
+      # devre dışı bırakır (2026-09-30'da olan buydu). 20 günde bir 'keepalive'
+      # dalına boş commit atarak sayacı sıfırlar; master'a dokunmadığı için
+      # Render yeniden deploy etmez.
+      - name: Repo aktivitesini yenile
+        run: |
+          git fetch origin keepalive 2>/dev/null || true
+          LAST=$(git log -1 --format=%ct origin/keepalive 2>/dev/null || echo 0)
+          NOW=$(date +%s)
+          if [ $((NOW - LAST)) -gt 1728000 ]; then
+            git config user.name "keepalive-bot"
+            git config user.email "keepalive-bot@users.noreply.github.com"
+            git checkout -B keepalive
+            git commit --allow-empty -m "chore: keepalive $(date -u +%F)"
+            git push origin keepalive --force
+          else
+            echo "keepalive commit güncel, atlandı"
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

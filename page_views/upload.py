@@ -368,16 +368,19 @@ def run() -> None:
                 )
                 imp = import_to_db(sample_df, user["id"], batch="sample_data", store_id=store_id)
                 st.cache_data.clear()
-            st.session_state["_sample_done"] = {"inserted": imp["inserted"], "n_cust": n_cust}
+            st.session_state["_sample_done"] = {"inserted": imp["inserted"], "skipped": imp["skipped"], "n_cust": n_cust}
             st.rerun()
 
         if st.session_state.get("_sample_done"):
             res = st.session_state["_sample_done"]
+            if res["inserted"] == 0 and res.get("skipped", 0) > 0:
+                _msg = (f"ℹ️ Örnek veri zaten yüklü ({res['skipped']:,} sipariş mevcut), "
+                        "yeni kayıt eklenmedi.")
+            else:
+                _msg = (f"🎉 <b>{res['inserted']:,} örnek sipariş</b> yüklendi! "
+                        f"{res['n_cust']} müşteri için 12 aylık veri hazır.")
             st.markdown(
-                f"""<div class="success-box">
-                🎉 <b>{res['inserted']:,} örnek sipariş</b> yüklendi!
-                {res['n_cust']} müşteri için 12 aylık veri hazır.
-                </div>""",
+                f'<div class="success-box">{_msg}</div>',
                 unsafe_allow_html=True,
             )
             if st.button("📊 Dashboard'a Git"):

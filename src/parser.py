@@ -260,6 +260,9 @@ def import_to_db(
     inserted = skipped = 0
 
     for row in df.itertuples(index=False):
+        # Her satır kendi savepoint'inde: PostgreSQL'de tek hata tüm transaction'ı
+        # bozup sonraki satırları sessizce "skipped" yapıyordu.
+        cur.execute("SAVEPOINT row_sp")
         try:
             city_val = str(getattr(row, "city", "") or "")
             hour_val = getattr(row, "order_hour", None)
@@ -296,8 +299,13 @@ def import_to_db(
                 inserted += 1
             else:
                 skipped += 1
+            cur.execute("RELEASE SAVEPOINT row_sp")
         except Exception:
             skipped += 1
+            try:
+                cur.execute("ROLLBACK TO SAVEPOINT row_sp")
+            except Exception:
+                pass
 
     conn.commit()
     conn.close()

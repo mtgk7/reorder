@@ -203,11 +203,22 @@ def get_connection():
         pool = _get_pg_pool()
         if pool:
             try:
-                raw_conn = pool.getconn()
-                if raw_conn.closed:
-                    pool.putconn(raw_conn, close=True)
+                # Supabase pause/resume sonrası uzak taraf kopmuş bağlantılar
+                # raw_conn.closed'da görünmez → SELECT 1 ile doğrula, ölüyse at.
+                for _ in range(pool.maxconn + 1):
                     raw_conn = pool.getconn()
-                return _PooledPgConnection(pool, raw_conn)
+                    try:
+                        if raw_conn.closed:
+                            raise RuntimeError("closed")
+                        with raw_conn.cursor() as _c:
+                            _c.execute("SELECT 1")
+                        raw_conn.rollback()
+                        return _PooledPgConnection(pool, raw_conn)
+                    except Exception:
+                        try:
+                            pool.putconn(raw_conn, close=True)
+                        except Exception:
+                            pass
             except Exception:
                 pass
         # Pool yoksa veya tükendiyse direkt bağlantı aç
